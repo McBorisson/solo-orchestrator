@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Build
+        run: ./gradlew build
+
+      - name: Test
+        run: ./gradlew test
+
+      - name: Lint
+        run: ./gradlew detekt
+        continue-on-error: true
+        # Requires detekt Gradle plugin. Add to build.gradle.kts:
+        #   plugins { id("io.gitlab.arturbosch.detekt") version "1.23.+" }
+
+      - name: Security - SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+
+      - name: Security - Dependency audit
+        run: ./gradlew dependencyCheckAnalyze
+        continue-on-error: true
+        # Requires OWASP dependency-check plugin. Add to build.gradle.kts:
+        #   plugins { id("org.owasp.dependencycheck") version "9.+" }
+
+      - name: Security - License check
+        run: ./gradlew checkLicense
+        continue-on-error: true
+        # Requires a license plugin. Add to build.gradle.kts:
+        #   plugins { id("com.github.jk1.dependency-license-report") version "2.+" }

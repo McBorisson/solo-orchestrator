@@ -60,7 +60,7 @@ The more complete the Intake, the more autonomously the agent can work. Where th
 | **Platform type** | Web / Desktop / Mobile / CLI / Other: ______ |
 | **Platform Module** | SOI-PM-WEB / SOI-PM-DESKTOP / SOI-PM-MOBILE / None (new platform) |
 
-> **⚠ Mobile (SOI-PM-MOBILE v1.0-stub) is a stub.** The mobile Platform Module does not yet contain production-ready architecture, testing, or distribution guidance. Mobile projects may proceed for prototyping and personal use, but **organizational deployments targeting mobile must not go to production until SOI-PM-MOBILE reaches v1.0.** If you select Mobile, the agent will use the stub notes as a starting point and flag gaps that require Orchestrator judgment.
+> **Mobile (SOI-PM-MOBILE v1.0)** — The mobile Platform Module covers React Native (Expo), Flutter, Swift (iOS), and Kotlin (Android) with architecture patterns, offline-first guidance, code signing, app store submission, and testing.
 | **Target platforms** | _e.g., "Windows 10+, macOS 12+, Ubuntu 22.04+" or "Web (all modern browsers)" or "iOS 16+, Android 13+"_ |
 | **Is this a personal project or organizational deployment?** | Personal / Organizational |
 | **Repository URL** (if already created) | |
@@ -307,6 +307,9 @@ _These are preferences, not mandates. The agent will respect hard constraints bu
 | **Framework** | _e.g., React Native, Flutter, Expo, native, or "no preference"_ | |
 | **Minimum OS version** | _e.g., iOS 16+, Android 13+_ | |
 | **App store distribution** | _Yes / No / Eventually_ | |
+| **Offline requirement** | _Offline tolerant (graceful errors) / Offline capable (cached reads, queued writes) / Offline first (full functionality offline)_ | |
+| **Device API requirements** | _e.g., Camera, GPS/Location, Bluetooth, NFC, Biometrics, Barcode scanner, Push notifications, Background sync_ | |
+| **Biometric authentication** | _Yes (session unlock) / Yes (primary auth) / No / "no preference"_ | |
 
 **Cross-Cutting:**
 

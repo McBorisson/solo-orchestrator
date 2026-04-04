@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Security - SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+
+      - name: Security - Dependency audit
+        run: npm audit --audit-level=high
+
+      - name: Security - License check
+        run: npx license-checker --failOn "GPL-2.0;GPL-3.0;AGPL-3.0"
+
+      - name: Security - Lockfile integrity
+        run: npm audit signatures

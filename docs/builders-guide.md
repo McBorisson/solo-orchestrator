@@ -18,7 +18,7 @@
 | | SOI-005-CLI v1.0 — Claude Code CLI Setup Addendum |
 | **Platform Modules** | SOI-PM-WEB v1.0 — Web Applications |
 | | SOI-PM-DESKTOP v1.0 — Desktop Applications (Standalone & Client-Server) |
-| | SOI-PM-MOBILE v1.0-stub — Mobile Applications (iOS & Android) |
+| | SOI-PM-MOBILE v1.0 — Mobile Applications (iOS & Android) |
 
 ---
 

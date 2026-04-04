@@ -1,0 +1,201 @@
+# =============================================================================
+# Mobile Release Pipeline — __PROJECT_NAME__
+# =============================================================================
+#
+# This template contains three self-contained sections, one per framework path.
+# Your language selection determines which section to use:
+#
+#   typescript / javascript  →  Section 1: Expo / EAS Build (React Native)
+#   dart                     →  Section 2: Flutter
+#   kotlin / java            →  Section 3: Native Android (Gradle)
+#
+# Instructions:
+#   1. Uncomment the section that matches your framework.
+#   2. Delete the other two sections entirely.
+#   3. Each section has its own setup steps — no shared placeholders are needed
+#      because the toolchains differ significantly between frameworks.
+#
+# =============================================================================
+
+name: Release — __PROJECT_NAME__
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# ============================================================
+# SECTION 1 — EXPO / EAS BUILD (React Native)
+# Uncomment this section if using Expo. Delete other sections.
+# ============================================================
+
+# jobs:
+#   build-and-submit:
+#     runs-on: ubuntu-latest
+#
+#     steps:
+#       - uses: actions/checkout@v4
+#
+#       - uses: actions/setup-node@v4
+#         with:
+#           node-version: '20'
+#
+#       - name: Install dependencies
+#         run: npm ci
+#
+#       - name: Setup Expo
+#         uses: expo/expo-github-action@v8
+#         with:
+#           eas-version: latest
+#           token: ${{ secrets.EXPO_TOKEN }}
+#
+#       - name: Build
+#         run: eas build --profile production --platform all --non-interactive
+#
+#       - name: Submit to app stores
+#         run: eas submit --platform all --non-interactive
+#         # TODO: Configure eas.json submit profiles before enabling this step.
+#         #   ios:     Set appleId, ascAppId in eas.json → submit → production → ios
+#         #   android: Set serviceAccountKeyPath in eas.json → submit → production → android
+#         #            Upload google-service-account.json as a repo secret or EAS secret.
+#
+#       - name: Create GitHub Release
+#         uses: softprops/action-gh-release@v2
+#         with:
+#           generate_release_notes: true
+
+# ============================================================
+# SECTION 2 — FLUTTER
+# Uncomment this section if using Flutter. Delete other sections.
+# ============================================================
+
+# jobs:
+#   build-android:
+#     runs-on: ubuntu-latest
+#
+#     steps:
+#       - uses: actions/checkout@v4
+#
+#       - uses: actions/setup-java@v4
+#         with:
+#           distribution: temurin
+#           java-version: '17'
+#
+#       - uses: subosito/flutter-action@v2
+#         with:
+#           channel: stable
+#
+#       - name: Install dependencies
+#         run: flutter pub get
+#
+#       - name: Decode Android keystore
+#         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+#
+#       - name: Build Android App Bundle
+#         run: flutter build appbundle --release
+#         env:
+#           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+#           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+#           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+#         # NOTE: Your android/app/build.gradle must be configured to read signing
+#         # config from these env vars (or generate a key.properties file in a
+#         # prior step). Flutter does not consume keystore env vars automatically.
+#
+#       - name: Upload Android artifact
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: __PROJECT_NAME__-android
+#           path: build/app/outputs/bundle/release/*.aab
+#
+#   build-ios:
+#     runs-on: macos-latest
+#
+#     steps:
+#       - uses: actions/checkout@v4
+#
+#       - uses: subosito/flutter-action@v2
+#         with:
+#           channel: stable
+#
+#       - name: Install dependencies
+#         run: flutter pub get
+#
+#       - name: Build iOS IPA
+#         run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+#         # TODO: Configure iOS code signing before enabling this step:
+#         #   1. Create ExportOptions.plist with your team ID and provisioning profile.
+#         #   2. Import your Apple Distribution Certificate into the macOS runner keychain.
+#         #      Store APPLE_CERTIFICATE_BASE64 and APPLE_CERTIFICATE_PASSWORD as secrets.
+#         #   3. Install the provisioning profile on the runner.
+#
+#       - name: Upload iOS artifact
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: __PROJECT_NAME__-ios
+#           path: build/ios/ipa/*.ipa
+#
+#   release:
+#     needs: [build-android, build-ios]
+#     runs-on: ubuntu-latest
+#
+#     steps:
+#       - uses: actions/download-artifact@v4
+#
+#       - name: Create GitHub Release
+#         uses: softprops/action-gh-release@v2
+#         with:
+#           files: |
+#             __PROJECT_NAME__-android/*
+#             __PROJECT_NAME__-ios/*
+#           generate_release_notes: true
+#
+#       # TODO: Submit to app stores via Fastlane:
+#       #   iOS:     fastlane deliver (or upload_to_testflight for beta)
+#       #   Android: fastlane supply (upload_to_play_store)
+#       #   See the Mobile Platform Module for Fastlane configuration examples.
+
+# ============================================================
+# SECTION 3 — NATIVE ANDROID (Gradle)
+# Uncomment this section if using native Android. Delete other sections.
+# ============================================================
+
+# jobs:
+#   build-android:
+#     runs-on: ubuntu-latest
+#
+#     steps:
+#       - uses: actions/checkout@v4
+#
+#       - uses: actions/setup-java@v4
+#         with:
+#           distribution: temurin
+#           java-version: '17'
+#
+#       - name: Decode Android keystore
+#         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
+#
+#       - name: Build release bundle
+#         run: ./gradlew bundleRelease
+#         env:
+#           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+#           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+#           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+#
+#       - name: Upload artifact
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: __PROJECT_NAME__-android
+#           path: app/build/outputs/bundle/release/*.aab
+#
+#       - name: Create GitHub Release
+#         uses: softprops/action-gh-release@v2
+#         with:
+#           files: app/build/outputs/bundle/release/*.aab
+#           generate_release_notes: true
+#
+#       # TODO: Submit to Play Store via Fastlane:
+#       #   fastlane supply --aab app/build/outputs/bundle/release/app-release.aab --track internal
+#       #   Requires GOOGLE_PLAY_JSON_KEY secret (service account key).

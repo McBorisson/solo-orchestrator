@@ -22,12 +22,12 @@ chmod +x init.sh
 ```
 
 The init script will:
-1. Check prerequisites (Node.js 18+, Git)
-2. Collect your project information (name, platform, track)
+1. Check prerequisites (Git, language runtime)
+2. Collect your project information (name, platform, track, language)
 3. Install security tooling (Semgrep, gitleaks, Snyk, Claude Code)
-4. Create your project directory with all framework documents copied in
-5. Generate `CLAUDE.md`, `.gitignore`, and CI/CD template
-6. Initialize Git and run a health check
+4. Create your project directory with all framework documents and platform module
+5. Generate `CLAUDE.md`, `.gitignore`, CI pipeline, and release pipeline
+6. Initialize Git and run a health check (including language runtime validation)
 7. Print your next steps
 
 **After init completes:**
@@ -41,8 +41,8 @@ The init script will:
 
 | Tool | Required | Install |
 |---|---|---|
-| **Node.js 18+** | Yes | [nodejs.org](https://nodejs.org/) (LTS) |
 | **Git** | Yes | [git-scm.com](https://git-scm.com/downloads) |
+| **Language runtime** | Yes | Depends on your language selection — Node.js, Python, Rust/Cargo, .NET SDK, JDK, Go, or Flutter. The init script validates your runtime during health check. |
 | **Docker** | Recommended | [docker.com](https://www.docker.com/) — needed for OWASP ZAP DAST scanning |
 | **Claude Code** | Recommended (framework is optimized for Claude Code; other AI coding agents can be used but the CLI Setup Addendum and Phase 2 workflow accelerators are Claude Code-specific) | Installed by init script, or manually: `brew install claude-code` (macOS), `winget install Anthropic.ClaudeCode` (Windows) |
 
@@ -76,8 +76,14 @@ When you run `init.sh`, it creates a project directory with this structure:
 your-project/
 ├── CLAUDE.md                           # Agent instructions (auto-generated)
 ├── PROJECT_INTAKE.md                   # Your product definition (fill this out)
-├── .github/workflows/ci.yml           # CI/CD template
-├── .gitignore                          # Platform-appropriate ignores
+├── .github/workflows/
+│   ├── ci.yml                         # CI pipeline — language-specific (test, lint, SAST, audit)
+│   └── release.yml                    # Release pipeline — platform-specific (build, sign, distribute)
+├── .gitignore                          # Language + platform-appropriate ignores
+├── .claude/
+│   ├── framework/                     # Claude Dev Framework (Git hook guardrails)
+│   ├── framework-config.yml           # Active profile configuration
+│   └── framework-version.txt          # Pinned framework commit SHA
 ├── docs/
 │   ├── framework/
 │   │   ├── builders-guide.md           # The complete methodology
@@ -88,6 +94,8 @@ your-project/
 │   │   └── [your-platform].md          # Platform-specific guidance
 │   └── test-results/                   # Phase 3 test evidence (populated during build)
 ```
+
+The init script generates **two pipelines** per project. The CI pipeline (`ci.yml`) is selected by your **language** — it handles testing, linting, SAST scanning, dependency auditing, and license checking using your language's toolchain. The release pipeline (`release.yml`) is selected by your **platform** — it handles building, signing, packaging, and distributing for your target platform. Both are working GitHub Actions workflows, not skeletons.
 
 All framework documents are copied into the project. Each project is self-contained — no external dependencies on this repo after init.
 
@@ -126,6 +134,20 @@ Each phase produces artifacts that gate entry into the next phase. The AI execut
 4. **You review at decision gates** — architecture selection, test assertions, go-live
 5. **You test the MVP** — pass/fail
 
+### Modular Architecture
+
+The framework is built on two independent extensibility axes: **platforms** and **languages**.
+
+**Platform modules** (`docs/platform-modules/`) are documentation — architecture patterns, tooling, testing strategies, and distribution guidance for a specific platform type. The Builder's Guide references them through callout markers (`⟁ PLATFORM MODULE`) at defined integration points. The core guide tells you *when* to do something; the module tells you *how* for your platform.
+
+**Pipeline modules** (`templates/pipelines/`) are executable CI/CD configuration. They split into two dimensions:
+- `ci/` — one template per **language** (test, lint, SAST, audit). Copied verbatim.
+- `release/` — one template per **platform** (build, sign, package, deploy). Language-specific build commands are injected via placeholder substitution.
+
+This separation means adding support for a new platform requires two files: a platform module (documentation) and a release pipeline template (CI/CD). Adding a new language requires one file: a CI template. Nothing in the Builder's Guide, existing modules, or existing templates changes. The web, desktop, and mobile modules were each built this way — added independently without modifying the core framework or each other.
+
+**Extensibility example:** To add "Azure Microservices" as a platform, write `docs/platform-modules/azure-microservices.md` (standard module structure) and `templates/pipelines/release/azure-microservices.yml` (with `__PLACEHOLDER__` tokens for language injection). Add the option to the init script's platform prompt. The release pipeline generator auto-discovers templates by filename — no code change needed for pipeline generation.
+
 ---
 
 ## Platform Support
@@ -136,7 +158,7 @@ Each phase produces artifacts that gate entry into the next phase. The AI execut
 |---|---|---|
 | **Web** (SPA, full-stack, API) | `web.md` | v1.0 — Complete |
 | **Desktop** (Windows, macOS, Linux) | `desktop.md` | v1.0 — Complete |
-| **Mobile** (iOS, Android) | `mobile.md` | v1.0-stub — Preliminary |
+| **Mobile** (iOS, Android) | `mobile.md` | v1.0 — Complete |
 
 ### Roadmap
 
@@ -145,6 +167,29 @@ Each phase produces artifacts that gate entry into the next phase. The AI execut
 | **CLI** | — | No dedicated module. Core guide works standalone for simple CLI tools. |
 
 New platform modules can be added without modifying the core framework. A module is production-ready when it covers: Architecture → Tooling → Build & Packaging → Testing → Distribution → Maintenance.
+
+---
+
+## Language Support
+
+The init script generates language-appropriate CI pipelines, `.gitignore` entries, and runtime validation for 10 languages:
+
+| Language | CI: Build/Test | CI: Lint | CI: Dependency Audit | CI: License Check |
+|---|---|---|---|---|
+| **TypeScript** | `npm run build` / `npm test` | `npm run lint` | `npm audit` | `license-checker` |
+| **JavaScript** | (same as TypeScript) | | | |
+| **Python** | `pip install` / `pytest` | `ruff check` | `pip-audit` | `pip-licenses` |
+| **Rust** | `cargo build` / `cargo test` | `cargo clippy`, `cargo fmt` | `cargo audit` | `cargo license` |
+| **C#** | `dotnet build` / `dotnet test` | (built into build) | `dotnet list package --vulnerable` | `dotnet-project-licenses` |
+| **Kotlin** | `./gradlew build` / `./gradlew test` | `detekt` (plugin) | `dependencyCheckAnalyze` (plugin) | `checkLicense` (plugin) |
+| **Java** | (same as Kotlin) | | | |
+| **Go** | `go build` / `go test -race` | `golangci-lint` | `govulncheck` | `go-licenses` |
+| **Dart** | `flutter pub get` / `flutter test` | `flutter analyze` | `osv-scanner` | `pana` |
+| **Other** | TODO skeleton | TODO | TODO | TODO |
+
+All CI templates include Semgrep SAST scanning. Languages that require external tools (Rust, Python, Dart) install them explicitly in the pipeline. JVM templates include Gradle plugin setup instructions for tools that require project configuration.
+
+The release pipeline is driven by your **platform** selection, not language — the init script injects your language's build commands into the platform template via placeholder substitution.
 
 ---
 
@@ -190,8 +235,10 @@ The framework is optimized for Claude Code. Here's what's portable and what requ
 - The methodology: phases, decision gates, quality controls
 - All document artifacts: Product Manifesto, Project Bible, ADRs, test results, HANDOFF.md
 - Security tooling: Semgrep, gitleaks, Snyk, OWASP ZAP, SBOM generation
-- CI/CD pipeline, Git hooks, testing frameworks
+- CI pipeline (language-specific) and release pipeline (platform-specific) — standard GitHub Actions
+- Git hooks, testing frameworks, all generated `.gitignore` content
 - The Intake Template and Governance Framework
+- Pipeline module templates (reusable across agents)
 
 **Claude Code-specific (requires retooling to switch):**
 - CLAUDE.md → equivalent agent configuration file for the new agent
@@ -232,7 +279,7 @@ This is the initial release of the Solo Orchestrator Framework. It has been used
 | CLI Setup Addendum | v1.0 | 2026-04-02 |
 | Platform Module: Web | v1.0 | 2026-04-02 |
 | Platform Module: Desktop | v1.0 | 2026-04-02 |
-| Platform Module: Mobile | v1.0-stub | 2026-04-02 |
+| Platform Module: Mobile | v1.0 | 2026-04-02 |
 
 ---
 

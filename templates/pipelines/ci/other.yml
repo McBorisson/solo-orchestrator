@@ -1,0 +1,46 @@
+name: CI
+
+# TODO: Customize these steps for your language and toolchain.
+# This is a skeleton — uncomment and fill in the appropriate commands.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO: Add language/runtime setup step
+      # Example: actions/setup-node@v4, actions/setup-python@v5,
+      #   actions/setup-dotnet@v4, actions/setup-java@v4, actions/setup-go@v5
+
+      # TODO: Install dependencies
+      # - name: Install dependencies
+      #   run: <your install command>
+
+      # TODO: Lint
+      # - name: Lint
+      #   run: <your lint command>
+
+      # TODO: Test
+      # - name: Test
+      #   run: <your test command>
+
+      - name: Security - SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+
+      # TODO: Dependency audit
+      # - name: Security - Dependency audit
+      #   run: <your audit command>
+
+      # TODO: License check
+      # - name: Security - License check
+      #   run: <your license check command>

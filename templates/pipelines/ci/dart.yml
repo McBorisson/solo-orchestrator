@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Lint
+        run: flutter analyze --fatal-infos
+
+      - name: Test
+        run: flutter test
+
+      - name: Security - SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+
+      - name: Security - Dependency audit
+        run: |
+          curl -sL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o /usr/local/bin/osv-scanner
+          chmod +x /usr/local/bin/osv-scanner
+          osv-scanner --lockfile=pubspec.lock
+        continue-on-error: true
+
+      - name: Security - License check
+        run: |
+          dart pub global activate pana
+          pana --no-warning

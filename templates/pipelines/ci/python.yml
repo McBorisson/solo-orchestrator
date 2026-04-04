@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install dev tools
+        run: pip install ruff pytest pip-audit pip-licenses
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: pytest
+
+      - name: Security - SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+
+      - name: Security - Dependency audit
+        run: pip-audit
+
+      - name: Security - License check
+        run: pip-licenses --fail-on="GNU General Public License v3 (GPLv3)"

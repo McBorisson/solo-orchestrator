@@ -2,9 +2,7 @@
 
 ## iOS & Android — Native and Cross-Platform
 
-### Version 1.0-stub
-
-> **This module is a stub (v1.0-stub). It contains preliminary notes, not production-ready guidance. Do not use this module for organizational deployments. It is included to show the planned structure — the content has not been validated or completed.**
+### Version 1.0
 
 ---
 
@@ -13,7 +11,7 @@
 | Field | Value |
 |---|---|
 | **Document ID** | SOI-PM-MOBILE |
-| **Version** | 1.0-stub |
+| **Version** | 1.0 |
 | **Classification** | Platform Module |
 | **Date** | 2026-04-02 |
 | **Parent Document** | SOI-002-BUILD v1.0 — Solo Orchestrator Builder's Guide |
@@ -1717,4 +1715,4 @@ Review both dashboards weekly post-launch, monthly once stable.
 
 | Version | Date | Changes |
 |---|---|---|
-| 1.0-stub | 2026-04-02 | Initial release. |
+| 1.0 | 2026-04-02 | Initial release. |

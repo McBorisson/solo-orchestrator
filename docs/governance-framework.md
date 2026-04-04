@@ -15,7 +15,7 @@
 | **Audience** | CIO, VP of Engineering, IT Security, Legal, Risk & Compliance, Internal Audit |
 | **Companion Documents** | SOI-002-BUILD v1.0 — Solo Orchestrator Builder's Guide (technical execution manual) |
 | | SOI-004-INTAKE v1.0 — Project Intake Template (structured input for Phase 0 and Phase 1) |
-| | SOI-PM-* — Platform Modules (Web, Desktop — production-ready. Mobile — roadmap.) |
+| | SOI-PM-* — Platform Modules (Web, Desktop, Mobile — production-ready) |
 
 ---
 

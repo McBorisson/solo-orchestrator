@@ -23,7 +23,7 @@
 
 The Solo Orchestrator Framework is a structured software development methodology that enables a single experienced technologist to build production-grade applications by using AI Large Language Models as the execution layer. The technologist acts as Product Owner, Lead Architect, and QA Director. The AI proposes architecture, generates logic, and writes code within constraints defined and validated by the human operator.
 
-The framework currently supports **web and desktop applications** with production-ready Platform Modules. The core methodology is platform-agnostic — additional platforms (mobile, CLI, embedded) can be added through new Platform Modules as they mature.
+The framework currently supports **web, desktop, and mobile applications** with production-ready Platform Modules. The core methodology is platform-agnostic — additional platforms (CLI, embedded) can be added through new Platform Modules as they mature.
 
 The framework is a phase-gated process consisting of five stages: Product Discovery (defining requirements), Architecture & Planning (selecting technology), Construction (building features), Validation & Hardening (security and quality assurance), and Release & Maintenance (distribution and ongoing support). Each phase produces documented artifacts that gate entry into the next phase. No code is deployed without passing automated testing, security scanning, and human review.
 
@@ -33,7 +33,7 @@ The framework is **modular** — the core methodology is platform-agnostic, with
 
 Every large organization has a software backlog that will never be built. The projects are too small to justify a full development team, too complex for no-code platforms, and too specific for off-the-shelf SaaS. They age in Jira while business units find workarounds — spreadsheets, manual processes, or unauthorized SaaS purchases that create shadow IT risk.
 
-The Solo Orchestrator model addresses this gap. A single qualified technologist can take a concept from idea to production in weeks at a fraction of the cost of a traditional team. Production-ready Platform Modules currently support web and desktop applications, with mobile planned.
+The Solo Orchestrator model addresses this gap. A single qualified technologist can take a concept from idea to production in weeks at a fraction of the cost of a traditional team. Production-ready Platform Modules currently support web, desktop, and mobile applications.
 
 ### Current Maturity
 
@@ -88,7 +88,7 @@ Platform-specific tooling (hosting, SDKs, packaging, distribution) varies by pro
 |---|---|---|
 | **Web Applications** | $0-$300/month (hosting, database, CDN) | Scales with traffic. Free tiers available for small projects. |
 | **Desktop Applications** | $0-$600/year (code signing certificates) | macOS: $99/year Apple Developer. Windows EV cert: $200-$500/year. Linux: free. Build infrastructure (CI) is the primary cost. |
-| **Mobile Applications** *(roadmap)* | $99-$125/year (store accounts) + hosting for any backend | Apple Developer: $99/year. Google Play: $25 one-time. |
+| **Mobile Applications** | $99-$125/year (store accounts) + hosting for any backend | Apple Developer: $99/year. Google Play: $25 one-time. |
 
 ### Monthly Cost Summary (Per Application)
 
@@ -252,7 +252,7 @@ Detailed legal analysis is in the Enterprise Governance Framework (SOI-003-GOV, 
 
 ### Platform-Specific Legal Considerations
 
-Desktop distribution (and mobile, when the mobile module matures) introduces additional legal requirements not present in web applications:
+Desktop and mobile distribution introduces additional legal requirements not present in web applications:
 
 - **Code signing certificates** — Organizational ownership, rotation, and revocation procedures.
 - **App store compliance** — Platform-specific guidelines (Microsoft Store, Mac App Store, Google Play, Apple App Store) if distributing through stores.
@@ -295,7 +295,7 @@ Desktop distribution (and mobile, when the mobile module matures) introduces add
 | **Budget** | <$400/month infrastructure | Full engineering team budget available |
 | **Strategic value** | Tactical tool, prototype, MVP validation | Core revenue product, competitive differentiator |
 | **Maintenance** | 2-4 hours/week acceptable (stabilizing to 1-2) | Dedicated on-call team required |
-| **Platform** | Web, desktop (production-ready). Mobile planned. | Any |
+| **Platform** | Web, desktop, mobile (production-ready) | Any |
 
 ### Recommended Use Cases
 
@@ -362,7 +362,7 @@ The Solo Orchestrator Framework consists of the following documents:
 |---|---|---|
 | **Web Applications** | SOI-PM-WEB v1.0 | SPAs, full-stack, APIs. Next.js, React, Vercel/Railway/Supabase. |
 | **Desktop Applications** | SOI-PM-DESKTOP v1.0 | Windows/macOS/Linux standalone and client-server. Tauri, Electron, Flutter Desktop. |
-| **Mobile Applications** *(roadmap)* | SOI-PM-MOBILE v1.0-stub | iOS/Android native and cross-platform. Stub — not production-ready. |
+| **Mobile Applications** | SOI-PM-MOBILE v1.0 | iOS/Android native and cross-platform. React Native (Expo), Flutter, Swift, Kotlin. |
 
 The framework is extensible — new Platform Modules (embedded systems, CLI tools, game development, etc.) can be added without modifying the core documents. Each module follows a standard internal structure: Architecture Patterns → Tooling → Build & Packaging → Testing → Distribution → Maintenance.
 

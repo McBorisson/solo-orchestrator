@@ -53,9 +53,9 @@ prompt_choice() {
   local prompt="$1"
   shift
   local options=("$@")
-  echo -e "${BOLD}$prompt${NC}"
+  echo -e "${BOLD}$prompt${NC}" >&2
   for i in "${!options[@]}"; do
-    echo "  $((i+1)). ${options[$i]}"
+    echo "  $((i+1)). ${options[$i]}" >&2
   done
   local choice
   read -rp "$(echo -e "${BOLD}Select [1-${#options[@]}]${NC}: ")" choice
@@ -69,7 +69,15 @@ check_prerequisites() {
   print_step "Checking prerequisites..."
   local missing=()
 
-  # Node.js
+  # Git (always required)
+  if command -v git &>/dev/null; then
+    print_ok "Git $(git --version | awk '{print $3}')"
+  else
+    print_fail "Git not found"
+    missing+=("git")
+  fi
+
+  # Node.js — required for JS/TS projects, recommended for others (used by some tooling)
   if command -v node &>/dev/null; then
     local node_version
     node_version=$(node --version | sed 's/v//')
@@ -78,20 +86,12 @@ check_prerequisites() {
     if [ "$node_major" -ge 18 ]; then
       print_ok "Node.js $node_version"
     else
-      print_warn "Node.js $node_version (18+ required)"
-      missing+=("node")
+      print_warn "Node.js $node_version (18+ recommended)"
     fi
   else
-    print_fail "Node.js not found"
-    missing+=("node")
-  fi
-
-  # Git
-  if command -v git &>/dev/null; then
-    print_ok "Git $(git --version | awk '{print $3}')"
-  else
-    print_fail "Git not found"
-    missing+=("git")
+    # Node.js is only hard-required for JS/TS projects
+    # For other languages it's used by some optional tooling (Snyk, license-checker)
+    print_warn "Node.js not found"
   fi
 
   # Docker (optional but recommended)
@@ -112,8 +112,7 @@ check_prerequisites() {
     echo ""
     print_fail "Missing required prerequisites: ${missing[*]}"
     echo "  Install them before continuing."
-    echo "  Node.js: https://nodejs.org/ (LTS recommended)"
-    echo "  Git:     https://git-scm.com/downloads"
+    echo "  Git: https://git-scm.com/downloads"
     exit 1
   fi
 
@@ -139,7 +138,7 @@ collect_project_info() {
 
   DEPLOYMENT=$(prompt_choice "Personal or organizational?" "personal" "organizational")
 
-  LANGUAGE=$(prompt_choice "Primary language:" "typescript" "javascript" "python" "rust" "other")
+  LANGUAGE=$(prompt_choice "Primary language:" "typescript" "javascript" "python" "rust" "csharp" "kotlin" "java" "go" "dart" "other")
 
   # Determine project directory
   PROJECT_DIR=$(prompt_input "Project directory" "$HOME/projects/$PROJECT_NAME")
@@ -320,9 +319,13 @@ FWEOF
   print_info "Generating .gitignore..."
   generate_gitignore
 
-  # Generate CI template
-  print_info "Generating CI/CD template..."
+  # Generate CI pipeline (language-specific)
+  print_info "Generating CI pipeline..."
   generate_ci
+
+  # Generate release pipeline (platform-specific)
+  print_info "Generating release pipeline..."
+  generate_release
 
   # Initialize git
   print_info "Initializing Git repository..."
@@ -505,194 +508,177 @@ target/
 # if this is a library crate (libraries should not commit Cargo.lock).
 RSEOF
       ;;
+    csharp)
+      cat >> .gitignore << 'CSEOF'
+
+# C# / .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+packages/
+*.nupkg
+project.lock.json
+TestResults/
+CSEOF
+      ;;
+    kotlin|java)
+      cat >> .gitignore << 'JVEOF'
+
+# Kotlin / Java (Gradle)
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+local.properties
+*.class
+*.jar
+*.war
+JVEOF
+      ;;
+    go)
+      cat >> .gitignore << 'GOEOF'
+
+# Go
+vendor/
+*.exe
+*.test
+*.out
+GOEOF
+      ;;
+    dart)
+      cat >> .gitignore << 'DTEOF'
+
+# Dart / Flutter
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+*.dart.js
+*.dart.js.map
+# Note: Commit pubspec.lock for application projects (reproducible builds).
+# Add pubspec.lock to .gitignore only for library/plugin packages.
+DTEOF
+      ;;
+  esac
+}
+
+# ================================================================
+# Release Pipeline Variables (language → build commands)
+# ================================================================
+get_release_vars() {
+  case "$LANGUAGE" in
+    typescript|javascript)
+      RELEASE_SETUP_ACTION="actions/setup-node@v4"
+      RELEASE_SETUP_VERSION_KEY="node-version"
+      RELEASE_SETUP_VERSION_VALUE="'20'"
+      RELEASE_INSTALL_COMMAND="npm ci"
+      RELEASE_BUILD_COMMAND="npm run build"
+      ;;
+    python)
+      RELEASE_SETUP_ACTION="actions/setup-python@v5"
+      RELEASE_SETUP_VERSION_KEY="python-version"
+      RELEASE_SETUP_VERSION_VALUE="'3.12'"
+      RELEASE_INSTALL_COMMAND="pip install -r requirements.txt"
+      RELEASE_BUILD_COMMAND="python -m build"
+      ;;
+    rust)
+      RELEASE_SETUP_ACTION="dtolnay/rust-toolchain@stable"
+      RELEASE_SETUP_VERSION_KEY="toolchain"
+      RELEASE_SETUP_VERSION_VALUE="stable"
+      RELEASE_INSTALL_COMMAND="echo 'No separate install step for Rust'"
+      RELEASE_BUILD_COMMAND="cargo build --release"
+      ;;
+    csharp)
+      RELEASE_SETUP_ACTION="actions/setup-dotnet@v4"
+      RELEASE_SETUP_VERSION_KEY="dotnet-version"
+      RELEASE_SETUP_VERSION_VALUE="'8.0.x'"
+      RELEASE_INSTALL_COMMAND="dotnet restore"
+      RELEASE_BUILD_COMMAND="dotnet build --configuration Release"
+      ;;
+    kotlin|java)
+      RELEASE_SETUP_ACTION="actions/setup-java@v4"
+      RELEASE_SETUP_VERSION_KEY="java-version"
+      RELEASE_SETUP_VERSION_VALUE="'21'"
+      RELEASE_INSTALL_COMMAND="echo 'Gradle handles dependencies automatically'"
+      RELEASE_BUILD_COMMAND="./gradlew build"
+      ;;
+    go)
+      RELEASE_SETUP_ACTION="actions/setup-go@v5"
+      RELEASE_SETUP_VERSION_KEY="go-version"
+      RELEASE_SETUP_VERSION_VALUE="'stable'"
+      RELEASE_INSTALL_COMMAND="echo 'Go modules download automatically'"
+      RELEASE_BUILD_COMMAND="go build ./..."
+      ;;
+    dart)
+      RELEASE_SETUP_ACTION="subosito/flutter-action@v2"
+      RELEASE_SETUP_VERSION_KEY="channel"
+      RELEASE_SETUP_VERSION_VALUE="'stable'"
+      RELEASE_INSTALL_COMMAND="flutter pub get"
+      RELEASE_BUILD_COMMAND="flutter build"
+      ;;
+    *)
+      RELEASE_SETUP_ACTION="# TODO: Add setup action for your language"
+      RELEASE_SETUP_VERSION_KEY="version"
+      RELEASE_SETUP_VERSION_VALUE="'latest'"
+      RELEASE_INSTALL_COMMAND="# TODO: Add install command"
+      RELEASE_BUILD_COMMAND="# TODO: Add build command"
+      ;;
   esac
 }
 
 generate_ci() {
   mkdir -p .github/workflows
 
+  # Map language to CI template filename
+  local ci_template
   case "$LANGUAGE" in
-    typescript|javascript)
-      cat > .github/workflows/ci.yml << 'CIEOF'
-name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Test
-        run: npm test
-
-      - name: Security - SAST (Semgrep)
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: auto
-
-      - name: Security - Dependency audit
-        run: npm audit --audit-level=high
-
-      - name: Security - License check
-        run: npx license-checker --failOn "GPL-2.0;GPL-3.0;AGPL-3.0"
-
-      - name: Security - Lockfile integrity
-        run: npm audit signatures
-CIEOF
-      ;;
-    python)
-      cat > .github/workflows/ci.yml << 'CIEOF'
-name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Lint
-        run: ruff check .
-
-      - name: Test
-        run: pytest
-
-      - name: Security - SAST (Semgrep)
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: auto
-
-      - name: Security - Dependency audit
-        run: pip-audit
-
-      - name: Security - License check
-        run: pip-licenses --fail-on="GNU General Public License v3 (GPLv3)"
-CIEOF
-      ;;
-    rust)
-      cat > .github/workflows/ci.yml << 'CIEOF'
-name: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - name: Build
-        run: cargo build --release
-
-      - name: Test
-        run: cargo test
-
-      - name: Lint
-        run: cargo clippy -- -D warnings
-
-      - name: Security - SAST (Semgrep)
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: auto
-
-      - name: Security - Dependency audit
-        run: cargo audit
-
-      - name: Security - License check
-        run: cargo license --avoid-build-deps --avoid-dev-deps
-CIEOF
-      ;;
-    *)
-      cat > .github/workflows/ci.yml << 'CIEOF'
-name: CI
-
-# Customize these steps for your language and toolchain
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      # TODO: Add language/runtime setup step
-      # Example: actions/setup-node@v4, actions/setup-python@v5, etc.
-
-      # TODO: Install dependencies
-      # - name: Install dependencies
-      #   run: <your install command>
-
-      # TODO: Lint
-      # - name: Lint
-      #   run: <your lint command>
-
-      # TODO: Test
-      # - name: Test
-      #   run: <your test command>
-
-      # TODO: SAST via Semgrep
-      # - name: Security - SAST (Semgrep)
-      #   uses: returntocorp/semgrep-action@v1
-      #   with:
-      #     config: auto
-
-      # TODO: Dependency audit
-      # - name: Security - Dependency audit
-      #   run: <your audit command>
-
-      # TODO: License check
-      # - name: Security - License check
-      #   run: <your license check command>
-CIEOF
-      ;;
+    typescript|javascript) ci_template="typescript.yml" ;;
+    python)                ci_template="python.yml" ;;
+    rust)                  ci_template="rust.yml" ;;
+    csharp)                ci_template="csharp.yml" ;;
+    kotlin|java)           ci_template="jvm.yml" ;;
+    go)                    ci_template="go.yml" ;;
+    dart)                  ci_template="dart.yml" ;;
+    *)                     ci_template="other.yml" ;;
   esac
 
-  print_info "CI template created at .github/workflows/ci.yml (language: $LANGUAGE)"
-  print_info "Review and customize the template for your specific toolchain."
+  local template_path="$SCRIPT_DIR/templates/pipelines/ci/$ci_template"
+  if [ -f "$template_path" ]; then
+    cp "$template_path" .github/workflows/ci.yml
+  else
+    print_warn "CI template not found: $template_path"
+    return 1
+  fi
+
+  print_info "CI pipeline created at .github/workflows/ci.yml (language: $LANGUAGE)"
+}
+
+generate_release() {
+  local release_template="$SCRIPT_DIR/templates/pipelines/release/$PLATFORM.yml"
+  if [ ! -f "$release_template" ]; then
+    print_info "No release pipeline template for platform '$PLATFORM'. Skipping release pipeline."
+    return 0
+  fi
+
+  mkdir -p .github/workflows
+
+  # Get language-specific build variables
+  get_release_vars
+
+  # Substitute placeholders into the release template
+  sed -e "s|__SETUP_ACTION__|$RELEASE_SETUP_ACTION|g" \
+      -e "s|__SETUP_VERSION_KEY__|$RELEASE_SETUP_VERSION_KEY|g" \
+      -e "s|__SETUP_VERSION_VALUE__|$RELEASE_SETUP_VERSION_VALUE|g" \
+      -e "s|__INSTALL_COMMAND__|$RELEASE_INSTALL_COMMAND|g" \
+      -e "s|__BUILD_COMMAND__|$RELEASE_BUILD_COMMAND|g" \
+      -e "s|__PROJECT_NAME__|$PROJECT_NAME|g" \
+      "$release_template" > .github/workflows/release.yml
+
+  print_info "Release pipeline created at .github/workflows/release.yml (platform: $PLATFORM)"
+  print_info "Review TODOs in the release pipeline — signing, deployment, and secrets require configuration."
 }
 
 # ================================================================
@@ -709,7 +695,10 @@ health_check() {
   [ -f "PROJECT_INTAKE.md" ] && print_ok "PROJECT_INTAKE.md" || { print_fail "PROJECT_INTAKE.md missing"; ((warnings++)); }
   [ -f "docs/framework/builders-guide.md" ] && print_ok "Builder's Guide" || { print_fail "Builder's Guide missing"; ((warnings++)); }
   [ -f ".gitignore" ] && print_ok ".gitignore" || { print_fail ".gitignore missing"; ((warnings++)); }
-  [ -f ".github/workflows/ci.yml" ] && print_ok "CI/CD template" || { print_fail "CI template missing"; ((warnings++)); }
+  [ -f ".github/workflows/ci.yml" ] && print_ok "CI pipeline" || { print_fail "CI pipeline missing"; ((warnings++)); }
+  if [ -f "$SCRIPT_DIR/templates/pipelines/release/$PLATFORM.yml" ]; then
+    [ -f ".github/workflows/release.yml" ] && print_ok "Release pipeline" || { print_fail "Release pipeline missing"; ((warnings++)); }
+  fi
   [ -d ".git" ] && print_ok "Git initialized" || { print_fail "Git not initialized"; ((warnings++)); }
   [ -d ".claude/framework" ] && print_ok "Claude Dev Framework" || { print_warn "Claude Dev Framework not installed"; ((warnings++)); }
 
@@ -718,6 +707,25 @@ health_check() {
   command -v semgrep &>/dev/null && print_ok "Semgrep accessible" || { print_warn "Semgrep not found"; ((warnings++)); }
   command -v gitleaks &>/dev/null && print_ok "gitleaks accessible" || { print_warn "gitleaks not found"; ((warnings++)); }
   command -v snyk &>/dev/null && print_ok "Snyk accessible" || { print_warn "Snyk not found"; ((warnings++)); }
+
+  # Check language runtime
+  case "$LANGUAGE" in
+    typescript|javascript)
+      command -v node &>/dev/null && print_ok "Node.js runtime" || { print_fail "Node.js not found (required for $LANGUAGE)"; ((warnings++)); } ;;
+    python)
+      (command -v python3 &>/dev/null || command -v python &>/dev/null) && print_ok "Python runtime" || { print_fail "Python not found (required for $LANGUAGE)"; ((warnings++)); } ;;
+    rust)
+      command -v cargo &>/dev/null && print_ok "Rust/Cargo runtime" || { print_fail "Rust (cargo) not found (required for $LANGUAGE). Install: https://rustup.rs/"; ((warnings++)); } ;;
+    csharp)
+      command -v dotnet &>/dev/null && print_ok ".NET SDK" || { print_fail ".NET SDK not found (required for $LANGUAGE). Install: https://dotnet.microsoft.com/download"; ((warnings++)); } ;;
+    kotlin|java)
+      command -v java &>/dev/null && print_ok "Java runtime" || { print_fail "Java not found (required for $LANGUAGE). Install: https://adoptium.net/"; ((warnings++)); }
+      command -v gradle &>/dev/null && print_ok "Gradle" || { print_warn "Gradle not found (use ./gradlew wrapper or install: https://gradle.org/)"; ((warnings++)); } ;;
+    go)
+      command -v go &>/dev/null && print_ok "Go runtime" || { print_fail "Go not found (required for $LANGUAGE). Install: https://go.dev/dl/"; ((warnings++)); } ;;
+    dart)
+      command -v flutter &>/dev/null && print_ok "Flutter SDK" || { print_fail "Flutter not found (required for $LANGUAGE). Install: https://docs.flutter.dev/get-started/install"; ((warnings++)); } ;;
+  esac
 
   echo ""
   if [ $warnings -eq 0 ]; then
@@ -798,6 +806,13 @@ print_next_steps() {
   echo "     - Context7 MCP (up-to-date library documentation)"
   echo "     - Qdrant MCP (persistent semantic memory across sessions)"
   echo ""
+  if [ -f "$PROJECT_DIR/.github/workflows/release.yml" ]; then
+    echo "  RELEASE PIPELINE (review before first release):"
+    echo "     .github/workflows/release.yml"
+    echo "     - Review and configure TODOs (code signing, deployment, secrets)"
+    echo "     - The release pipeline runs on version tags: git tag v1.0.0 && git push --tags"
+    echo ""
+  fi
   echo "  DOCUMENTATION:"
   echo "     docs/framework/builders-guide.md    — The complete methodology"
   echo "     docs/framework/governance-framework.md — Enterprise governance"

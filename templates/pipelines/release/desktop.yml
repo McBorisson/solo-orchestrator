@@ -1,0 +1,81 @@
+name: Release — __PROJECT_NAME__
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: __SETUP_ACTION__
+        with:
+          __SETUP_VERSION_KEY__: __SETUP_VERSION_VALUE__
+
+      - name: Install dependencies
+        run: __INSTALL_COMMAND__
+
+      - name: Build
+        run: __BUILD_COMMAND__
+        # TODO: Replace with your framework's build command:
+        #   Tauri:    cargo tauri build
+        #   Electron: npx electron-builder --publish never
+        #   Flutter:  flutter build [windows|macos|linux] --release
+
+      - name: Code signing
+        run: echo "TODO — configure code signing"
+        # TODO: Configure code signing. Store certificates as GitHub Secrets.
+        #
+        #   Windows: EV Code Signing Certificate
+        #     Secrets: WINDOWS_CERTIFICATE_BASE64, WINDOWS_CERTIFICATE_PASSWORD
+        #     Decode:  echo "${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}" | base64 -d > cert.pfx
+        #     Sign:    signtool sign /f cert.pfx /p "${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" /tr http://timestamp.digicert.com /td sha256 <binary>
+        #
+        #   macOS: Apple Developer Certificate
+        #     Secrets: APPLE_CERTIFICATE_BASE64, APPLE_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_TEAM_ID
+        #     Import certificate into Keychain, then codesign and notarize.
+        #
+        #   Linux: GPG signing key
+        #     Secret: GPG_PRIVATE_KEY
+        #     Import key and sign artifacts with gpg --detach-sign.
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}
+          path: dist/*
+          # TODO: Replace dist/* with the actual artifact glob for your framework:
+          #   Tauri:    src-tauri/target/release/bundle/**/*
+          #   Electron: dist/*.{exe,dmg,AppImage,deb}
+          #   Flutter:  build/[platform]/release/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+
+      - name: Generate checksums
+        run: sha256sum release-*/* > checksums.sha256
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-*/*
+            checksums.sha256
+          generate_release_notes: true

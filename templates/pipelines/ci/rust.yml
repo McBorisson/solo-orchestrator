@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Test
+        run: cargo test
+
+      - name: Format check
+        run: cargo fmt --check
+
+      - name: Lint
+        run: cargo clippy -- -D warnings
+
+      - name: Security - SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+
+      - name: Install security tools
+        run: |
+          cargo install cargo-audit --locked || true
+          cargo install cargo-license --locked || true
+
+      - name: Security - Dependency audit
+        run: cargo audit
+
+      - name: Security - License check
+        run: cargo license --avoid-build-deps --avoid-dev-deps

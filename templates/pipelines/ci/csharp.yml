@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release --verbosity normal
+
+      - name: Security - SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+
+      - name: Security - Dependency audit
+        run: |
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee vulnerability-report.txt
+          ! grep -q "has the following vulnerable packages" vulnerability-report.txt
+
+      - name: Security - License check
+        run: |
+          dotnet tool install --global dotnet-project-licenses
+          dotnet-project-licenses --input .

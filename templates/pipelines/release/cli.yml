@@ -1,0 +1,81 @@
+# Release pipeline for CLI tools — __PROJECT_NAME__
+#
+# For compiled languages (Rust, Go, C#): uses a 3-OS build matrix to produce
+# platform-specific binaries for Windows, macOS, and Linux.
+#
+# For interpreted languages (Python, TypeScript): a single runner is usually
+# sufficient — the artifact is platform-independent.
+#
+# Adjust the matrix to match your target platforms.
+
+name: Release — __PROJECT_NAME__
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: __SETUP_ACTION__
+        with:
+          __SETUP_VERSION_KEY__: __SETUP_VERSION_VALUE__
+
+      - name: Install dependencies
+        run: __INSTALL_COMMAND__
+
+      - name: Build
+        run: __BUILD_COMMAND__
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}
+          path: dist/*
+          # TODO: Replace dist/* with the actual build output path for your toolchain:
+          #   Rust:   target/release/<binary-name>
+          #   Go:     ./<binary-name> (or output of go build -o)
+          #   .NET:   bin/Release/net*/publish/*
+          #   Python: dist/*.whl dist/*.tar.gz
+          #   Node:   dist/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+
+      - name: Generate checksums
+        run: sha256sum release-*/* > checksums.sha256
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-*/*
+            checksums.sha256
+          generate_release_notes: true
+
+      - name: Publish to package registry
+        run: echo "TODO — publish to package registry"
+        # TODO: Publish to package registry. Examples:
+        #   npm:   npm publish (set NPM_TOKEN secret)
+        #   PyPI:  twine upload dist/* (set PYPI_TOKEN secret)
+        #   Cargo: cargo publish (set CARGO_REGISTRY_TOKEN secret)
+        #   NuGet: dotnet nuget push (set NUGET_API_KEY secret)
+        #   Go:    Tag-based — go install works automatically with tagged releases
