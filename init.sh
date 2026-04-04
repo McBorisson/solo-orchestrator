@@ -442,6 +442,7 @@ create_project() {
   cp "$SCRIPT_DIR/docs/executive-review.md" docs/framework/
   cp "$SCRIPT_DIR/docs/cli-setup-addendum.md" docs/framework/
   cp "$SCRIPT_DIR/docs/user-guide.md" docs/framework/
+  cp "$SCRIPT_DIR/docs/security-scan-guide.md" docs/framework/
 
   # Copy utility scripts into the project (self-contained after init)
   print_info "Copying utility scripts..."

@@ -729,6 +729,8 @@ Bad test assertions (too vague to catch real bugs):
 "It works"
 ```
 
+**Interpreting scan results:** If you are unsure whether a finding is real or a false positive, see the [Security Scan Interpretation Guide](security-scan-guide.md) for plain-language explanations of the most common findings.
+
 #### Context Health Checks (Every 3-4 Features)
 
 Ask the agent to summarize: features built, features remaining, current data model, known issues. Compare this against the Project Bible.
@@ -810,6 +812,8 @@ If any check fails, return to the Build Loop. Do not proceed to Phase 3.
 | — | — | IT Security reviews scan results |
 | — | — | Penetration test (if required by track or org policy) |
 | — | — | Legal reviews Privacy Policy (if external users) |
+
+**Interpreting scan results:** See the [Security Scan Interpretation Guide](security-scan-guide.md) for plain-language explanations of common Semgrep and Snyk findings, including how to determine if a finding is real or a false positive.
 
 **Test results archival:** Save ALL scan results to `docs/test-results/` using the naming convention: `[date]_[scan-type]_[pass|fail].[ext]` (e.g., `2026-04-15_semgrep_pass.json`). These are audit evidence for the Phase 3 gate and are referenced in APPROVAL_LOG.md.
 
