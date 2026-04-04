@@ -18,6 +18,78 @@ You evaluate technology not by how clever it is, but by: total cost of ownership
 
 You have been asked to evaluate this framework from a strategic, operational, and governance perspective for adoption in both personal/small-business and enterprise contexts.
 
+<framework_context>
+Before you begin your review, understand these facts about the framework's design.
+These are not opinions — they are documented design decisions you will verify in the
+files. Your review should evaluate the framework against its stated operating model,
+then note where that model has limitations.
+
+OPERATING MODEL:
+- This framework is designed for ONE person (the "Solo Orchestrator") who makes all
+  decisions while the AI generates code within their constraints. It is not designed
+  for teams. Evaluate it as a solo-operator methodology.
+- The correct comparison baseline is NOT a well-staffed engineering team. It IS:
+  (a) nothing gets built (the project stays in the backlog), (b) an engineer builds
+  it with AI but no structure ("vibe coding"), or (c) the business unit works around
+  it with spreadsheets and shadow IT. These are the realistic alternatives.
+
+WHAT THE USER READS:
+- The User Guide is the primary operating document. It walks the user through every
+  step with specific prompts, commands, and review criteria.
+- The user needs THREE documents open: the User Guide, the Project Intake, and their
+  Platform Module. Everything else (Builder's Guide, Governance Framework, CLI
+  Addendum) is reference material the User Guide points to at specific moments.
+- The total documentation volume is a reference library, not a reading assignment.
+
+WHAT THE INIT SCRIPT DOES:
+- init.sh is interactive and walks the user through project setup. It collects project
+  metadata, installs security tooling (Semgrep, gitleaks, Snyk), generates CLAUDE.md,
+  creates CI/CD pipeline files, copies all framework documents, installs pre-commit
+  hooks, initializes Git, and runs a health check. The user does not configure these
+  manually.
+- CI pipelines (testing, linting, SAST, dependency audit, license checking) work on
+  first push. Release pipelines are explicitly documented as templates requiring
+  per-project configuration (code signing, deployment secrets, store credentials).
+
+VENDOR COUPLING:
+- The Claude Code dependency is a deliberate proof-of-concept decision, not an
+  architectural endpoint. The methodology layer (phases, TDD, threat modeling,
+  governance) is agent-agnostic. The tooling layer (CLAUDE.md, Superpowers, MCP
+  servers) is Claude Code-specific and designed to be retooled.
+- Annual cross-model validation is mandatory for organizational deployments.
+- The framework explicitly estimates 2-4 weeks retooling per active project to
+  migrate to a different AI agent.
+
+ENFORCEMENT MODEL:
+- The framework documents a three-tier enforcement model and is transparent about
+  which tier each control occupies:
+  - Tier 1 (CI pipeline): Hard mechanical enforcement. Builds fail on SAST findings,
+    secret detection, dependency vulnerabilities, license violations, and test failures.
+  - Tier 2 (pre-commit hooks): Early warning and blocking. gitleaks blocks commits
+    with secrets. Semgrep blocks OWASP Top 10 findings. Test co-location warns.
+  - Tier 3 (CLAUDE.md + Builder's Guide): Guided behavior for the AI agent, with
+    the human as the review layer at decision gates.
+- Only Tier 1 is a hard enforcement boundary. The framework says this explicitly and
+  repeatedly. Evaluate whether this transparency is adequate for the operating model,
+  not whether Tier 3 controls would survive a hostile actor.
+
+SCOPE:
+- The framework explicitly excludes: SOC 2, HIPAA, PCI-DSS, FedRAMP, 99.99%+ SLA
+  systems, microservices, multi-region distributed systems, and enterprise
+  integration projects (SAP, Salesforce, ERP).
+- The target is: internal tools, departmental applications, prototypes, MVPs, and
+  utilities that sit in the backlog because they don't justify a full team.
+- Evaluate the framework against this stated scope. Note limitations relative to
+  broader scope, but do not penalize the framework for not solving problems it
+  explicitly excludes.
+
+CURRENT STATUS:
+- This is v1.0. The framework has been used by the author for personal projects but
+  has not been validated through a formal organizational pilot. The framework says
+  this explicitly and recommends treating it as "a well-structured hypothesis, not a
+  proven methodology." Evaluate accordingly.
+</framework_context>
+
 <task>
 ## Phase 1 — Full Framework Review
 
@@ -63,11 +135,11 @@ Evaluate the framework against each category below. For each, provide:
    - How does this affect existing development workflows? Is it additive or disruptive?
    - What change management is required for adoption?
 
-5. **Scalability and Multi-Team Viability**
-   - Can multiple teams in an enterprise use this with different configurations?
-   - Is there a centralized governance model, or does each team maintain its own instance?
-   - How does this work across different technology stacks within the same organization?
-   - What happens when 50 developers are using this simultaneously?
+5. **Portfolio Viability**
+   - Can an organization have multiple Solo Orchestrators working independently on different internal tools?
+   - What governance model exists for a portfolio of Solo Orchestrator projects?
+   - How does the framework handle different technology stacks across projects?
+   - What is the realistic portfolio ceiling before the model breaks down?
 
 6. **Risk-Reward Analysis**
    - What is the realistic upside? (faster development, fewer defects, better compliance)
@@ -99,7 +171,7 @@ The review MUST include:
   - Mid-market company (500-5,000 employees)
   - Enterprise (5,000+ employees, regulated industries)
 - A "Conditions for Adoption" section listing what must be true before you would approve this for use
-- A "Competing Approaches" section comparing this to at least 3 alternative approaches to the same problem
+- A "Competing Approaches" section comparing this to at least 3 realistic alternatives. The correct comparison is NOT "Solo Orchestrator vs. a development team." Compare against what actually happens when these projects don't get a team: the project stays in the backlog, an engineer builds it with AI but no methodology, a no-code/low-code platform is used, or the business unit creates spreadsheet workarounds and shadow IT.
 - An overall strategic recommendation
 
 ## Constraints

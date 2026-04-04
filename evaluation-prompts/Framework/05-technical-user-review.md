@@ -18,6 +18,49 @@ You represent the exact user profile this framework appears to target: someone w
 
 You have been asked to evaluate this framework from the perspective of someone who would actually use it day-to-day to build software projects, both personal and potentially enterprise-internal tools.
 
+<framework_context>
+Before you begin your review, understand these facts about the framework's design.
+These are not opinions — they are documented design decisions you will verify in the
+files. Your review should evaluate the framework against its stated operating model,
+then note where that model has limitations.
+
+OPERATING MODEL:
+- This framework is designed for ONE person (the "Solo Orchestrator") who makes all
+  decisions while the AI generates code within their constraints.
+- The correct comparison baseline is NOT professional software development. It IS:
+  (a) nothing gets built, (b) building with AI but no structure ("vibe coding"),
+  or (c) spreadsheet workarounds and shadow IT.
+
+WHAT THE USER READS:
+- The User Guide is the primary operating document. It walks the user through every
+  step with specific prompts, commands, and review criteria.
+- The user needs THREE documents open: the User Guide, the Project Intake, and their
+  Platform Module. Everything else (Builder's Guide, Governance Framework, CLI
+  Addendum) is reference material the User Guide points to at specific moments.
+- The total documentation volume is a reference library, not a reading assignment.
+  Evaluate the onboarding experience based on the User Guide path, not on the total
+  line count of all documents.
+
+WHAT THE INIT SCRIPT DOES:
+- init.sh is interactive and walks the user through project setup. It collects project
+  metadata, installs security tooling (Semgrep, gitleaks, Snyk), generates CLAUDE.md,
+  creates CI/CD pipeline files, copies all framework documents, installs pre-commit
+  hooks, initializes Git, and runs a health check. The user does not configure these
+  manually.
+- CI pipelines work on first push. Release pipelines are explicitly templates
+  requiring per-project configuration.
+
+ENFORCEMENT MODEL:
+- Three tiers: CI pipeline (hard stop), pre-commit hooks (early warning), and
+  CLAUDE.md instructions (guided behavior). The framework is transparent about which
+  tier each control occupies.
+
+SCOPE:
+- The target is: internal tools, departmental applications, prototypes, MVPs, and
+  utilities. The framework explicitly excludes regulated environments, HA systems,
+  microservices, and enterprise integrations.
+</framework_context>
+
 <task>
 ## Phase 1 — First Impressions and Onboarding Assessment
 

@@ -8,6 +8,41 @@ You are evaluating a software development methodology called the "Solo Orchestra
 
 **Your evaluation mindset:** You are advising a General Counsel who must sign off on this methodology before any subsidiary adopts it. You are not looking for reasons to approve it — you are looking for every reason it could create legal exposure for the organization. Where the framework addresses a legal concern, evaluate whether the mitigation is actually sufficient or merely acknowledges the risk without resolving it.
 
+<framework_context>
+Before you begin your review, understand these facts about the framework's design.
+These are not opinions — they are documented design decisions you will verify in the
+files. Your review should evaluate the framework against its stated operating model,
+then note where that model has limitations.
+
+OPERATING MODEL:
+- This framework is designed for ONE person (the "Solo Orchestrator") who makes all
+  decisions while the AI generates code within their constraints. It is not designed
+  for teams. Evaluate it as a solo-operator methodology.
+
+WHAT THE USER READS:
+- The User Guide is the primary operating document. The user needs THREE documents
+  open: the User Guide, the Project Intake, and their Platform Module. Everything
+  else is reference material.
+
+VENDOR COUPLING:
+- The Claude Code dependency is a deliberate proof-of-concept decision, not an
+  architectural endpoint. Annual cross-model validation is mandatory for
+  organizational deployments. The framework estimates 2-4 weeks retooling per
+  active project to migrate to a different AI agent.
+
+SCOPE:
+- The framework explicitly excludes: SOC 2, HIPAA, PCI-DSS, FedRAMP, 99.99%+ SLA
+  systems, microservices, and enterprise integration projects.
+- The target is: internal tools, departmental applications, prototypes, MVPs, and
+  utilities that sit in the backlog because they don't justify a full team.
+- Evaluate legal risk relative to this stated scope. Note additional exposures for
+  broader scope, but weight your assessment toward the intended use cases.
+
+CURRENT STATUS:
+- This is v1.0, used by the author for personal projects, not yet validated through
+  organizational pilots. The framework says this explicitly.
+</framework_context>
+
 ---
 
 ## PART 1: INTELLECTUAL PROPERTY

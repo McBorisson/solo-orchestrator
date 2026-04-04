@@ -115,6 +115,13 @@ Before beginning, classify your project into one of three tracks:
 - Phase 4 must include formal incident response and on-call alerting.
 - Additionally required: contract testing, load/stress testing if applicable, and platform-specific certification requirements (code signing, app store review, etc.).
 
+**Organizational POC Modes:** For organizational deployments where full governance approvals are not yet in hand, the intake wizard (`scripts/intake-wizard.sh`) offers two Proof of Concept modes:
+
+- **Sponsored POC** — the organization knows and has approved the exploration. AI deployment path, project sponsor, and time allocation are required. Insurance, liability entity, ITSM, exit criteria, and backup maintainer are deferred. All technical work follows the full phase-gate process at production quality.
+- **Private POC** — personal exploration on your own time. All governance pre-conditions are deferred. Same production-quality technical work.
+
+Both POC modes carry constraints: no production deployment, no real user data, no external users. When ready to go to production, run `scripts/intake-wizard.sh --upgrade-to-production` to resolve deferred pre-conditions. All technical artifacts carry forward unchanged.
+
 ---
 
 ## Human Investment & Timeline
@@ -244,6 +251,8 @@ snyk auth
 **Start a new Claude conversation for Phase 0.** Keep all Phase 0 steps in the same conversation.
 
 ### Intake-First vs. Conversational Discovery
+
+**Filling out the Intake:** Run `bash scripts/intake-wizard.sh` for a guided walkthrough — choose between an interactive terminal script (if you know your requirements) or an AI-assisted conversation in Claude Code (if you want help thinking through decisions). The wizard saves progress after each section and offers context-aware suggestions based on your platform and language. See the User Guide Section 3 for details.
 
 **If the Project Intake Template is complete:** Provide the Intake at the start. The agent validates and expands the Intake data rather than discovering it from scratch. Steps 0.5-0.7 are pre-populated and only need review.
 

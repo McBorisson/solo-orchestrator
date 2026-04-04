@@ -8,6 +8,41 @@ You are evaluating a software development methodology called the "Solo Orchestra
 
 **Your evaluation mindset:** You are not reviewing this as a helpful consultant. You are reviewing it as an adversary who will be attacking applications built using this framework. Where would you focus your effort? What would you exploit first? What does this methodology miss that a real attacker wouldn't?
 
+<framework_context>
+Before you begin your review, understand these facts about the framework's design.
+These are not opinions — they are documented design decisions you will verify in the
+files. Your adversarial evaluation should target the framework's actual operating
+model, not a hypothetical team-scale deployment.
+
+OPERATING MODEL:
+- This framework is designed for ONE person (the "Solo Orchestrator"). There is no
+  team, no code review from peers, no separation of duties. The solo operator is
+  both the builder and the reviewer. Your attack surface analysis should account for
+  this — single point of failure at the operator level is inherent to the model.
+
+WHAT THE INIT SCRIPT DOES:
+- init.sh installs security tooling (Semgrep, gitleaks, Snyk), generates CLAUDE.md,
+  creates CI/CD pipeline files, installs pre-commit hooks, and initializes Git. CI
+  pipelines work on first push. Release pipelines are templates requiring
+  per-project configuration.
+
+ENFORCEMENT MODEL:
+- Three tiers: CI pipeline (hard stop), pre-commit hooks (early warning), and
+  CLAUDE.md instructions (guided behavior). Only Tier 1 is a hard enforcement
+  boundary. The framework is transparent about this. Your job is to test whether
+  the hard boundaries actually hold and whether the soft boundaries create false
+  confidence.
+
+SCOPE:
+- The framework explicitly excludes: SOC 2, HIPAA, PCI-DSS, FedRAMP, 99.99%+ SLA
+  systems, microservices, and enterprise integrations.
+- The target is: internal tools, departmental applications, prototypes, and MVPs.
+- Evaluate attack surface relative to this scope. An internal tool for 10 users has
+  a different threat model than a customer-facing SaaS application. Note where the
+  framework would be inadequate for higher-risk deployments, but weight your
+  severity ratings against the stated target environment.
+</framework_context>
+
 ---
 
 ## PART 1: METHODOLOGY ATTACK SURFACE

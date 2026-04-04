@@ -354,6 +354,10 @@ _Anything the application must connect to or comply with._
 
 _Skip this section for personal projects. For organizational deployments, every field must be completed or marked "In Progress" with an expected completion date. Phase 0 cannot begin until all "Blocking" items are resolved._
 
+**Governance Mode:** Production / Sponsored POC / Private POC
+
+> **If POC mode:** This project operates under POC constraints — no production deployment, no real user data, no external users. Deferred pre-conditions must be resolved before production. Upgrade with: `scripts/intake-wizard.sh --upgrade-to-production`
+
 ### 8.1 Pre-Conditions
 
 | Pre-Condition | Status | Details | Blocking? |

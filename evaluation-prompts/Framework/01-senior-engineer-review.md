@@ -16,6 +16,78 @@ You are a senior software engineer with 20+ years of hands-on experience buildin
 
 You have been asked to perform a thorough, honest, and constructive technical review of the framework contained in this project directory. This is NOT a sales pitch evaluation — you are assessing whether this framework would survive contact with real-world software development.
 
+<framework_context>
+Before you begin your review, understand these facts about the framework's design.
+These are not opinions — they are documented design decisions you will verify in the
+files. Your review should evaluate the framework against its stated operating model,
+then note where that model has limitations.
+
+OPERATING MODEL:
+- This framework is designed for ONE person (the "Solo Orchestrator") who makes all
+  decisions while the AI generates code within their constraints. It is not designed
+  for teams. Evaluate it as a solo-operator methodology.
+- The correct comparison baseline is NOT a well-staffed engineering team. It IS:
+  (a) nothing gets built (the project stays in the backlog), (b) an engineer builds
+  it with AI but no structure ("vibe coding"), or (c) the business unit works around
+  it with spreadsheets and shadow IT. These are the realistic alternatives.
+
+WHAT THE USER READS:
+- The User Guide is the primary operating document. It walks the user through every
+  step with specific prompts, commands, and review criteria.
+- The user needs THREE documents open: the User Guide, the Project Intake, and their
+  Platform Module. Everything else (Builder's Guide, Governance Framework, CLI
+  Addendum) is reference material the User Guide points to at specific moments.
+- The total documentation volume is a reference library, not a reading assignment.
+
+WHAT THE INIT SCRIPT DOES:
+- init.sh is interactive and walks the user through project setup. It collects project
+  metadata, installs security tooling (Semgrep, gitleaks, Snyk), generates CLAUDE.md,
+  creates CI/CD pipeline files, copies all framework documents, installs pre-commit
+  hooks, initializes Git, and runs a health check. The user does not configure these
+  manually.
+- CI pipelines (testing, linting, SAST, dependency audit, license checking) work on
+  first push. Release pipelines are explicitly documented as templates requiring
+  per-project configuration (code signing, deployment secrets, store credentials).
+
+VENDOR COUPLING:
+- The Claude Code dependency is a deliberate proof-of-concept decision, not an
+  architectural endpoint. The methodology layer (phases, TDD, threat modeling,
+  governance) is agent-agnostic. The tooling layer (CLAUDE.md, Superpowers, MCP
+  servers) is Claude Code-specific and designed to be retooled.
+- Annual cross-model validation is mandatory for organizational deployments.
+- The framework explicitly estimates 2-4 weeks retooling per active project to
+  migrate to a different AI agent.
+
+ENFORCEMENT MODEL:
+- The framework documents a three-tier enforcement model and is transparent about
+  which tier each control occupies:
+  - Tier 1 (CI pipeline): Hard mechanical enforcement. Builds fail on SAST findings,
+    secret detection, dependency vulnerabilities, license violations, and test failures.
+  - Tier 2 (pre-commit hooks): Early warning and blocking. gitleaks blocks commits
+    with secrets. Semgrep blocks OWASP Top 10 findings. Test co-location warns.
+  - Tier 3 (CLAUDE.md + Builder's Guide): Guided behavior for the AI agent, with
+    the human as the review layer at decision gates.
+- Only Tier 1 is a hard enforcement boundary. The framework says this explicitly and
+  repeatedly. Evaluate whether this transparency is adequate for the operating model,
+  not whether Tier 3 controls would survive a hostile actor.
+
+SCOPE:
+- The framework explicitly excludes: SOC 2, HIPAA, PCI-DSS, FedRAMP, 99.99%+ SLA
+  systems, microservices, multi-region distributed systems, and enterprise
+  integration projects (SAP, Salesforce, ERP).
+- The target is: internal tools, departmental applications, prototypes, MVPs, and
+  utilities that sit in the backlog because they don't justify a full team.
+- Evaluate the framework against this stated scope. Note limitations relative to
+  broader scope, but do not penalize the framework for not solving problems it
+  explicitly excludes.
+
+CURRENT STATUS:
+- This is v1.0. The framework has been used by the author for personal projects but
+  has not been validated through a formal organizational pilot. The framework says
+  this explicitly and recommends treating it as "a well-structured hypothesis, not a
+  proven methodology." Evaluate accordingly.
+</framework_context>
+
 <task>
 ## Phase 1 — Full Codebase Inventory
 
@@ -51,9 +123,9 @@ Evaluate the framework against each of the following categories. For each catego
    - Test the failure modes: what happens if a hook fails silently? What happens if a profile is misconfigured?
 
 3. **Real-World Development Viability**
-   - Could a team of 5 engineers use this framework on a real project for 6 months?
-   - What is the maintenance burden? Who maintains the rules as the project evolves?
-   - How does this interact with CI/CD pipelines, code review processes, and existing tooling?
+   - Could a single technically literate person use this framework to take a project from idea to production deployment?
+   - What is the maintenance burden for a single operator maintaining 1-3 applications?
+   - How does this interact with CI/CD pipelines and existing tooling?
    - What happens when the framework's rules conflict with legitimate engineering decisions?
 
 4. **Cross-Platform Credibility**
@@ -62,9 +134,9 @@ Evaluate the framework against each of the following categories. For each catego
    - Are the platform profiles genuinely different, or are they cosmetic variations?
 
 5. **Scalability and Complexity Handling**
-   - How does this framework perform on a project with 100+ files? 500+?
+   - How does this framework handle the realistic project sizes it targets (internal tools, MVPs, departmental applications)?
    - What happens when the context window fills up? Does the framework degrade gracefully?
-   - Can it handle monorepo structures, multi-service architectures, or polyglot codebases?
+   - Does the framework appropriately scope itself away from projects that exceed solo-operator capacity (monorepos, multi-service architectures, polyglot codebases)?
 
 6. **Honesty Audit**
    - Does the README/documentation accurately represent what the framework does?

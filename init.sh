@@ -451,7 +451,12 @@ create_project() {
   cp "$SCRIPT_DIR/scripts/check-phase-gate.sh" scripts/
   cp "$SCRIPT_DIR/scripts/check-updates.sh" scripts/
   cp "$SCRIPT_DIR/scripts/resume.sh" scripts/
-  chmod +x scripts/validate.sh scripts/check-phase-gate.sh scripts/check-updates.sh scripts/resume.sh
+  cp "$SCRIPT_DIR/scripts/intake-wizard.sh" scripts/
+  chmod +x scripts/validate.sh scripts/check-phase-gate.sh scripts/check-updates.sh scripts/resume.sh scripts/intake-wizard.sh
+
+  # Copy intake suggestion files
+  mkdir -p templates/intake-suggestions
+  cp "$SCRIPT_DIR/templates/intake-suggestions/"*.json templates/intake-suggestions/
 
   # Copy the correct platform module
   case "$PLATFORM" in
@@ -1344,9 +1349,9 @@ print_next_steps() {
   echo "     snyk auth     # Authenticate Snyk CLI"
   echo ""
   echo "  2. FILL OUT THE INTAKE (this is your product definition):"
-  echo "     Open PROJECT_INTAKE.md and complete every section."
-  echo "     Mark N/A where fields genuinely don't apply."
-  echo "     Every blank field is a round-trip with the agent."
+  echo "     Run the guided wizard:  bash scripts/intake-wizard.sh"
+  echo "     Or open PROJECT_INTAKE.md directly in your editor."
+  echo "     The wizard offers an interactive script or AI-assisted conversation."
   echo ""
 
   if [ "$DEPLOYMENT" = "organizational" ]; then
@@ -1444,6 +1449,8 @@ dry_run_summary() {
   echo "  scripts/validate.sh                   — Validation script"
   echo "  scripts/check-phase-gate.sh           — Phase gate checker"
   echo "  scripts/resume.sh                     — Session resume prompt generator"
+  echo "  scripts/intake-wizard.sh              — Guided intake wizard"
+  echo "  templates/intake-suggestions/          — Context-aware suggestion data"
   echo ""
 
   echo -e "${BOLD}Post-init steps (you do these manually):${NC}"

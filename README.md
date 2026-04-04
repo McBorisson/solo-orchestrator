@@ -43,8 +43,8 @@ The init script will:
 
 **After init completes:**
 1. Authenticate: `claude` (OAuth) and `snyk auth`
-2. Fill out `PROJECT_INTAKE.md` — this is your product definition
-3. For organizational deployments: complete the 6 pre-conditions and record them in `APPROVAL_LOG.md`
+2. Fill out the Intake: run `bash scripts/intake-wizard.sh` for a guided walkthrough (interactive script or AI-assisted conversation), or open `PROJECT_INTAKE.md` directly
+3. For organizational deployments: complete governance pre-conditions — or use a POC mode (Sponsored or Private) to defer non-technical approvals while you validate the framework
 4. Start Claude Code and tell it to begin
 
 See the [User Guide](docs/user-guide.md) for detailed walkthrough of each step.
@@ -107,13 +107,23 @@ your-project/
 │   ├── platform-modules/
 │   │   └── [your-platform].md          # Platform-specific guidance
 │   └── test-results/                   # Phase 3 test evidence (populated during build)
+├── scripts/
+│   ├── intake-wizard.sh               # Guided intake wizard (interactive or AI-assisted)
+│   ├── validate.sh                    # Framework compliance checker
+│   ├── check-phase-gate.sh            # Phase gate validator
+│   ├── check-updates.sh               # Upstream framework update checker
+│   └── resume.sh                      # Session resume prompt generator
+├── templates/
+│   └── intake-suggestions/            # Context-aware suggestions for the intake wizard
 ```
 
 The init script generates **two pipelines** per project. The CI pipeline (`ci.yml`) is selected by your **language** — it handles testing, linting, SAST scanning, dependency auditing, and license checking using your language's toolchain. The release pipeline (`release.yml`) is selected by your **platform** — it handles building, signing, packaging, and distributing for your target platform. CI pipelines are working GitHub Actions workflows that run immediately on first push. Release pipelines are production-ready templates that require configuration (code signing, deployment secrets, store credentials) before first use.
 
 All framework documents are copied into the project. Each project is self-contained — no external dependencies on this repo after init.
 
-**Validation:** Both `scripts/validate.sh` and `scripts/check-phase-gate.sh` are copied into every created project. Run `bash scripts/validate.sh` from the project directory to check framework compliance — verifies all required files exist, CI is configured, security tools are accessible, phase artifacts match the project's current phase, and the approval log is up to date. The phase gate check also runs automatically in CI as a warning step. Run validation periodically to catch drift.
+**Utility scripts:** Every project includes `scripts/validate.sh` (framework compliance checker), `scripts/check-phase-gate.sh` (phase gate validator, also runs in CI), `scripts/resume.sh` (generates a session resume prompt from project state), and `scripts/intake-wizard.sh` (guided intake with interactive script or AI-assisted conversation modes, save/resume, and context-aware suggestions).
+
+**Security scan guide:** `docs/framework/security-scan-guide.md` provides plain-language explanations for the 10 most common Semgrep findings and 5 most common Snyk findings in the recommended stacks, including how to determine if a finding is real or a false positive.
 
 ---
 
@@ -331,7 +341,10 @@ For enterprise/organizational use: always use the framework. The governance arti
 | CI security scanning | Manual pipeline setup | 8 language-specific templates with Semgrep SAST, dependency audit, license checking |
 | Release pipeline | Manual pipeline setup | 4 platform-specific templates (web, desktop, mobile, CLI) |
 | Platform guidance | None | Web, Desktop, Mobile modules with architecture patterns, tooling, testing, distribution |
-| Enterprise governance | None | Full framework with approval authorities, compliance screening, portfolio governance |
+| Enterprise governance | None | Full framework with approval authorities, compliance screening, portfolio governance, and POC modes for pre-approval validation |
+| Project intake | Manual CLAUDE.md | Guided intake wizard (interactive script or AI-assisted) with context-aware suggestions per platform |
+| Security scan guidance | Read the docs yourself | Plain-language interpretation guide for common Semgrep and Snyk findings |
+| Session continuity | Manual context management | Session resume script generates prompt from project state |
 | Evaluation tooling | None | LLM-executable red team and legal analysis prompts |
 
 The methodology, intake template, platform modules, and CI pipeline templates are the primary value. The framework packages operational knowledge that would otherwise need to be discovered project-by-project.

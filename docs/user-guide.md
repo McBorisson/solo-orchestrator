@@ -174,6 +174,21 @@ If insurance coverage is insufficient, your broker can advise on supplemental AI
 
 See the [Governance Framework](governance-framework.md) for the full compliance screening matrix and approval authority structure.
 
+#### Proof of Concept (POC) Modes
+
+If you want to validate the framework before completing all governance approvals, the intake wizard (`scripts/intake-wizard.sh`) offers two POC modes:
+
+| Mode | What's Required | What's Deferred |
+|---|---|---|
+| **Sponsored POC** | AI deployment path, project sponsor, time allocation | Insurance, liability entity, ITSM, exit criteria, backup maintainer |
+| **Private POC** | Nothing — personal exploration on your own time | All 8 pre-conditions |
+
+**POC constraints:** No production deployment, no real user data, no external users. All technical work (code, tests, scans, documentation) is production-grade and carries forward unchanged.
+
+**Both POC types follow the full phase-gate process** (Phases 0-3) identically to a production build — same TDD, same security scanning, same threat modeling. Phase 4 stops at "ready to deploy" but does not deploy to production.
+
+**Upgrading to production:** When ready, run `scripts/intake-wizard.sh --upgrade-to-production` to walk through the deferred pre-conditions and remove POC constraints.
+
 ### 1.3 Contractor/Consultant and Employment Considerations
 
 **If you are using this framework for client work or within an employment relationship:**
@@ -243,6 +258,10 @@ The init script also generates **two pipelines**: a CI pipeline (`ci.yml`) selec
 | `.claude/phase-state.json` | init.sh | Nothing — updated by scripts | Tracks current phase |
 | `docs/framework/` | init.sh (copied from solo-orchestrator) | Nothing | Reference documents |
 | `docs/platform-modules/` | init.sh (copied) | Nothing | Platform-specific guidance |
+| `docs/framework/security-scan-guide.md` | init.sh (copied) | Nothing | Plain-language guide for common scan findings |
+| `scripts/intake-wizard.sh` | init.sh (copied) | Run to fill out the Intake | Guided script or AI-assisted conversation |
+| `scripts/resume.sh` | init.sh (copied) | Run at session start | Generates resume prompt from project state |
+| `templates/intake-suggestions/` | init.sh (copied) | Nothing | Context-aware suggestions for the wizard |
 | **Superpowers** | You (optional) | Install plugin, configure in CLAUDE.md | See [CLI Setup Addendum](cli-setup-addendum.md#1-superpowers) |
 | **Context7 MCP** | You (optional) | One command to add MCP server | See [CLI Setup Addendum](cli-setup-addendum.md#4-context7) |
 | **Qdrant MCP** | You (optional) | Docker + MCP server config | See [CLI Setup Addendum](cli-setup-addendum.md#5-qdrant) |
@@ -287,6 +306,27 @@ See the [CLI Setup Addendum](cli-setup-addendum.md) for detailed instructions, o
 Open `PROJECT_INTAKE.md`. This is the most important thing you do before starting.
 
 **Why it matters:** Every blank field is a round-trip with the agent. A complete Intake means the agent works autonomously. An incomplete Intake means the agent stops and asks you — repeatedly.
+
+### Using the Intake Wizard
+
+The fastest way to fill out the Intake is the guided wizard:
+
+```bash
+cd your-project
+bash scripts/intake-wizard.sh
+```
+
+The wizard offers three modes:
+
+| Mode | Best For | Time |
+|---|---|---|
+| **Guided Script** | You know your requirements and technical preferences | 30-60 min |
+| **AI-Assisted** | You want help thinking through requirements or are unsure about choices | 45-90 min |
+| **Manual** | You prefer to fill out PROJECT_INTAKE.md directly in your editor | Varies |
+
+The guided script saves progress after each section — you can pause with `pause` at any prompt and resume later with `scripts/intake-wizard.sh --resume`. Type `?` at any prompt to see context-aware suggestions for your platform and language.
+
+The AI-assisted mode generates a prompt for Claude Code that walks you through the intake conversationally, explaining each field and suggesting options based on your project type.
 
 ### Section-by-Section Guidance
 
@@ -980,6 +1020,7 @@ After launch, you are the operations team. Schedule these activities.
 - Review error dashboard — are there recurring errors?
 - Check monitoring alerts — any unresolved notifications?
 - Quick application health check — does the core flow still work?
+- When starting a development session: run `bash scripts/resume.sh` to generate a context-aware resume prompt from your project's current state
 
 ### Monthly (1-2 hours)
 
