@@ -15,6 +15,8 @@
       "languages": ["typescript", "javascript"],
       "check_command": "command -v eas",
       "version_command": "eas --version 2>/dev/null",
+      "min_version": "7.0.0",
+      "latest_check": {"method": "npm", "package": "eas-cli"},
       "install": {
         "npm": "npm install -g eas-cli",
         "manual": "npm install -g eas-cli"
@@ -35,6 +37,8 @@
       "languages": ["all"],
       "check_command": "xcode-select -p &>/dev/null 2>&1",
       "version_command": "xcodebuild -version 2>/dev/null | head -1",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "darwin_manual": "xcode-select --install",
         "manual": "xcode-select --install (macOS only — iOS development requires macOS)"
@@ -55,6 +59,8 @@
       "languages": ["typescript", "javascript", "dart"],
       "check_command": "command -v pod",
       "version_command": "pod --version 2>/dev/null",
+      "min_version": "1.12.0",
+      "latest_check": {"method": "brew", "package": "cocoapods"},
       "install": {
         "darwin_brew": "brew install cocoapods",
         "darwin_manual": "sudo gem install cocoapods",
@@ -76,6 +82,8 @@
       "languages": ["all"],
       "check_command": "[ -d \"$HOME/Library/Android/sdk\" ] || [ -d \"$HOME/Android/Sdk\" ] || [ -n \"$ANDROID_HOME\" ]",
       "version_command": "echo 'SDK present'",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "darwin_brew": "brew install --cask android-studio",
         "manual": "Download from https://developer.android.com/studio. After install, open Android Studio → SDK Manager → install: Android SDK Platform (latest), Build-Tools, Emulator, Platform-Tools."
@@ -96,6 +104,8 @@
       "languages": ["typescript", "javascript"],
       "check_command": "command -v license-checker",
       "version_command": "license-checker --version 2>/dev/null",
+      "min_version": "25.0.0",
+      "latest_check": {"method": "npm", "package": "license-checker"},
       "install": {
         "npm": "npm install -g license-checker",
         "manual": "npm install -g license-checker"
@@ -116,6 +126,8 @@
       "languages": ["dart"],
       "check_command": "dart pub global list 2>/dev/null | grep -q dart_license_checker",
       "version_command": "echo 'installed via dart pub global'",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "manual": "dart pub global activate dart_license_checker",
         "darwin_brew": "dart pub global activate dart_license_checker",
@@ -137,6 +149,8 @@
       "languages": ["all"],
       "check_command": "security find-identity -v -p codesigning 2>/dev/null | grep -q 'Apple Development'",
       "version_command": "echo 'signing identity present'",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "manual": "Enroll at https://developer.apple.com/programs/ ($99/year). Then create signing certificates via Xcode → Settings → Accounts."
       },
@@ -156,6 +170,8 @@
       "languages": ["all"],
       "check_command": "false",
       "version_command": "echo 'N/A'",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "manual": "Generate with: keytool -genkey -v -keystore release.keystore -alias release -keyalg RSA -keysize 2048 -validity 10000. Store securely — loss means you cannot update your app."
       },

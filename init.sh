@@ -678,7 +678,8 @@ create_project() {
   cp "$SCRIPT_DIR/scripts/upgrade-project.sh" scripts/
   cp "$SCRIPT_DIR/scripts/verify-install.sh" scripts/
   cp "$SCRIPT_DIR/scripts/test-gate.sh" scripts/
-  chmod +x scripts/validate.sh scripts/check-phase-gate.sh scripts/check-updates.sh scripts/resume.sh scripts/intake-wizard.sh scripts/resolve-tools.sh scripts/upgrade-project.sh scripts/verify-install.sh scripts/test-gate.sh
+  cp "$SCRIPT_DIR/scripts/check-versions.sh" scripts/
+  chmod +x scripts/validate.sh scripts/check-phase-gate.sh scripts/check-updates.sh scripts/resume.sh scripts/intake-wizard.sh scripts/resolve-tools.sh scripts/upgrade-project.sh scripts/verify-install.sh scripts/test-gate.sh scripts/check-versions.sh
 
   # Copy intake suggestion files
   mkdir -p templates/intake-suggestions

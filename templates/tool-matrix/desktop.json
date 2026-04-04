@@ -15,6 +15,8 @@
       "languages": ["rust"],
       "check_command": "command -v cargo-tauri || cargo install --list 2>/dev/null | grep -q tauri-cli",
       "version_command": "cargo tauri --version 2>/dev/null",
+      "min_version": "1.5.0",
+      "latest_check": null,
       "install": {
         "darwin_brew": "cargo install tauri-cli",
         "linux_apt": "cargo install tauri-cli",
@@ -36,6 +38,8 @@
       "languages": ["all"],
       "check_command": "xcode-select -p &>/dev/null 2>&1",
       "version_command": "xcodebuild -version 2>/dev/null | head -1",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "darwin_manual": "xcode-select --install",
         "manual": "xcode-select --install (macOS only)"
@@ -56,6 +60,8 @@
       "languages": ["rust"],
       "check_command": "dpkg -l libwebkit2gtk-4.1-dev &>/dev/null 2>&1 || rpm -q webkit2gtk4.1-devel &>/dev/null 2>&1",
       "version_command": "dpkg -l libwebkit2gtk-4.1-dev 2>/dev/null | grep '^ii' | awk '{print $3}' || echo 'unknown'",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "linux_apt": "sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev",
         "linux_dnf": "sudo dnf install -y webkit2gtk4.1-devel openssl-devel curl wget file libappindicator-gtk3-devel librsvg2-devel",
@@ -77,6 +83,8 @@
       "languages": ["typescript", "javascript"],
       "check_command": "command -v license-checker",
       "version_command": "license-checker --version 2>/dev/null",
+      "min_version": "25.0.0",
+      "latest_check": {"method": "npm", "package": "license-checker"},
       "install": {
         "npm": "npm install -g license-checker",
         "manual": "npm install -g license-checker"
@@ -97,6 +105,8 @@
       "languages": ["rust"],
       "check_command": "command -v cargo-license || cargo install --list 2>/dev/null | grep -q cargo-license",
       "version_command": "cargo license --version 2>/dev/null",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "darwin_brew": "cargo install cargo-license",
         "linux_apt": "cargo install cargo-license",
@@ -118,6 +128,8 @@
       "languages": ["python"],
       "check_command": "pip3 show pip-licenses &>/dev/null 2>&1 || pip show pip-licenses &>/dev/null 2>&1",
       "version_command": "pip-licenses --version 2>/dev/null",
+      "min_version": "4.0.0",
+      "latest_check": {"method": "pip", "package": "pip-licenses"},
       "install": {
         "linux_pip": "pip3 install pip-licenses",
         "darwin_brew": "pip3 install pip-licenses",
@@ -139,6 +151,8 @@
       "languages": ["dart"],
       "check_command": "dart pub global list 2>/dev/null | grep -q dart_license_checker",
       "version_command": "echo 'installed via dart pub global'",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "darwin_brew": "dart pub global activate dart_license_checker",
         "linux_apt": "dart pub global activate dart_license_checker",
@@ -160,6 +174,8 @@
       "languages": ["csharp"],
       "check_command": "dotnet tool list -g 2>/dev/null | grep -q dotnet-project-licenses",
       "version_command": "dotnet-project-licenses --version 2>/dev/null || echo 'installed'",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "darwin_brew": "dotnet tool install --global dotnet-project-licenses",
         "linux_apt": "dotnet tool install --global dotnet-project-licenses",
@@ -181,6 +197,8 @@
       "languages": ["all"],
       "check_command": "security find-identity -v -p codesigning 2>/dev/null | grep -q 'Developer ID'",
       "version_command": "echo 'signing identity present'",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "manual": "Enroll at https://developer.apple.com/programs/ ($99/year). Create Developer ID certificates for distribution."
       },
@@ -200,6 +218,8 @@
       "languages": ["all"],
       "check_command": "false",
       "version_command": "echo 'N/A'",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "manual": "Purchase from DigiCert, Sectigo, or GlobalSign ($200-500/year). EV certificates eliminate SmartScreen warnings. Store as CI secret for automated signing."
       },

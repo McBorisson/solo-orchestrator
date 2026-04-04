@@ -62,6 +62,21 @@ fi
 
 # --- Output the prompt ---
 
+# Version check summary
+VERSION_STATUS="(run scripts/check-versions.sh for details)"
+if [ -x "scripts/check-versions.sh" ]; then
+  version_output=$(bash scripts/check-versions.sh 2>&1 </dev/null) || true
+  below_min=$(echo "$version_output" | grep -c "BELOW MINIMUM" || echo "0")
+  updates=$(echo "$version_output" | grep -c "available" || echo "0")
+  if [ "$below_min" -gt 0 ]; then
+    VERSION_STATUS="⚠ $below_min tool(s) below minimum version — run scripts/check-versions.sh"
+  elif [ "$updates" -gt 0 ]; then
+    VERSION_STATUS="⬆ $updates update(s) available — run scripts/check-versions.sh"
+  else
+    VERSION_STATUS="✓ All tools up to date"
+  fi
+fi
+
 echo -e "${CYAN}--- Copy everything below this line into Claude Code ---${NC}"
 echo ""
 cat <<PROMPT
@@ -75,6 +90,8 @@ We are resuming work on this project. Here is the current state:
 
 **Recent commits:**
 $RECENT_COMMITS
+
+**Tool versions:** $VERSION_STATUS
 
 Read CLAUDE.md for full project context. Continue from where we left off. If CLAUDE.md's "Current State" section is stale or incomplete, ask me to clarify before proceeding.
 PROMPT

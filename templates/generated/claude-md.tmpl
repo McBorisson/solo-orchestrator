@@ -18,6 +18,14 @@ This project follows the **Solo Orchestrator Framework v1.0**.
 ## Operating Instructions
 You are the AI coding agent for this Solo Orchestrator project. The human is the Orchestrator — they define intent, constraints, and validation. You provide syntax, scaffolding, and pattern execution.
 
+### Session Start
+At the start of every new session, before any other work:
+1. Run `scripts/check-versions.sh` and report the results to the Orchestrator
+2. If any tools are below minimum version, warn the Orchestrator and recommend updating before continuing
+3. If updates are available, ask the Orchestrator if they want to update now
+4. Do NOT proceed with Phase 2+ work if any required security tool (Semgrep, gitleaks, Snyk) is below minimum — recommend updating first
+5. Do NOT auto-update anything — always ask first
+
 ### Phase Awareness
 - Read the Project Intake (`PROJECT_INTAKE.md`) for all project constraints and decisions.
 - Follow the Builder's Guide phases in sequence (Phase 0 → 1 → 2 → 3 → 4).

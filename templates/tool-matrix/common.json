@@ -15,6 +15,8 @@
       "languages": ["all"],
       "check_command": "command -v git",
       "version_command": "git --version | awk '{print $3}'",
+      "min_version": "2.30.0",
+      "latest_check": null,
       "install": {
         "darwin_brew": "brew install git",
         "darwin_manual": "xcode-select --install",
@@ -38,6 +40,8 @@
       "languages": ["all"],
       "check_command": "command -v jq",
       "version_command": "jq --version 2>/dev/null",
+      "min_version": "1.6",
+      "latest_check": {"method": "brew", "package": "jq"},
       "install": {
         "darwin_brew": "brew install jq",
         "linux_apt": "sudo apt install -y jq",
@@ -60,6 +64,8 @@
       "languages": ["all"],
       "check_command": "command -v node",
       "version_command": "node --version | sed 's/v//'",
+      "min_version": "18.17.0",
+      "latest_check": null,
       "install": {
         "darwin_brew": "brew install node@22 && brew link --overwrite node@22",
         "linux_apt": "sudo apt install -y nodejs npm",
@@ -82,6 +88,8 @@
       "languages": ["all"],
       "check_command": "command -v docker",
       "version_command": "docker --version 2>/dev/null | awk '{print $3}' | tr -d ','",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "darwin_brew": "brew install --cask docker",
         "linux_apt": "sudo apt install -y docker.io && sudo usermod -aG docker $USER",
@@ -104,6 +112,8 @@
       "languages": ["all"],
       "check_command": "command -v gpg",
       "version_command": "gpg --version 2>/dev/null | head -1 | awk '{print $3}'",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "darwin_brew": "brew install gnupg",
         "linux_apt": "sudo apt install -y gnupg",
@@ -126,6 +136,8 @@
       "languages": ["all"],
       "check_command": "command -v semgrep",
       "version_command": "semgrep --version 2>/dev/null | head -1",
+      "min_version": "1.50.0",
+      "latest_check": {"method": "pip", "package": "semgrep"},
       "install": {
         "darwin_brew": "brew install semgrep",
         "linux_pip": "pip3 install semgrep",
@@ -147,6 +159,8 @@
       "languages": ["all"],
       "check_command": "command -v gitleaks",
       "version_command": "gitleaks version 2>/dev/null",
+      "min_version": "8.18.0",
+      "latest_check": {"method": "github_release", "package": "gitleaks/gitleaks"},
       "install": {
         "darwin_brew": "brew install gitleaks",
         "linux_manual": "See https://github.com/gitleaks/gitleaks/releases — download the binary for your architecture",
@@ -168,6 +182,8 @@
       "languages": ["all"],
       "check_command": "command -v snyk",
       "version_command": "snyk --version 2>/dev/null",
+      "min_version": "1.1290.0",
+      "latest_check": {"method": "npm", "package": "snyk"},
       "install": {
         "npm": "npm install -g snyk",
         "manual": "https://docs.snyk.io/snyk-cli/install-or-update-the-snyk-cli"
@@ -188,6 +204,8 @@
       "languages": ["all"],
       "check_command": "command -v claude",
       "version_command": "claude --version 2>/dev/null",
+      "min_version": "2.0.0",
+      "latest_check": {"method": "npm", "package": "@anthropic-ai/claude-code"},
       "install": {
         "darwin_brew": "brew install claude-code",
         "npm": "npm install -g @anthropic-ai/claude-code",
@@ -209,6 +227,8 @@
       "languages": ["all"],
       "check_command": "[ -f \"$HOME/.claude/settings.json\" ] && command -v jq &>/dev/null && [ \"$(jq -r '.enabledPlugins[\"superpowers@claude-plugins-official\"] // false' \"$HOME/.claude/settings.json\" 2>/dev/null)\" = \"true\" ]",
       "version_command": "echo 'installed'",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "darwin_brew": "claude plugins add superpowers",
         "linux_apt": "claude plugins add superpowers",
@@ -230,6 +250,8 @@
       "languages": ["all"],
       "check_command": "[ -f \"$HOME/.claude/settings.json\" ] && command -v jq &>/dev/null && jq -e '.mcpServers.context7 // .mcpServers[\"context7-mcp\"] // empty' \"$HOME/.claude/settings.json\" >/dev/null 2>&1",
       "version_command": "echo 'configured'",
+      "min_version": null,
+      "latest_check": {"method": "npm", "package": "@upstash/context7-mcp"},
       "install": {
         "npm": "claude mcp add context7 -- npx -y @upstash/context7-mcp@latest",
         "manual": "Run: claude mcp add context7 -- npx -y @upstash/context7-mcp@latest"
@@ -250,6 +272,8 @@
       "languages": ["all"],
       "check_command": "[ -f \"$HOME/.claude/settings.json\" ] && command -v jq &>/dev/null && jq -e '.mcpServers.qdrant // .mcpServers[\"mcp-server-qdrant\"] // empty' \"$HOME/.claude/settings.json\" >/dev/null 2>&1",
       "version_command": "echo 'configured'",
+      "min_version": null,
+      "latest_check": null,
       "install": {
         "manual": "Requires Docker + uv. See docs/framework/cli-setup-addendum.md for setup steps."
       },
@@ -269,6 +293,8 @@
       "languages": ["python"],
       "check_command": "command -v python3 || command -v python",
       "version_command": "python3 --version 2>/dev/null | awk '{print $2}' || python --version 2>/dev/null | awk '{print $2}'",
+      "min_version": "3.10.0",
+      "latest_check": null,
       "install": {
         "darwin_brew": "brew install python",
         "linux_apt": "sudo apt install -y python3 python3-pip python3-venv",
@@ -291,6 +317,8 @@
       "languages": ["rust"],
       "check_command": "command -v cargo",
       "version_command": "rustc --version 2>/dev/null | awk '{print $2}'",
+      "min_version": "1.70.0",
+      "latest_check": null,
       "install": {
         "darwin_brew": "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && source \"$HOME/.cargo/env\"",
         "linux_apt": "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && source \"$HOME/.cargo/env\"",
@@ -312,6 +340,8 @@
       "languages": ["go"],
       "check_command": "command -v go",
       "version_command": "go version 2>/dev/null | awk '{print $3}' | sed 's/go//'",
+      "min_version": "1.21.0",
+      "latest_check": null,
       "install": {
         "darwin_brew": "brew install go",
         "linux_apt": "sudo apt install -y golang",
@@ -334,6 +364,8 @@
       "languages": ["csharp"],
       "check_command": "command -v dotnet",
       "version_command": "dotnet --version 2>/dev/null",
+      "min_version": "7.0.0",
+      "latest_check": null,
       "install": {
         "darwin_brew": "brew install dotnet",
         "manual": "https://dotnet.microsoft.com/download"
@@ -354,6 +386,8 @@
       "languages": ["kotlin", "java", "jvm"],
       "check_command": "command -v java",
       "version_command": "java --version 2>/dev/null | head -1",
+      "min_version": "17.0.0",
+      "latest_check": null,
       "install": {
         "darwin_brew": "brew install temurin",
         "linux_apt": "sudo apt install -y default-jdk",
@@ -376,6 +410,8 @@
       "languages": ["dart"],
       "check_command": "command -v flutter",
       "version_command": "flutter --version 2>/dev/null | head -1 | awk '{print $2}'",
+      "min_version": "3.10.0",
+      "latest_check": null,
       "install": {
         "darwin_brew": "brew install flutter",
         "manual": "https://docs.flutter.dev/get-started/install"
