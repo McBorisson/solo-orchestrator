@@ -748,7 +748,9 @@ create_project() {
   cp "$SCRIPT_DIR/scripts/resume.sh" scripts/
   cp "$SCRIPT_DIR/scripts/intake-wizard.sh" scripts/
   cp "$SCRIPT_DIR/scripts/resolve-tools.sh" scripts/
-  chmod +x scripts/validate.sh scripts/check-phase-gate.sh scripts/check-updates.sh scripts/resume.sh scripts/intake-wizard.sh scripts/resolve-tools.sh
+  cp "$SCRIPT_DIR/scripts/upgrade-project.sh" scripts/
+  cp "$SCRIPT_DIR/scripts/verify-install.sh" scripts/
+  chmod +x scripts/validate.sh scripts/check-phase-gate.sh scripts/check-updates.sh scripts/resume.sh scripts/intake-wizard.sh scripts/resolve-tools.sh scripts/upgrade-project.sh scripts/verify-install.sh
 
   # Copy intake suggestion files
   mkdir -p templates/intake-suggestions
@@ -886,6 +888,12 @@ create_project() {
   }
 }
 PHEOF
+
+  # Store orchestrator source path for verify-install.sh remediation
+  if command -v jq &>/dev/null; then
+    jq -n --arg s "$SCRIPT_DIR" '{source_dir: $s}' > .claude/orchestrator-source.json
+    print_ok "Orchestrator source path stored"
+  fi
 
   # Write tool-preferences.json (from resolver output stored earlier)
   if [ -n "${RESOLVER_OUTPUT:-}" ]; then
@@ -1612,78 +1620,7 @@ generate_release() {
 }
 
 # ================================================================
-# PHASE 5: Health Check
-# ================================================================
-health_check() {
-  print_step "Running health check..."
-  local warnings=0
-
-  cd "$PROJECT_DIR"
-
-  # Check files exist
-  [ -f "CLAUDE.md" ] && print_ok "CLAUDE.md" || { print_fail "CLAUDE.md missing"; ((warnings++)); }
-  [ -f "PROJECT_INTAKE.md" ] && print_ok "PROJECT_INTAKE.md" || { print_fail "PROJECT_INTAKE.md missing"; ((warnings++)); }
-  [ -f "APPROVAL_LOG.md" ] && print_ok "APPROVAL_LOG.md" || { print_fail "APPROVAL_LOG.md missing"; ((warnings++)); }
-  [ -f "docs/framework/builders-guide.md" ] && print_ok "Builder's Guide" || { print_fail "Builder's Guide missing"; ((warnings++)); }
-  [ -f ".gitignore" ] && print_ok ".gitignore" || { print_fail ".gitignore missing"; ((warnings++)); }
-  [ -f ".github/workflows/ci.yml" ] && print_ok "CI pipeline" || { print_fail "CI pipeline missing"; ((warnings++)); }
-  if [ -f "$SCRIPT_DIR/templates/pipelines/release/$PLATFORM.yml" ]; then
-    [ -f ".github/workflows/release.yml" ] && print_ok "Release pipeline" || { print_fail "Release pipeline missing"; ((warnings++)); }
-  fi
-  [ -d ".git" ] && print_ok "Git initialized" || { print_fail "Git not initialized"; ((warnings++)); }
-  [ -f ".claude/phase-state.json" ] && print_ok "Phase state tracking" || { print_fail "Phase state file missing (.claude/phase-state.json)"; ((warnings++)); }
-  [ -x "scripts/validate.sh" ] && print_ok "Validation script" || { print_fail "scripts/validate.sh missing"; ((warnings++)); }
-  [ -x "scripts/check-phase-gate.sh" ] && print_ok "Phase gate check script" || { print_fail "scripts/check-phase-gate.sh missing"; ((warnings++)); }
-  [ -f ".claude/manifest.json" ] && print_ok "Claude Dev Framework (manifest found)" || { print_warn "Claude Dev Framework not fully installed — run: bash ~/.claude-dev-framework/scripts/init.sh"; ((warnings++)); }
-  [ -x ".git/hooks/pre-commit" ] && print_ok "Pre-commit hook installed" || { print_warn "Pre-commit hook missing"; ((warnings++)); }
-
-  # Check tools via tool-preferences.json (matrix-driven) or fallback to basic checks
-  if [ -f ".claude/tool-preferences.json" ]; then
-    print_ok "Tool preferences file present"
-    # Re-run resolver to check current state
-    local dev_os
-    case "$(uname -s)" in Darwin) dev_os="darwin" ;; *) dev_os="linux" ;; esac
-    local health_output
-    health_output=$(scripts/resolve-tools.sh \
-      --dev-os "$dev_os" \
-      --platform "$PLATFORM" \
-      --language "$LANGUAGE" \
-      --track "$TRACK" \
-      --phase 2 \
-      --matrix-dir templates/tool-matrix \
-      --tool-prefs ".claude/tool-preferences.json" 2>/dev/null) || true
-
-    if [ -n "$health_output" ]; then
-      echo "$health_output" | jq -r '.already_installed[] | .name' | while IFS= read -r tool; do
-        print_ok "$tool accessible"
-      done
-      local missing_required
-      missing_required=$(echo "$health_output" | jq -r '[(.auto_install + .manual_install)[] | select(.required == true) | .name] | .[]')
-      if [ -n "$missing_required" ]; then
-        echo "$missing_required" | while IFS= read -r tool; do
-          print_warn "$tool not found (required)"
-          ((warnings++)) || true
-        done
-      fi
-    fi
-  else
-    # Fallback: basic tool checks (for projects created before matrix system)
-    command -v claude &>/dev/null && print_ok "Claude Code accessible" || { print_warn "Claude Code not found"; ((warnings++)); }
-    command -v semgrep &>/dev/null && print_ok "Semgrep accessible" || { print_warn "Semgrep not found"; ((warnings++)); }
-    command -v gitleaks &>/dev/null && print_ok "gitleaks accessible" || { print_warn "gitleaks not found"; ((warnings++)); }
-    command -v snyk &>/dev/null && print_ok "Snyk accessible" || { print_warn "Snyk not found"; ((warnings++)); }
-  fi
-
-  echo ""
-  if [ $warnings -eq 0 ]; then
-    print_ok "All health checks passed."
-  else
-    print_warn "$warnings warnings. Review above and resolve before starting."
-  fi
-}
-
-# ================================================================
-# PHASE 6: Print Next Steps
+# PHASE 5: Print Next Steps (health_check replaced by verify-install.sh)
 # ================================================================
 print_next_steps() {
   echo ""
@@ -1901,7 +1838,7 @@ main() {
   else
     resolve_and_install_tools
     create_project
-    health_check
+    bash "$PROJECT_DIR/scripts/verify-install.sh" --auto-fix || true
     print_next_steps
   fi
 }

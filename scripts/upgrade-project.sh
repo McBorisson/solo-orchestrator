@@ -1246,4 +1246,11 @@ if [ "$POC_REMOVED" = true ]; then
   echo ""
 fi
 
+# Run installation verification after upgrade
+if [ -x "scripts/verify-install.sh" ]; then
+  echo ""
+  print_step "Running post-upgrade verification..."
+  bash scripts/verify-install.sh || true
+fi
+
 print_ok "Upgrade complete."
