@@ -11,7 +11,7 @@ set -euo pipefail
 # Usage: bash scripts/check-phase-gate.sh
 # Exit codes:
 #   0 — all gates consistent, or phase state file not found (pre-framework)
-#   1 — inconsistency detected (gate passed without approval log entry)
+#   1 — inconsistency detected (blocked). Set SOIF_PHASE_GATES=warn to downgrade.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/helpers.sh"
@@ -169,8 +169,14 @@ if [ $issues -eq 0 ]; then
   echo -e "${GREEN}${BOLD}Phase gates consistent.${NC}"
   exit 0
 else
-  echo -e "${YELLOW}${BOLD}$issues inconsistency(ies) found.${NC}"
-  echo "Update .claude/phase-state.json and APPROVAL_LOG.md to match."
-  # Exit 1 in CI to surface as a warning; the CI step should use continue-on-error
-  exit 1
+  if [ "${SOIF_PHASE_GATES:-}" = "warn" ]; then
+    echo -e "${YELLOW}${BOLD}$issues inconsistency(ies) found (warn mode — not blocking).${NC}"
+    echo "Update .claude/phase-state.json and APPROVAL_LOG.md to match."
+    exit 0
+  else
+    echo -e "${RED}${BOLD}$issues inconsistency(ies) found — blocking.${NC}"
+    echo "Update .claude/phase-state.json and APPROVAL_LOG.md to match."
+    echo "Set SOIF_PHASE_GATES=warn to downgrade to warning."
+    exit 1
+  fi
 fi
