@@ -7,12 +7,17 @@ set -euo pipefail
 # Solo Orchestrator — Project Initialization Script
 # https://github.com/kraulerson/solo-orchestrator
 #
-# Usage: ./init.sh
+# Usage: ./init.sh [--dry-run] [--help]
 # Creates a new Solo Orchestrator project with all framework documents,
 # templates, and tooling configuration.
+#
+# Options:
+#   --dry-run   Preview what will be installed and created without executing
+#   --help, -h  Show usage information
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION="1.0.0"
+DRY_RUN=false
 
 # Colors (disabled if not a terminal)
 if [ -t 1 ]; then
@@ -62,22 +67,68 @@ prompt_choice() {
   echo "${options[$((choice-1))]}"
 }
 
+# Prompt user to install a missing tool. Returns 0 if installed, 1 if skipped.
+prompt_install() {
+  local tool_name="$1"
+  local install_cmd="$2"
+  local needs_sudo="${3:-false}"
+
+  echo ""
+  if [ "$needs_sudo" = true ]; then
+    echo -e "  ${YELLOW}This requires administrator privileges (sudo).${NC}"
+  fi
+  echo -e "  Install command: ${CYAN}$install_cmd${NC}"
+  read -rp "$(echo -e "  ${BOLD}Install $tool_name now? [Y/n]${NC}: ")" response
+  if [[ "$response" =~ ^[Nn] ]]; then
+    return 1
+  fi
+
+  if eval "$install_cmd"; then
+    print_ok "$tool_name installed"
+    return 0
+  else
+    print_warn "Installation failed. You can try manually: $install_cmd"
+    return 1
+  fi
+}
+
 # ================================================================
 # PHASE 1: Prerequisites Check
 # ================================================================
 check_prerequisites() {
   print_step "Checking prerequisites..."
-  local missing=()
+  local os_type
+  os_type="$(uname -s)"
+  local missing_required=()
 
-  # Git (always required)
+  # --- Git (required) ---
   if command -v git &>/dev/null; then
     print_ok "Git $(git --version | awk '{print $3}')"
   else
     print_fail "Git not found"
-    missing+=("git")
+    local git_installed=false
+    if [ "$os_type" = "Darwin" ]; then
+      if command -v brew &>/dev/null; then
+        prompt_install "Git" "brew install git" && git_installed=true
+      else
+        echo "  Install with: xcode-select --install (includes Git)"
+        echo "  Or install Homebrew first: https://brew.sh"
+      fi
+    elif [ "$os_type" = "Linux" ]; then
+      if command -v apt &>/dev/null; then
+        prompt_install "Git" "sudo apt install -y git" true && git_installed=true
+      elif command -v dnf &>/dev/null; then
+        prompt_install "Git" "sudo dnf install -y git" true && git_installed=true
+      else
+        echo "  Install with your distribution's package manager (e.g., sudo apt install git)"
+      fi
+    fi
+    if [ "$git_installed" = false ]; then
+      missing_required+=("git")
+    fi
   fi
 
-  # Node.js — required for JS/TS projects, recommended for others (used by some tooling)
+  # --- Node.js (required for JS/TS, recommended for others) ---
   if command -v node &>/dev/null; then
     local node_version
     node_version=$(node --version | sed 's/v//')
@@ -89,30 +140,56 @@ check_prerequisites() {
       print_warn "Node.js $node_version (18+ recommended)"
     fi
   else
-    # Node.js is only hard-required for JS/TS projects
-    # For other languages it's used by some optional tooling (Snyk, license-checker)
-    print_warn "Node.js not found"
+    print_warn "Node.js not found (used by Snyk, license-checker, and JS/TS projects)"
+    if [ "$os_type" = "Darwin" ] && command -v brew &>/dev/null; then
+      prompt_install "Node.js 22 LTS" "brew install node@22 && brew link --overwrite node@22"
+    elif [ "$os_type" = "Linux" ]; then
+      if command -v apt &>/dev/null; then
+        prompt_install "Node.js" "sudo apt install -y nodejs npm" true
+      elif command -v dnf &>/dev/null; then
+        prompt_install "Node.js" "sudo dnf install -y nodejs npm" true
+      else
+        echo "  Install Node.js 18+: https://nodejs.org/"
+      fi
+    fi
   fi
 
-  # Docker (optional but recommended)
+  # --- Docker (optional) ---
   if command -v docker &>/dev/null; then
     print_ok "Docker $(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',')"
   else
     print_warn "Docker not found (optional — needed for OWASP ZAP DAST scanning)"
+    if [ "$os_type" = "Darwin" ] && command -v brew &>/dev/null; then
+      echo "  Install with: brew install --cask docker"
+    elif [ "$os_type" = "Linux" ]; then
+      if command -v apt &>/dev/null; then
+        echo "  Install with: sudo apt install -y docker.io && sudo usermod -aG docker \$USER"
+      elif command -v dnf &>/dev/null; then
+        echo "  Install with: sudo dnf install -y docker && sudo usermod -aG docker \$USER"
+      fi
+    fi
   fi
 
-  # GPG (optional)
+  # --- GPG (optional) ---
   if command -v gpg &>/dev/null; then
     print_ok "GPG available (commit signing)"
   else
     print_warn "GPG not found (optional — used for commit signing)"
+    if [ "$os_type" = "Darwin" ] && command -v brew &>/dev/null; then
+      echo "  Install with: brew install gnupg"
+    elif [ "$os_type" = "Linux" ]; then
+      if command -v apt &>/dev/null; then
+        echo "  Install with: sudo apt install -y gnupg"
+      elif command -v dnf &>/dev/null; then
+        echo "  Install with: sudo dnf install -y gnupg2"
+      fi
+    fi
   fi
 
-  if [ ${#missing[@]} -gt 0 ]; then
+  if [ ${#missing_required[@]} -gt 0 ]; then
     echo ""
-    print_fail "Missing required prerequisites: ${missing[*]}"
-    echo "  Install them before continuing."
-    echo "  Git: https://git-scm.com/downloads"
+    print_fail "Missing required prerequisites: ${missing_required[*]}"
+    echo "  Install them and re-run init.sh."
     exit 1
   fi
 
@@ -194,6 +271,24 @@ install_tools() {
     print_info "Installing gitleaks..."
     if [ "$os_type" = "Darwin" ] && command -v brew &>/dev/null; then
       brew install gitleaks
+    elif [ "$os_type" = "Linux" ] && command -v curl &>/dev/null; then
+      local gl_version
+      gl_version=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep '"tag_name"' | sed 's/.*"v\(.*\)".*/\1/')
+      if [ -n "$gl_version" ]; then
+        local arch
+        arch=$(uname -m)
+        case "$arch" in
+          x86_64) arch="x64" ;;
+          aarch64|arm64) arch="arm64" ;;
+        esac
+        local gl_url="https://github.com/gitleaks/gitleaks/releases/download/v${gl_version}/gitleaks_${gl_version}_linux_${arch}.tar.gz"
+        print_info "Downloading gitleaks $gl_version..."
+        curl -sL "$gl_url" | tar xz -C /usr/local/bin gitleaks 2>/dev/null || \
+        curl -sL "$gl_url" | sudo tar xz -C /usr/local/bin gitleaks 2>/dev/null || \
+        print_warn "Could not install gitleaks. Install manually: https://github.com/gitleaks/gitleaks/releases"
+      else
+        print_warn "Could not determine latest gitleaks version. Install manually: https://github.com/gitleaks/gitleaks/releases"
+      fi
     else
       print_warn "Install gitleaks manually: https://github.com/gitleaks/gitleaks/releases"
     fi
@@ -243,6 +338,90 @@ install_tools() {
 
   echo ""
   print_ok "Tool installation complete."
+}
+
+# ================================================================
+install_language_runtime() {
+  local os_type
+  os_type="$(uname -s)"
+
+  case "$LANGUAGE" in
+    typescript|javascript)
+      if ! command -v node &>/dev/null; then
+        print_warn "Node.js is required for $LANGUAGE projects."
+        if [ "$os_type" = "Darwin" ] && command -v brew &>/dev/null; then
+          prompt_install "Node.js 22 LTS" "brew install node@22 && brew link --overwrite node@22"
+        elif [ "$os_type" = "Linux" ] && command -v apt &>/dev/null; then
+          prompt_install "Node.js" "sudo apt install -y nodejs npm" true
+        elif [ "$os_type" = "Linux" ] && command -v dnf &>/dev/null; then
+          prompt_install "Node.js" "sudo dnf install -y nodejs npm" true
+        else
+          echo "  Install Node.js 18+: https://nodejs.org/"
+        fi
+      fi ;;
+    python)
+      if ! command -v python3 &>/dev/null && ! command -v python &>/dev/null; then
+        print_warn "Python is required for $LANGUAGE projects."
+        if [ "$os_type" = "Darwin" ] && command -v brew &>/dev/null; then
+          prompt_install "Python 3" "brew install python"
+        elif [ "$os_type" = "Linux" ] && command -v apt &>/dev/null; then
+          prompt_install "Python 3" "sudo apt install -y python3 python3-pip python3-venv" true
+        elif [ "$os_type" = "Linux" ] && command -v dnf &>/dev/null; then
+          prompt_install "Python 3" "sudo dnf install -y python3 python3-pip" true
+        else
+          echo "  Install Python 3.12+: https://python.org/"
+        fi
+      fi ;;
+    rust)
+      if ! command -v cargo &>/dev/null; then
+        print_warn "Rust is required for $LANGUAGE projects."
+        prompt_install "Rust (via rustup)" "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && source \"\$HOME/.cargo/env\""
+      fi ;;
+    go)
+      if ! command -v go &>/dev/null; then
+        print_warn "Go is required for $LANGUAGE projects."
+        if [ "$os_type" = "Darwin" ] && command -v brew &>/dev/null; then
+          prompt_install "Go" "brew install go"
+        elif [ "$os_type" = "Linux" ] && command -v apt &>/dev/null; then
+          prompt_install "Go" "sudo apt install -y golang" true
+        elif [ "$os_type" = "Linux" ] && command -v dnf &>/dev/null; then
+          prompt_install "Go" "sudo dnf install -y golang" true
+        else
+          echo "  Install Go: https://go.dev/dl/"
+        fi
+      fi ;;
+    csharp)
+      if ! command -v dotnet &>/dev/null; then
+        print_warn ".NET SDK is required for $LANGUAGE projects."
+        if [ "$os_type" = "Darwin" ] && command -v brew &>/dev/null; then
+          prompt_install ".NET SDK" "brew install dotnet"
+        else
+          echo "  Install .NET SDK: https://dotnet.microsoft.com/download"
+        fi
+      fi ;;
+    kotlin|java)
+      if ! command -v java &>/dev/null; then
+        print_warn "Java is required for $LANGUAGE projects."
+        if [ "$os_type" = "Darwin" ] && command -v brew &>/dev/null; then
+          prompt_install "Java (Eclipse Temurin)" "brew install temurin"
+        elif [ "$os_type" = "Linux" ] && command -v apt &>/dev/null; then
+          prompt_install "Java (OpenJDK)" "sudo apt install -y default-jdk" true
+        elif [ "$os_type" = "Linux" ] && command -v dnf &>/dev/null; then
+          prompt_install "Java (OpenJDK)" "sudo dnf install -y java-latest-openjdk-devel" true
+        else
+          echo "  Install Java: https://adoptium.net/"
+        fi
+      fi ;;
+    dart)
+      if ! command -v flutter &>/dev/null; then
+        print_warn "Flutter SDK is required for $LANGUAGE projects."
+        if [ "$os_type" = "Darwin" ] && command -v brew &>/dev/null; then
+          prompt_install "Flutter" "brew install flutter"
+        else
+          echo "  Install Flutter: https://docs.flutter.dev/get-started/install"
+        fi
+      fi ;;
+  esac
 }
 
 # ================================================================
@@ -1218,16 +1397,108 @@ print_next_steps() {
 }
 
 # ================================================================
+dry_run_summary() {
+  echo ""
+  print_step "DRY RUN SUMMARY"
+  echo ""
+
+  echo -e "${BOLD}Project:${NC}"
+  echo "  Name:      $PROJECT_NAME"
+  echo "  Platform:  $PLATFORM"
+  echo "  Track:     $TRACK"
+  echo "  Language:  $LANGUAGE"
+  echo "  Directory: $PROJECT_DIR"
+  echo ""
+
+  echo -e "${BOLD}Tools to install (if missing):${NC}"
+  command -v semgrep &>/dev/null && echo "  [already installed] Semgrep" || echo "  [WILL INSTALL] Semgrep (SAST scanner)"
+  command -v gitleaks &>/dev/null && echo "  [already installed] gitleaks" || echo "  [WILL INSTALL] gitleaks (secret detection)"
+  command -v snyk &>/dev/null && echo "  [already installed] Snyk CLI" || echo "  [WILL INSTALL] Snyk CLI (dependency vulnerability scanner)"
+  command -v claude &>/dev/null && echo "  [already installed] Claude Code" || echo "  [WILL INSTALL] Claude Code (AI coding agent)"
+  if [ "$PLATFORM" = "web" ]; then
+    command -v lighthouse &>/dev/null && echo "  [already installed] Lighthouse" || echo "  [WILL INSTALL] Lighthouse (performance auditing)"
+    if command -v docker &>/dev/null; then
+      docker image inspect zaproxy/zap-stable &>/dev/null 2>&1 && echo "  [already installed] OWASP ZAP" || echo "  [WILL INSTALL] OWASP ZAP Docker image (DAST scanner)"
+    fi
+  fi
+  echo ""
+
+  echo -e "${BOLD}Files to create in $PROJECT_DIR/:${NC}"
+  echo "  CLAUDE.md                             — Agent instructions"
+  echo "  PROJECT_INTAKE.md                     — Product definition template"
+  echo "  APPROVAL_LOG.md                       — Phase gate approval record"
+  echo "  .github/workflows/ci.yml              — CI pipeline ($LANGUAGE)"
+  echo "  .github/workflows/release.yml         — Release pipeline ($PLATFORM)"
+  echo "  .gitignore                            — Language + platform ignores"
+  echo "  .claude/framework/                    — Claude Dev Framework (git hooks)"
+  echo "  .claude/phase-state.json              — Phase tracking"
+  echo "  docs/framework/builders-guide.md      — Builder's Guide"
+  echo "  docs/framework/governance-framework.md"
+  echo "  docs/framework/executive-review.md"
+  echo "  docs/framework/cli-setup-addendum.md"
+  echo "  docs/platform-modules/                — Platform-specific guidance"
+  echo "  docs/test-results/                    — Empty (populated in Phase 3)"
+  echo "  scripts/validate.sh                   — Validation script"
+  echo "  scripts/check-phase-gate.sh           — Phase gate checker"
+  echo ""
+
+  echo -e "${BOLD}Post-init steps (you do these manually):${NC}"
+  echo "  1. cd $PROJECT_DIR"
+  echo "  2. claude          # OAuth authentication"
+  echo "  3. snyk auth       # Snyk authentication"
+  echo "  4. Fill out PROJECT_INTAKE.md"
+  echo ""
+  echo -e "${GREEN}Re-run without --dry-run to execute.${NC}"
+}
+
+# ================================================================
 # MAIN
 # ================================================================
 main() {
+  # Parse flags
+  for arg in "$@"; do
+    case "$arg" in
+      --dry-run)
+        DRY_RUN=true
+        ;;
+      --help|-h)
+        echo "Usage: ./init.sh [--dry-run] [--help]"
+        echo ""
+        echo "Creates a new Solo Orchestrator project with all framework documents,"
+        echo "templates, and tooling configuration."
+        echo ""
+        echo "Options:"
+        echo "  --dry-run   Preview what will be installed and created without executing"
+        echo "  --help, -h  Show this help message"
+        exit 0
+        ;;
+      *)
+        echo "Unknown option: $arg"
+        echo "Usage: ./init.sh [--dry-run] [--help]"
+        exit 1
+        ;;
+    esac
+  done
+
   print_header
+
+  if [ "$DRY_RUN" = true ]; then
+    echo -e "${YELLOW}${BOLD}DRY RUN MODE — no changes will be made${NC}"
+    echo ""
+  fi
+
   check_prerequisites
   collect_project_info
-  install_tools
-  create_project
-  health_check
-  print_next_steps
+
+  if [ "$DRY_RUN" = true ]; then
+    dry_run_summary
+  else
+    install_language_runtime
+    install_tools
+    create_project
+    health_check
+    print_next_steps
+  fi
 }
 
 main "$@"
