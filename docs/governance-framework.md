@@ -1,6 +1,6 @@
 # Solo Orchestrator Enterprise Governance Framework
 
-## Version 1.3
+## Version 1.0
 
 ---
 
@@ -9,12 +9,12 @@
 | Field | Value |
 |---|---|
 | **Document ID** | SOI-003-GOV |
-| **Version** | 1.3 |
+| **Version** | 1.0 |
 | **Classification** | Enterprise Governance — Executive & Oversight Audiences |
-| **Date** | 2026-03-31 |
+| **Date** | 2026-04-02 |
 | **Audience** | CIO, VP of Engineering, IT Security, Legal, Risk & Compliance, Internal Audit |
-| **Companion Documents** | SOI-002-BUILD v4.1 — Solo Orchestrator Builder's Guide (technical execution manual) |
-| | SOI-004-INTAKE v1.2 — Project Intake Template (structured input for Phase 0 and Phase 1) |
+| **Companion Documents** | SOI-002-BUILD v1.0 — Solo Orchestrator Builder's Guide (technical execution manual) |
+| | SOI-004-INTAKE v1.0 — Project Intake Template (structured input for Phase 0 and Phase 1) |
 | | SOI-PM-* — Platform Modules (Web, Desktop — production-ready. Mobile — roadmap.) |
 
 ---
@@ -578,6 +578,17 @@ A portfolio governance function (one person or a rotating responsibility) audits
 - [ ] Insurance coverage confirmed at last biannual review
 - [ ] AI provider terms verified at last biannual review
 
+### Scaling Beyond a Single Orchestrator
+
+This framework version defines governance for a single Orchestrator building individual applications. For organizations deploying multiple Orchestrators simultaneously, additional governance is needed:
+
+- **Shared architecture catalog:** Define approved stacks and patterns to prevent independent Orchestrators from selecting incompatible technologies.
+- **Cross-project review:** Periodic review (quarterly recommended) of architectural decisions across the portfolio to identify consolidation opportunities and conflicts.
+- **Component reuse:** Shared internal libraries or approved package lists to avoid duplication of effort.
+- **Approver capacity planning:** Named approvers reviewing multiple projects simultaneously need dedicated time allocation. Do not assume governance overhead is negligible at scale.
+
+These multi-Orchestrator governance patterns are not yet defined in detail. Organizations scaling beyond 2-3 simultaneous Orchestrators should develop these controls before expanding further.
+
 ---
 
 ## XII. Risk Assessment
@@ -747,7 +758,4 @@ If this framework warrants adoption:
 
 | Version | Date | Changes |
 |---|---|---|
-| 1.0 | 2026-03-31 | Initial release. Split from combined Executive Review and Implementation Guide. Incorporates CIO evaluation findings: added pre-Phase 0 governance gates (AI deployment path, insurance, liability entity), audit evidence requirements, in-phase decision log, DLP for AI prompts, penetration testing requirements, data sovereignty checklist, EU AI Act classification for deployed products, emerging AI regulation watch, state privacy law specificity, code provenance risk, 3-year TCO with vendor pricing sensitivity, context-switching overhead note, ITSM integration from Phase 0, portfolio review enforcement mechanism, shared starter template, graduation transition plan, enterprise system integration requirements, cross-subsidiary compliance verification, shadow IT controls, Orchestrator burnout detection, handoff test mandate, incident response integration with enterprise IR plans, evidence preservation chain, hosting vendor fallback options, AI model quality regression risk, insurance gap remediation path, expanded decision framework exclusions. |
-| 1.1 | 2026-03-31 | Intake Template integration. Added Project Intake Template as the collection mechanism for governance pre-conditions. Section I updated to reference the Intake. Pilot pre-conditions now map directly to Intake Section 8. |
-| 1.2 | 2026-04-01 | Platform-agnostic alignment. Companion document references updated for Builder's Guide v4.0 and Platform Modules. Vendor risk section (Section IX) generalized from web-specific (Vercel/Railway/Supabase) to platform-neutral with governance concerns per platform type (code signing certificate management, app store account ownership, unsigned binary policy). |
-| 1.3 | 2026-04-01 | Cross-model evaluation feedback. Added Security Peer Review requirement (competency-gated) to Section VII. Updated Section XV artifacts table: added test results archive (docs/test-results/), USER_GUIDE.md, RELEASE_NOTES.md, and test strategy in Project Bible. |
+| 1.0 | 2026-04-02 | Initial release. |

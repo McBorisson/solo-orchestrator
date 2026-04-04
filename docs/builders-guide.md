@@ -1,6 +1,6 @@
 # The Solo Orchestrator Builder's Guide
 
-## Version 4.1
+## Version 1.0
 
 ---
 
@@ -9,16 +9,16 @@
 | Field | Value |
 |---|---|
 | **Document ID** | SOI-002-BUILD |
-| **Version** | 4.1 |
+| **Version** | 1.0 |
 | **Classification** | Technical Implementation Manual |
-| **Date** | 2026-04-01 |
+| **Date** | 2026-04-02 |
 | **Audience** | Solo Orchestrator (technologist executing the framework) |
-| **Companion Documents** | SOI-003-GOV v1.3 — Enterprise Governance Framework |
-| | SOI-004-INTAKE v1.2 — Project Intake Template |
-| | SOI-005-CLI v1.2 — Claude Code CLI Setup Addendum |
-| **Platform Modules** | SOI-PM-WEB v1.1 — Web Applications |
+| **Companion Documents** | SOI-003-GOV v1.0 — Enterprise Governance Framework |
+| | SOI-004-INTAKE v1.0 — Project Intake Template |
+| | SOI-005-CLI v1.0 — Claude Code CLI Setup Addendum |
+| **Platform Modules** | SOI-PM-WEB v1.0 — Web Applications |
 | | SOI-PM-DESKTOP v1.0 — Desktop Applications (Standalone & Client-Server) |
-| **Roadmap** | SOI-PM-MOBILE v0.1 — Mobile Applications (Stub — not production-ready) |
+| | SOI-PM-MOBILE v1.0-stub — Mobile Applications (iOS & Android) |
 
 ---
 
@@ -69,7 +69,7 @@ This framework does not replace engineering teams. It is not appropriate for:
 - **Large-scale distributed systems** requiring microservices, message queues, or multi-region deployments. These require dedicated DevOps capacity.
 - **Enterprise integration projects** (SAP, Salesforce, custom ERP) where the integration complexity exceeds the application logic.
 
-The framework is designed for internal tools, utilities, departmental applications, prototypes, and MVP validation — projects that sit in the backlog because they don't justify a full team. Production-ready Platform Modules exist for web and desktop applications. Additional platform modules (mobile, CLI, embedded) can be added as they mature.
+The framework is designed for internal tools, utilities, departmental applications, prototypes, and MVP validation — projects that sit in the backlog because they don't justify a full team. Production-ready Platform Modules exist for web, desktop, and mobile applications. Additional platform modules (CLI, embedded) can be added as they mature.
 
 ### How This Differs From "Vibe Coding"
 
@@ -657,6 +657,15 @@ If the Superpowers plugin is installed (see CLI Setup Addendum, Section 1), it s
 
 **Without Superpowers:** The Build Loop below works as written — the agent executes sequentially with the Orchestrator directing each step. Superpowers is recommended but not required.
 
+### Using a Different AI Coding Agent
+
+The Builder's Guide methodology (phases, decision gates, Build Loop, test-first) works with any AI coding agent that can read files, write code, and run commands. Superpowers and the CLI Setup Addendum are optimized for Claude Code but are not required. If using a different agent:
+
+- The Build Loop (Steps 2.2-2.6) applies as written — direct the agent through each step.
+- Replace Superpowers-specific references with your agent's equivalent capabilities (if any).
+- The CLAUDE.md template should be adapted to your agent's instruction format.
+- Security tooling (Semgrep, gitleaks, Snyk) is agent-independent and works the same way.
+
 ---
 
 ### Project Initialization
@@ -763,6 +772,12 @@ Confirm the tests fail (feature code doesn't exist yet).
 4. Fix findings. Verify tests still pass.
 
 **AI-specific caution areas:** AI-generated code is disproportionately likely to have subtle issues in: complex state management (race conditions), data access efficiency, authentication edge cases, and content security configuration. Apply extra scrutiny in these areas.
+
+**Concrete mitigations for AI-generated code risks:**
+- For authentication and access control: write explicit negative tests that attempt unauthorized access (horizontal privilege escalation, role bypass, token reuse). Do not rely on the AI to identify its own auth bugs.
+- For state management and race conditions: if the application has concurrent operations, write tests that simulate concurrent access. Use your platform's concurrency testing tools.
+- For data access efficiency: run query analysis (EXPLAIN or equivalent) on every database query the AI generates that touches user data. N+1 queries are the most common AI-generated performance defect.
+- For input validation: test every user-facing input with injection payloads (SQLi, XSS, command injection) appropriate to your stack. Do not assume the AI's validation is complete.
 
 #### Step 2.5 — Update Documentation
 
@@ -939,7 +954,7 @@ Direct the agent to create `docs/test-results/` and save:
 - **Load test results** (if applicable, from Step 3.5.7)
 - **Contract test results** (if applicable, from Step 3.5.5)
 
-File naming convention: `[date]_[scan-type]_[pass|fail].[ext]` (e.g., `2026-04-01_semgrep_pass.json`).
+File naming convention: `[date]_[scan-type]_[pass|fail].[ext]` (e.g., `2026-04-02_semgrep_pass.json`).
 
 These artifacts serve as the audit evidence for Phase 3 completion. They are referenced in the Phase Gate Evidence Log (if the organization requires one per the Governance Framework) and included in the HANDOFF.md.
 
@@ -1203,10 +1218,4 @@ Direct the agent to generate `HANDOFF.md`:
 
 | Version | Date | Changes |
 |---|---|---|
-| 1.0 | 2026-03-31 | Initial release. |
-| 1.1 | 2026-03-31 | Evaluation feedback: tool corrections, DAST/SBOM, expanded incident response, security headers, Prisma rollback guidance, context management. |
-| 2.0 | 2026-03-31 | Complete restructure as self-contained manual. Absorbed SOPs, remediation tables, right-sizing, glossary. |
-| 3.0 | 2026-03-31 | Split into Builder's Guide and Enterprise Governance Framework. Added Phase 2 checkpoint, CSP guidance, API contract testing, load testing, secrets rotation, AI caution areas. |
-| 3.1 | 2026-03-31 | Intake Template integration. Dual-path prompts. Project Bible expanded. |
-| 4.0 | 2026-04-01 | Platform-agnostic restructure. All platform-specific content extracted into modular Platform Modules (Web, Desktop, Mobile). Core guide covers methodology only. Platform Module callout system. Wider hour/timeline ranges. New remediation entries for cross-platform issues. Superpowers plugin referenced as the Phase 2 execution engine (subagent-driven development, TDD enforcement, git worktrees). |
-| 4.1 | 2026-04-01 | Cross-model evaluation feedback (Claude Opus, Gemini, ChatGPT). Fixed Claude Code install (native paths, npm as fallback). Fixed CLI Addendum version reference (v1.0→v1.1). Mobile module marked as not production-ready. Added Step 1.3 formal threat model (STRIDE). Added Step 1.4.5 data migration plan. Added Phase 3.2 threat model validation. Reworded Superpowers from enforcement to workflow acceleration. Added Test Strategy to Project Bible (item 12). Added Step 3.5.9 test results archive (audit-grade evidence retention). Added user documentation requirement to Step 3.6. Added release notes to Step 4.2. New artifacts: docs/test-results/, USER_GUIDE.md, RELEASE_NOTES.md. |
+| 1.0 | 2026-04-02 | Initial release. |

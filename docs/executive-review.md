@@ -1,6 +1,6 @@
 # The Solo Orchestrator Framework
 
-## Executive Review — Version 2.0
+## Executive Review — Version 1.0
 
 ---
 
@@ -9,9 +9,9 @@
 | Field | Value |
 |---|---|
 | **Document ID** | SOI-001-EXEC |
-| **Version** | 2.0 |
+| **Version** | 1.0 |
 | **Classification** | Executive Briefing |
-| **Date** | 2026-04-01 |
+| **Date** | 2026-04-02 |
 | **Audience** | CIO, VP of Engineering, Director of Software Development |
 | **Framework Documents** | See Section XI — Document Suite |
 
@@ -34,6 +34,10 @@ The framework is **modular** — the core methodology is platform-agnostic, with
 Every large organization has a software backlog that will never be built. The projects are too small to justify a full development team, too complex for no-code platforms, and too specific for off-the-shelf SaaS. They age in Jira while business units find workarounds — spreadsheets, manual processes, or unauthorized SaaS purchases that create shadow IT risk.
 
 The Solo Orchestrator model addresses this gap. A single qualified technologist can take a concept from idea to production in weeks at a fraction of the cost of a traditional team. Production-ready Platform Modules currently support web and desktop applications, with mobile planned.
+
+### Current Maturity
+
+This is the initial release of the framework. It has been developed and used by the author for personal projects. It has not yet been validated through a formal organizational pilot as described in Section X. The framework should be evaluated as a structured methodology ready for pilot testing, not as a field-proven practice. The pilot evaluation process defined in this document is the mechanism for validation.
 
 ### What This Is Not
 
@@ -154,7 +158,7 @@ Expect 2-4 hours/week for the first 3 months post-launch. Maintenance is bursty.
 
 ## IV. Process Overview
 
-The framework operates in five phases. Each phase produces documented artifacts that gate entry into the next phase. The Builder's Guide (SOI-002-BUILD v4.1) provides the complete platform-agnostic methodology. Platform Modules provide platform-specific implementation guidance.
+The framework operates in five phases. Each phase produces documented artifacts that gate entry into the next phase. The Builder's Guide (SOI-002-BUILD v1.0) provides the complete platform-agnostic methodology. Platform Modules provide platform-specific implementation guidance.
 
 ### Phase 0: Product Discovery & Logic Mapping
 
@@ -200,7 +204,7 @@ Build, package, and distribute via the platform-appropriate mechanism — web de
 
 ## V. Enterprise Governance
 
-Enterprise deployment requires a governance layer that the framework itself does not provide. The **Enterprise Governance Framework** (SOI-003-GOV v1.2) defines this layer in full. Key elements:
+Enterprise deployment requires a governance layer that the framework itself does not provide. The **Enterprise Governance Framework** (SOI-003-GOV v1.0) defines this layer in full. Key elements:
 
 **Approval Authority:** Named approvers by role at each phase gate. The Orchestrator cannot approve their own work.
 
@@ -269,7 +273,7 @@ Desktop distribution (and mobile, when the mobile module matures) introduces add
 | **Code transmitted to AI provider** | High | Commercial deployment path required. ZDR or self-hosted for sensitive data. DLP guidelines for AI prompts. |
 | **Open-source license contamination** | High | Automated checking (direct + transitive) in CI/CD. Build fails on copyleft. SBOM generation. |
 | **Data privacy non-compliance** | High | Data classification in Phase 0. Compliance screening. Jurisdiction-specific review. Privacy Policy before launch. |
-| **AI vendor lock-in** | Medium | The framework is optimized for Claude Code. The methodology (phases, TDD, documentation) is agent-agnostic. The operational tooling (CLAUDE.md, Superpowers, MCP servers, CLI Addendum) is Claude-specific. Switching agents requires 2-4 weeks retooling per active project — primarily agent configuration, prompt adjustment, and output quality validation. The codebase, tests, documentation, and security tooling transfer without modification. Periodically verify the Project Bible produces coherent output on a secondary model. |
+| **AI vendor lock-in** | Medium-High | Core methodology (phases, decision gates, intake template, governance) is agent-agnostic. Phase 2 workflow accelerators (Superpowers, MCP integrations) and the CLI Setup Addendum are Claude Code-specific. Estimated switching cost for the methodology: minimal. Estimated switching cost for the Phase 2 tooling integration: 2-4 weeks per active project. Reduce lock-in by keeping agent-specific configuration isolated in the CLI Addendum and CLAUDE.md. |
 | **Code quality and performance** | Medium | TDD, automated linting, platform-specific performance auditing. |
 | **Intellectual property uncertainty** | Medium | Human-directed phase gates. Code provenance documentation. Monitor legal developments. |
 | **Portfolio scaling** | Medium | Maximum 5-8 applications per Orchestrator. Quarterly portfolio review. Graduation criteria defined. |
@@ -346,19 +350,19 @@ The Solo Orchestrator Framework consists of the following documents:
 
 | Document | ID | Purpose | Audience |
 |---|---|---|---|
-| **Executive Review** (this document) | SOI-001-EXEC v2.0 | High-level overview, business case, risk assessment | CIO, VP of Engineering, Directors |
-| **Builder's Guide** | SOI-002-BUILD v4.1 | Platform-agnostic methodology — phases, prompts, quality controls, remediation | Solo Orchestrator |
-| **Enterprise Governance Framework** | SOI-003-GOV v1.3 | Approval authorities, compliance, risk management, portfolio governance | CIO, IT Security, Legal, Risk, Audit |
-| **Project Intake Template** | SOI-004-INTAKE v1.2 | Structured data collection for autonomous AI agent execution | Solo Orchestrator (fills out), Governance (reviews Section 8) |
-| **CLI Setup Addendum** | SOI-005-CLI v1.2 | Claude Code CLI configuration: permissions, Superpowers, MCP servers, CLAUDE.md | Solo Orchestrator |
+| **Executive Review** (this document) | SOI-001-EXEC v1.0 | High-level overview, business case, risk assessment | CIO, VP of Engineering, Directors |
+| **Builder's Guide** | SOI-002-BUILD v1.0 | Platform-agnostic methodology — phases, prompts, quality controls, remediation | Solo Orchestrator |
+| **Enterprise Governance Framework** | SOI-003-GOV v1.0 | Approval authorities, compliance, risk management, portfolio governance | CIO, IT Security, Legal, Risk, Audit |
+| **Project Intake Template** | SOI-004-INTAKE v1.0 | Structured data collection for autonomous AI agent execution | Solo Orchestrator (fills out), Governance (reviews Section 8) |
+| **CLI Setup Addendum** | SOI-005-CLI v1.0 | Claude Code CLI configuration: permissions, Superpowers, MCP servers, CLAUDE.md | Solo Orchestrator |
 
 ### Platform Modules
 
 | Module | ID | Scope |
 |---|---|---|
-| **Web Applications** | SOI-PM-WEB v1.1 | SPAs, full-stack, APIs. Next.js, React, Vercel/Railway/Supabase. |
+| **Web Applications** | SOI-PM-WEB v1.0 | SPAs, full-stack, APIs. Next.js, React, Vercel/Railway/Supabase. |
 | **Desktop Applications** | SOI-PM-DESKTOP v1.0 | Windows/macOS/Linux standalone and client-server. Tauri, Electron, Flutter Desktop. |
-| **Mobile Applications** *(roadmap)* | SOI-PM-MOBILE v0.1 | iOS/Android native and cross-platform. Stub — not production-ready. |
+| **Mobile Applications** *(roadmap)* | SOI-PM-MOBILE v1.0-stub | iOS/Android native and cross-platform. Stub — not production-ready. |
 
 The framework is extensible — new Platform Modules (embedded systems, CLI tools, game development, etc.) can be added without modifying the core documents. Each module follows a standard internal structure: Architecture Patterns → Tooling → Build & Packaging → Testing → Distribution → Maintenance.
 
@@ -366,7 +370,7 @@ The framework is extensible — new Platform Modules (embedded systems, CLI tool
 
 | Document | ID | Purpose |
 |---|---|---|
-| **CIO Evaluation Prompt** | SOI-006-EVAL v2.1 | Cross-model LLM evaluation prompt for stress-testing the framework documents |
+| **CIO Evaluation Prompt** | SOI-006-EVAL v1.0 | Cross-model LLM evaluation prompt for stress-testing the framework documents |
 
 ---
 
@@ -391,6 +395,4 @@ If this review warrants further evaluation:
 
 | Version | Date | Changes |
 |---|---|---|
-| 1.0 | 2026-03-31 | Initial release. |
-| 1.1 | 2026-03-31 | Enterprise governance overlay, legal considerations, insurance requirements, compliance screening, risk assessment. |
-| 2.0 | 2026-04-01 | Complete rewrite for modular framework suite. Platform-agnostic core with Platform Module references. Updated document suite section reflecting all current framework documents. Cost and timeline ranges widened to span platform complexity. Tooling section generalized with platform-specific cost table. Decision framework updated for multi-platform scope. Added platform-specific legal considerations. Added cross-platform inconsistency and platform vendor changes to risk assessment. Next Steps updated to reference current document IDs. |
+| 1.0 | 2026-04-02 | Initial release. |

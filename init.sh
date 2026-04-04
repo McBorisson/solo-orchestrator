@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# NOTE: This script requires bash. On Windows, run it inside WSL (Windows
+# Subsystem for Linux) or Git Bash. Native PowerShell is not supported.
+
 # Solo Orchestrator — Project Initialization Script
 # https://github.com/kraulerson/solo-orchestrator
 #
@@ -132,18 +135,6 @@ collect_project_info() {
 
   PLATFORM=$(prompt_choice "Platform type:" "web" "desktop" "mobile" "cli" "other")
 
-  if [ "$PLATFORM" = "mobile" ]; then
-    echo ""
-    print_warn "The Mobile Platform Module is a stub (v0.1)."
-    print_warn "It contains framework notes but not production-ready guidance."
-    print_warn "Web and Desktop are the production-ready platform modules."
-    echo ""
-    read -rp "$(echo -e "${BOLD}Continue with mobile? (prototype/personal use only) [y/N]${NC}: ")" mobile_confirm
-    if [[ ! "$mobile_confirm" =~ ^[Yy] ]]; then
-      PLATFORM=$(prompt_choice "Select a different platform:" "web" "desktop" "cli" "other")
-    fi
-  fi
-
   TRACK=$(prompt_choice "Project track:" "light" "standard" "full")
 
   DEPLOYMENT=$(prompt_choice "Personal or organizational?" "personal" "organizational")
@@ -266,8 +257,7 @@ create_project() {
   case "$PLATFORM" in
     web)     cp "$SCRIPT_DIR/docs/platform-modules/web.md" docs/platform-modules/ ;;
     desktop) cp "$SCRIPT_DIR/docs/platform-modules/desktop.md" docs/platform-modules/ ;;
-    mobile)  cp "$SCRIPT_DIR/docs/platform-modules/mobile.md" docs/platform-modules/
-             print_warn "Mobile Platform Module is a stub (v0.1). Not production-ready for organizational deployments." ;;
+    mobile)  cp "$SCRIPT_DIR/docs/platform-modules/mobile.md" docs/platform-modules/ ;;
     *)       print_info "No platform module for '$PLATFORM'. The Builder's Guide works standalone." ;;
   esac
 
@@ -276,6 +266,10 @@ create_project() {
   if command -v git &>/dev/null; then
     git clone -q https://github.com/kraulerson/claude-dev-framework.git .claude/framework 2>/dev/null
     if [ -d ".claude/framework" ]; then
+      # Capture the commit SHA before deleting .git for version pinning
+      local framework_sha
+      framework_sha=$(git -C .claude/framework rev-parse HEAD 2>/dev/null || echo "unknown")
+      echo "$framework_sha" > .claude/framework-version.txt
       # Remove nested .git so the framework is committed as project files (self-contained)
       rm -rf .claude/framework/.git
       # Select the appropriate profile based on platform
@@ -296,6 +290,10 @@ create_project() {
 # This file tells the framework which profile to use for this project.
 # Profiles inherit from _base.yml and add platform-specific rules.
 # See .claude/framework/profiles/ for available profiles.
+#
+# The framework is pinned to the commit in .claude/framework-version.txt.
+# To update: re-clone from https://github.com/kraulerson/claude-dev-framework.git
+# into .claude/framework/, capture the new commit SHA, and replace the files.
 #
 # To change: update the active_profile value and run the framework's
 # sync script, or manually copy the profile's hooks into .git/hooks/
@@ -335,7 +333,7 @@ FWEOF
 Project: $PROJECT_NAME
 Platform: $PLATFORM
 Track: $TRACK
-Framework: Solo Orchestrator v4.1"
+Framework: Solo Orchestrator v1.0"
 
   echo ""
   print_ok "Project created at $PROJECT_DIR"
@@ -356,7 +354,7 @@ generate_claude_md() {
 - **Primary Language:** $LANGUAGE
 
 ## Framework Reference
-This project follows the **Solo Orchestrator Framework v4.1**.
+This project follows the **Solo Orchestrator Framework v1.0**.
 - Builder's Guide: \`docs/framework/builders-guide.md\`
 - Platform Module: \`docs/platform-modules/\`
 - Project Intake: \`PROJECT_INTAKE.md\` (fill this out first)
@@ -481,12 +479,41 @@ android/app/build/
 MEOF
       ;;
   esac
+
+  # Add language-specific ignores
+  case "$LANGUAGE" in
+    python)
+      cat >> .gitignore << 'PYEOF'
+
+# Python
+venv/
+*.pyc
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+PYEOF
+      ;;
+    rust)
+      cat >> .gitignore << 'RSEOF'
+
+# Rust
+target/
+# Note: Keep Cargo.lock for binary applications. Remove from .gitignore
+# if this is a library crate (libraries should not commit Cargo.lock).
+RSEOF
+      ;;
+  esac
 }
 
 generate_ci() {
   mkdir -p .github/workflows
 
-  cat > .github/workflows/ci.yml << 'CIEOF'
+  case "$LANGUAGE" in
+    typescript|javascript)
+      cat > .github/workflows/ci.yml << 'CIEOF'
 name: CI
 
 on:
@@ -530,9 +557,142 @@ jobs:
       - name: Security - Lockfile integrity
         run: npm audit signatures
 CIEOF
+      ;;
+    python)
+      cat > .github/workflows/ci.yml << 'CIEOF'
+name: CI
 
-  print_info "CI template created at .github/workflows/ci.yml"
-  print_info "Customize the test/lint commands for your stack."
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: pytest
+
+      - name: Security - SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+
+      - name: Security - Dependency audit
+        run: pip-audit
+
+      - name: Security - License check
+        run: pip-licenses --fail-on="GNU General Public License v3 (GPLv3)"
+CIEOF
+      ;;
+    rust)
+      cat > .github/workflows/ci.yml << 'CIEOF'
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Test
+        run: cargo test
+
+      - name: Lint
+        run: cargo clippy -- -D warnings
+
+      - name: Security - SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+
+      - name: Security - Dependency audit
+        run: cargo audit
+
+      - name: Security - License check
+        run: cargo license --avoid-build-deps --avoid-dev-deps
+CIEOF
+      ;;
+    *)
+      cat > .github/workflows/ci.yml << 'CIEOF'
+name: CI
+
+# Customize these steps for your language and toolchain
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO: Add language/runtime setup step
+      # Example: actions/setup-node@v4, actions/setup-python@v5, etc.
+
+      # TODO: Install dependencies
+      # - name: Install dependencies
+      #   run: <your install command>
+
+      # TODO: Lint
+      # - name: Lint
+      #   run: <your lint command>
+
+      # TODO: Test
+      # - name: Test
+      #   run: <your test command>
+
+      # TODO: SAST via Semgrep
+      # - name: Security - SAST (Semgrep)
+      #   uses: returntocorp/semgrep-action@v1
+      #   with:
+      #     config: auto
+
+      # TODO: Dependency audit
+      # - name: Security - Dependency audit
+      #   run: <your audit command>
+
+      # TODO: License check
+      # - name: Security - License check
+      #   run: <your license check command>
+CIEOF
+      ;;
+  esac
+
+  print_info "CI template created at .github/workflows/ci.yml (language: $LANGUAGE)"
+  print_info "Review and customize the template for your specific toolchain."
 }
 
 # ================================================================
@@ -564,6 +724,25 @@ health_check() {
     print_ok "All health checks passed."
   else
     print_warn "$warnings warnings. Review above and resolve before starting."
+  fi
+
+  # Check specifically for security tools and print a prominent warning
+  local security_missing=()
+  command -v semgrep &>/dev/null || security_missing+=("semgrep")
+  command -v gitleaks &>/dev/null || security_missing+=("gitleaks")
+  command -v snyk &>/dev/null || security_missing+=("snyk")
+
+  if [ ${#security_missing[@]} -gt 0 ]; then
+    echo ""
+    echo -e "${YELLOW}╔══════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${YELLOW}║  REQUIRED SECURITY TOOLS MISSING: ${security_missing[*]}${NC}"
+    echo -e "${YELLOW}║                                                                  ║${NC}"
+    echo -e "${YELLOW}║  The Solo Orchestrator methodology requires these tools for       ║${NC}"
+    echo -e "${YELLOW}║  Phase 2 (security audits) and Phase 3 (validation). Install      ║${NC}"
+    echo -e "${YELLOW}║  them before starting development. The framework's security       ║${NC}"
+    echo -e "${YELLOW}║  scanning will not function without them.                         ║${NC}"
+    echo -e "${YELLOW}╚══════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
   fi
 }
 
@@ -612,13 +791,6 @@ print_next_steps() {
   echo "     Builder's Guide in docs/framework/builders-guide.md. Begin"
   echo "     Phase 0. Only ask me for clarifying questions.\""
   echo ""
-
-  if [ "$PLATFORM" = "mobile" ]; then
-    echo -e "  ${YELLOW}WARNING: Mobile Platform Module is a stub (v0.1).${NC}"
-    echo "  Not production-ready for organizational deployments."
-    echo "  Suitable for prototyping and personal projects."
-    echo ""
-  fi
 
   echo "  OPTIONAL ENHANCEMENTS (see docs/framework/cli-setup-addendum.md):"
   echo "     - Superpowers plugin (agentic skills for Phase 2)"

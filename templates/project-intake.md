@@ -1,6 +1,6 @@
 # Solo Orchestrator — Project Intake Template
 
-## Version 1.2
+## Version 1.0
 
 ---
 
@@ -9,10 +9,10 @@
 | Field | Value |
 |---|---|
 | **Document ID** | SOI-004-INTAKE |
-| **Version** | 1.2 |
+| **Version** | 1.0 |
 | **Classification** | Project Initialization Template |
-| **Date** | 2026-03-31 |
-| **Companion Documents** | SOI-002-BUILD v4.1 (Builder's Guide), SOI-003-GOV v1.3 (Enterprise Governance Framework) |
+| **Date** | 2026-04-02 |
+| **Companion Documents** | SOI-002-BUILD v1.0 (Builder's Guide), SOI-003-GOV v1.0 (Enterprise Governance Framework) |
 
 ---
 
@@ -60,7 +60,7 @@ The more complete the Intake, the more autonomously the agent can work. Where th
 | **Platform type** | Web / Desktop / Mobile / CLI / Other: ______ |
 | **Platform Module** | SOI-PM-WEB / SOI-PM-DESKTOP / SOI-PM-MOBILE / None (new platform) |
 
-> **⚠ Mobile (SOI-PM-MOBILE v0.1) is a stub.** The mobile Platform Module does not yet contain production-ready architecture, testing, or distribution guidance. Mobile projects may proceed for prototyping and personal use, but **organizational deployments targeting mobile must not go to production until SOI-PM-MOBILE reaches v1.0.** If you select Mobile, the agent will use the stub notes as a starting point and flag gaps that require Orchestrator judgment.
+> **⚠ Mobile (SOI-PM-MOBILE v1.0-stub) is a stub.** The mobile Platform Module does not yet contain production-ready architecture, testing, or distribution guidance. Mobile projects may proceed for prototyping and personal use, but **organizational deployments targeting mobile must not go to production until SOI-PM-MOBILE reaches v1.0.** If you select Mobile, the agent will use the stub notes as a starting point and flag gaps that require Orchestrator judgment.
 | **Target platforms** | _e.g., "Windows 10+, macOS 12+, Ubuntu 22.04+" or "Web (all modern browsers)" or "iOS 16+, Android 13+"_ |
 | **Is this a personal project or organizational deployment?** | Personal / Organizational |
 | **Repository URL** (if already created) | |
@@ -481,7 +481,7 @@ architecture, code, and documentation within the constraints I set.
 
 ATTACHED:
 1. Project Intake Template (this document) — your primary constraint
-2. Solo Orchestrator Builder's Guide v4.1 — your process reference
+2. Solo Orchestrator Builder's Guide v1.0 — your process reference
 3. Platform Module: [WEB / DESKTOP / MOBILE] — your platform-specific
    reference for architecture, tooling, testing, and distribution
 
@@ -563,6 +563,4 @@ recommended addition.
 
 | Version | Date | Changes |
 |---|---|---|
-| 1.0 | 2026-03-31 | Initial release. |
-| 1.1 | 2026-04-01 | Platform-agnostic restructure. Added platform type and Platform Module selection to Section 1. Section 6.4 (Architecture Preferences) now branches by platform type (Web, Desktop, Mobile) instead of assuming web. Section 10 renamed to "Distribution & Operations" with platform-specific fields for web, desktop, and mobile. Agent Initialization Prompt updated for Builder's Guide v4.0 with Platform Module reference. Data flow mapping table updated. |
-| 1.2 | 2026-04-01 | Cross-model evaluation feedback. Added mobile blocking gate — SOI-PM-MOBILE v0.1 flagged as not production-ready for organizational deployments. Personal/prototype mobile projects may proceed with documented risk acceptance. |
+| 1.0 | 2026-04-02 | Initial release. |

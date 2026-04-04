@@ -1,6 +1,6 @@
 # Solo Orchestrator — Claude Code CLI Setup Addendum
 
-## Version 1.2
+## Version 1.0
 
 ---
 
@@ -9,11 +9,15 @@
 | Field | Value |
 |---|---|
 | **Document ID** | SOI-005-CLI |
-| **Version** | 1.2 |
+| **Version** | 1.0 |
 | **Classification** | Technical Configuration Guide |
-| **Date** | 2026-04-01 |
+| **Date** | 2026-04-02 |
 | **Audience** | Solo Orchestrator using Claude Code CLI |
-| **Companion Documents** | SOI-002-BUILD v4.1 (Builder's Guide), SOI-004-INTAKE v1.2 (Project Intake Template) |
+| **Companion Documents** | SOI-002-BUILD v1.0 (Builder's Guide), SOI-004-INTAKE v1.0 (Project Intake Template) |
+
+## Scope
+
+This addendum is specific to Claude Code. The Builder's Guide methodology works with any AI coding agent, but the integrations documented here (Superpowers, Auto Mode, Context7 MCP, Qdrant MCP, CLAUDE.md auto-loading) are Claude Code features. If using a different AI coding agent, adapt the concepts (persistent context, semantic memory, TDD enforcement) to your agent's capabilities. The core phases and decision gates do not depend on this addendum.
 
 ---
 
@@ -386,7 +390,7 @@ constraints set by the Project Intake and Project Bible.
 @./PRODUCT_MANIFESTO.md
 @./CONTRIBUTING.md
 
-Follow the Solo Orchestrator Builder's Guide (SOI-002-BUILD v3.1)
+Follow the Solo Orchestrator Builder's Guide (SOI-002-BUILD v1.0)
 phase-by-phase process. Work autonomously between decision gates.
 At each decision gate, present your recommendation and wait for
 Orchestrator approval. Between gates, only stop if you encounter
@@ -560,6 +564,4 @@ Run this once per project (during Phase 2 Project Initialization):
 
 | Version | Date | Changes |
 |---|---|---|
-| 1.0 | 2026-04-01 | Initial release. Covers Auto Mode, Claude Dev Framework, Context7 MCP, Qdrant MCP, and CLAUDE.md template. |
-| 1.1 | 2026-04-01 | Added Superpowers agentic skills framework as Section 1. Superpowers provides Phase 2 execution engine: subagent-driven development, TDD enforcement, systematic debugging, code review, and git worktree management. CLAUDE.md template updated with Superpowers constraints (brainstorming scoped to implementation-level, plans aligned to MVP Cutline, worktree workflow). Companion doc references updated for Builder's Guide v4.0. Sections renumbered. Setup checklist updated. |
-| 1.2 | 2026-04-01 | Cross-model evaluation feedback. Reworded Claude Dev Framework from "mechanically enforces" to "encourages through automated guardrails." Reworded Superpowers TDD description from "won't let the agent skip" to "strongly encourages as default workflow" — Orchestrator review remains the actual quality gate. Plugin and framework claims now positioned as workflow accelerators, not enterprise compliance controls. |
+| 1.0 | 2026-04-02 | Initial release. |

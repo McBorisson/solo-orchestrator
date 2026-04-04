@@ -1,6 +1,6 @@
 # Solo Orchestrator Platform Module: Web Applications
 
-## Version 1.1
+## Version 1.0
 
 ---
 
@@ -9,10 +9,10 @@
 | Field | Value |
 |---|---|
 | **Document ID** | SOI-PM-WEB |
-| **Version** | 1.1 |
+| **Version** | 1.0 |
 | **Classification** | Platform Module |
-| **Date** | 2026-04-01 |
-| **Parent Document** | SOI-002-BUILD v4.1 — Solo Orchestrator Builder's Guide |
+| **Date** | 2026-04-02 |
+| **Parent Document** | SOI-002-BUILD v1.0 — Solo Orchestrator Builder's Guide |
 
 ---
 
@@ -306,5 +306,4 @@ WEB-SPECIFIC REQUIREMENTS:
 
 | Version | Date | Changes |
 |---|---|---|
-| 1.0 | 2026-04-01 | Initial release. Extracted from Builder's Guide v3.1 web-specific content. Covers architecture, hosting, database, auth, testing (Playwright, ZAP, Lighthouse, k6), CSP, deployment (Vercel, Railway, Supabase), monitoring, and maintenance. |
-| 1.1 | 2026-04-01 | Cross-model evaluation feedback. Fixed k6 installation command (was npm, now brew/winget/Docker per official Grafana docs). |
+| 1.0 | 2026-04-02 | Initial release. |

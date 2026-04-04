@@ -44,7 +44,7 @@ The init script will:
 | **Node.js 18+** | Yes | [nodejs.org](https://nodejs.org/) (LTS) |
 | **Git** | Yes | [git-scm.com](https://git-scm.com/downloads) |
 | **Docker** | Recommended | [docker.com](https://www.docker.com/) — needed for OWASP ZAP DAST scanning |
-| **Claude Code** | Yes | Installed by init script, or manually: `brew install claude-code` (macOS), `winget install Anthropic.ClaudeCode` (Windows) |
+| **Claude Code** | Recommended (framework is optimized for Claude Code; other AI coding agents can be used but the CLI Setup Addendum and Phase 2 workflow accelerators are Claude Code-specific) | Installed by init script, or manually: `brew install claude-code` (macOS), `winget install Anthropic.ClaudeCode` (Windows) |
 
 ### Windows Users
 
@@ -134,14 +134,14 @@ Each phase produces artifacts that gate entry into the next phase. The AI execut
 
 | Platform | Module | Status |
 |---|---|---|
-| **Web** (SPA, full-stack, API) | `web.md` | ✅ v1.1 — Complete |
-| **Desktop** (Windows, macOS, Linux) | `desktop.md` | ✅ v1.0 — Complete |
+| **Web** (SPA, full-stack, API) | `web.md` | v1.0 — Complete |
+| **Desktop** (Windows, macOS, Linux) | `desktop.md` | v1.0 — Complete |
+| **Mobile** (iOS, Android) | `mobile.md` | v1.0-stub — Preliminary |
 
 ### Roadmap
 
 | Platform | Module | Status |
 |---|---|---|
-| **Mobile** (iOS, Android) | `mobile.md` | v0.1 — Stub. Notes and structure only. Not production-ready. |
 | **CLI** | — | No dedicated module. Core guide works standalone for simple CLI tools. |
 
 New platform modules can be added without modifying the core framework. A module is production-ready when it covers: Architecture → Tooling → Build & Packaging → Testing → Distribution → Maintenance.
@@ -165,7 +165,7 @@ These are configured per the [CLI Setup Addendum](docs/cli-setup-addendum.md):
 | Tool | What It Does |
 |---|---|
 | **Superpowers** | Agentic skills plugin for Claude Code. Subagent-driven development, strict TDD, systematic debugging, git worktrees. Phase 2 workflow accelerator. |
-| **Claude Dev Framework** | Git hook-based guardrails for coding standards, security scanning, and documentation. Swiss cheese defense model. **Auto-installed by init.sh** into `.claude/framework/` with the appropriate profile for your platform. |
+| **Claude Dev Framework** | Git hook-based guardrails for coding standards, security scanning, and documentation. Swiss cheese defense model. **Auto-installed by init.sh** into `.claude/framework/` with the appropriate profile for your platform. This is a separate project (github.com/kraulerson/claude-dev-framework) that can be used independently. The Solo Orchestrator init script installs it automatically, but it is not required. |
 | **Context7 MCP** | Provides Claude with up-to-date library documentation during architecture selection and construction. |
 | **Qdrant MCP** | Persistent semantic memory across Claude Code sessions. Stores project decisions and patterns. |
 
@@ -215,20 +215,24 @@ The framework is optimized for Claude Code. Here's what's portable and what requ
 
 It's for the projects that sit in the backlog because they don't justify a team: internal tools, departmental applications, prototypes, MVPs, and utilities.
 
+## Current Status
+
+This is the initial release of the Solo Orchestrator Framework. It has been used by the author to build personal projects but has not yet been validated through a formal organizational pilot. The framework's own pilot evaluation process (see Executive Review, Section X) defines how to test it. Treat this as a well-structured hypothesis, not a proven methodology. Feedback from real-world usage will drive future iterations.
+
 ---
 
 ## Document Versions
 
 | Document | Version | Date |
 |---|---|---|
-| Builder's Guide | v4.1 | 2026-04-01 |
-| Enterprise Governance Framework | v1.3 | 2026-04-01 |
-| Executive Review | v2.0 | 2026-04-01 |
-| Project Intake Template | v1.2 | 2026-04-01 |
-| CLI Setup Addendum | v1.2 | 2026-04-01 |
-| Platform Module: Web | v1.1 | 2026-04-01 |
-| Platform Module: Desktop | v1.0 | 2026-04-01 |
-| Platform Module: Mobile | v0.1 (stub — roadmap) | 2026-04-01 |
+| Builder's Guide | v1.0 | 2026-04-02 |
+| Enterprise Governance Framework | v1.0 | 2026-04-02 |
+| Executive Review | v1.0 | 2026-04-02 |
+| Project Intake Template | v1.0 | 2026-04-02 |
+| CLI Setup Addendum | v1.0 | 2026-04-02 |
+| Platform Module: Web | v1.0 | 2026-04-02 |
+| Platform Module: Desktop | v1.0 | 2026-04-02 |
+| Platform Module: Mobile | v1.0-stub | 2026-04-02 |
 
 ---
 

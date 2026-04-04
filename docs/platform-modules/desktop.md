@@ -13,8 +13,8 @@
 | **Document ID** | SOI-PM-DESKTOP |
 | **Version** | 1.0 |
 | **Classification** | Platform Module |
-| **Date** | 2026-04-01 |
-| **Parent Document** | SOI-002-BUILD v4.0 — Solo Orchestrator Builder's Guide |
+| **Date** | 2026-04-02 |
+| **Parent Document** | SOI-002-BUILD v1.0 — Solo Orchestrator Builder's Guide |
 
 ---
 
@@ -410,4 +410,4 @@ After the Builder's Guide Phase 4.2 go-live checklist:
 
 | Version | Date | Changes |
 |---|---|---|
-| 1.0 | 2026-04-01 | Initial release. Covers Tauri, Electron, Flutter Desktop, .NET MAUI, and Qt. Architecture patterns for standalone and client-server. Build, packaging, code signing, distribution, testing, accessibility, performance, security, and maintenance for Windows, macOS, and Linux. |
+| 1.0 | 2026-04-02 | Initial release. |
