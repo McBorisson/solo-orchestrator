@@ -215,13 +215,50 @@ collect_project_info() {
 
   PROJECT_DESCRIPTION=$(prompt_input "One-sentence description" "")
 
-  PLATFORM=$(prompt_choice "Platform type:" "web" "desktop" "mobile" "cli" "other")
+  # Auto-discover available platforms from platform modules and release pipelines
+  local available_platforms=()
+  local seen_platforms=""
+  # Scan platform modules
+  for f in "$SCRIPT_DIR/docs/platform-modules/"*.md; do
+    [ -f "$f" ] || continue
+    local pname
+    pname=$(basename "$f" .md)
+    if [[ ! " $seen_platforms " == *" $pname "* ]]; then
+      available_platforms+=("$pname")
+      seen_platforms="$seen_platforms $pname"
+    fi
+  done
+  # Scan release pipelines for platforms not already found
+  for f in "$SCRIPT_DIR/templates/pipelines/release/"*.yml; do
+    [ -f "$f" ] || continue
+    local pname
+    pname=$(basename "$f" .yml)
+    if [[ ! " $seen_platforms " == *" $pname "* ]]; then
+      available_platforms+=("$pname")
+      seen_platforms="$seen_platforms $pname"
+    fi
+  done
+  # Always include "other" as a fallback
+  available_platforms+=("other")
+
+  PLATFORM=$(prompt_choice "Platform type:" "${available_platforms[@]}")
 
   TRACK=$(prompt_choice "Project track:" "light" "standard" "full")
 
   DEPLOYMENT=$(prompt_choice "Personal or organizational?" "personal" "organizational")
 
-  LANGUAGE=$(prompt_choice "Primary language:" "typescript" "javascript" "python" "rust" "csharp" "kotlin" "java" "go" "dart" "other")
+  # Auto-discover available languages from CI pipeline templates
+  local available_languages=()
+  for f in "$SCRIPT_DIR/templates/pipelines/ci/"*.yml; do
+    [ -f "$f" ] || continue
+    local lname
+    lname=$(basename "$f" .yml)
+    [ "$lname" = "other" ] && continue  # add "other" last as fallback
+    available_languages+=("$lname")
+  done
+  available_languages+=("other")
+
+  LANGUAGE=$(prompt_choice "Primary language:" "${available_languages[@]}")
 
   if [ "$LANGUAGE" = "other" ]; then
     print_warn "The 'other' language template includes placeholder CI steps that intentionally"
@@ -450,6 +487,13 @@ create_project() {
   cp "$SCRIPT_DIR/docs/user-guide.md" docs/framework/
   cp "$SCRIPT_DIR/docs/security-scan-guide.md" docs/framework/
 
+  # Copy evaluation prompts (project-level reviews for Phase 3 validation)
+  print_info "Copying evaluation prompts..."
+  if [ -d "$SCRIPT_DIR/evaluation-prompts/Projects" ]; then
+    mkdir -p evaluation-prompts/Projects
+    cp -r "$SCRIPT_DIR/evaluation-prompts/Projects/"* evaluation-prompts/Projects/ 2>/dev/null || true
+  fi
+
   # Copy utility scripts into the project (self-contained after init)
   print_info "Copying utility scripts..."
   mkdir -p scripts
@@ -464,13 +508,14 @@ create_project() {
   mkdir -p templates/intake-suggestions
   cp "$SCRIPT_DIR/templates/intake-suggestions/"*.json templates/intake-suggestions/
 
-  # Copy the correct platform module
-  case "$PLATFORM" in
-    web)     cp "$SCRIPT_DIR/docs/platform-modules/web.md" docs/platform-modules/ ;;
-    desktop) cp "$SCRIPT_DIR/docs/platform-modules/desktop.md" docs/platform-modules/ ;;
-    mobile)  cp "$SCRIPT_DIR/docs/platform-modules/mobile.md" docs/platform-modules/ ;;
-    *)       print_info "No platform module for '$PLATFORM'. The Builder's Guide works standalone." ;;
-  esac
+  # Copy the correct platform module (auto-discovered)
+  local platform_module="$SCRIPT_DIR/docs/platform-modules/${PLATFORM}.md"
+  if [ -f "$platform_module" ]; then
+    cp "$platform_module" docs/platform-modules/
+    print_ok "Platform module: $PLATFORM"
+  else
+    print_info "No platform module for '$PLATFORM'. The Builder's Guide works standalone."
+  fi
 
   # Clone Claude Dev Framework
   print_info "Installing Claude Dev Framework..."
@@ -491,7 +536,6 @@ create_project() {
         web)     [ -f ".claude/framework/profiles/web-api.yml" ] && profile="web-api.yml" ;;
         desktop) [ -f ".claude/framework/profiles/cli-tool.yml" ] && profile="cli-tool.yml" ;;
         mobile)  [ -f ".claude/framework/profiles/mobile-app.yml" ] && profile="mobile-app.yml" ;;
-        cli)     [ -f ".claude/framework/profiles/cli-tool.yml" ] && profile="cli-tool.yml" ;;
       esac
 
       # Create framework config pointing to the selected profile
@@ -1457,6 +1501,7 @@ dry_run_summary() {
   echo "  scripts/resume.sh                     — Session resume prompt generator"
   echo "  scripts/intake-wizard.sh              — Guided intake wizard"
   echo "  templates/intake-suggestions/          — Context-aware suggestion data"
+  echo "  evaluation-prompts/Projects/           — Adversarial review prompts for Phase 3"
   echo ""
 
   echo -e "${BOLD}Post-init steps (you do these manually):${NC}"

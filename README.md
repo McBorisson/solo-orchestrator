@@ -1,6 +1,6 @@
 # Solo Orchestrator Framework
 
-A structured software development methodology where a single experienced technologist builds production-deployable applications using AI as the execution layer. The human defines intent, constraints, and validation. The AI generates architecture, code, tests, and documentation within those constraints.
+A structured software development methodology where a single technically literate person builds MVP-grade applications using AI as the execution layer. The human defines intent, constraints, and validation. The AI generates architecture, code, tests, and documentation within those constraints. Applications are built with production practices (TDD, security scanning, documentation) and structured for production readiness through subsequent refinement.
 
 This is not vibe coding. It's a phase-gated, test-driven, documentation-mandatory process with security scanning, threat modeling, and incident response built in.
 
@@ -14,12 +14,12 @@ The methodology itself — the phases, TDD discipline, threat modeling, document
 
 ## Start Here: The User Guide
 
-**Read the [User Guide](docs/user-guide.md) first.** It walks you through the entire process from setup to production — what you do at each step, what external approvals you need, and what to expect as output. It has two parallel paths:
+**Read the [User Guide](docs/user-guide.md) first.** It walks you through the entire process from setup to first release — what you do at each step, what external approvals you need, and what to expect as output. It has two parallel paths:
 
 - **Personal projects** — lightweight, no governance overhead, start building immediately
-- **Organizational deployments** — full approval chain, external stakeholder interactions, audit trail
+- **Organizational deployments** — full approval chain, external stakeholder interactions, audit trail. Includes POC modes (Sponsored and Private) to validate the framework before completing all governance approvals.
 
-The User Guide is your operating manual. The other documents (Builder's Guide, Governance Framework, Platform Modules) are reference material the guide points you to at the right time.
+The User Guide is your operating manual. The other documents (Builder's Guide, Governance Framework, Platform Modules, Security Scan Guide, Evaluation Prompts) are reference material the guide points you to at the right time. The [Intake Wizard](docs/user-guide.md#using-the-intake-wizard) guides you through filling out your project definition.
 
 ---
 
@@ -32,13 +32,15 @@ chmod +x init.sh
 ./init.sh
 ```
 
+> **Preview first?** Run `./init.sh --dry-run` to see what will be installed and created without making any changes.
+
 The init script will:
-1. Check prerequisites (Git, language runtime)
+1. Check prerequisites — offers to auto-install Git, Node.js, and your language runtime if missing
 2. Collect your project information (name, platform, track, language)
-3. Install security tooling (Semgrep, gitleaks, Snyk, Claude Code)
-4. Create your project directory with all framework documents and platform module
+3. Install security tooling (Semgrep, gitleaks, Snyk, Claude Code, Lighthouse)
+4. Create your project directory with all framework documents, platform module, and utility scripts
 5. Generate `CLAUDE.md`, `.gitignore`, CI pipeline, release pipeline, and approval log
-6. Initialize Git and run a health check (including language runtime validation)
+6. Initialize Git and run a health check
 7. Print your next steps
 
 **After init completes:**
@@ -55,10 +57,13 @@ See the [User Guide](docs/user-guide.md) for detailed walkthrough of each step.
 
 | Tool | Required | Install |
 |---|---|---|
-| **Git** | Yes | [git-scm.com](https://git-scm.com/downloads) |
-| **Language runtime** | Yes | Depends on your language selection — Node.js, Python, Rust/Cargo, .NET SDK, JDK, Go, or Flutter. The init script validates your runtime during health check. |
-| **Docker** | Recommended | [docker.com](https://www.docker.com/) — needed for OWASP ZAP DAST scanning |
-| **Claude Code** | Recommended (framework is optimized for Claude Code; other AI coding agents can be used but the CLI Setup Addendum and Phase 2 workflow accelerators are Claude Code-specific) | Installed by init script, or manually: `brew install claude-code` (macOS), `winget install Anthropic.ClaudeCode` (Windows) |
+| **Git** | Yes | Init script offers to install automatically (brew/apt/dnf). Or install manually: [git-scm.com](https://git-scm.com/downloads) |
+| **Node.js 18+** | Yes | Init script offers to install automatically. Required as infrastructure tooling (Snyk CLI, license-checker) regardless of your project language. Also the runtime for JS/TS projects. |
+| **Language runtime** | Yes | Python, Rust/Cargo, .NET SDK, JDK, Go, or Flutter (if not using Node.js/TypeScript). Init script offers to install your selected runtime automatically. |
+| **Docker** | Recommended | [docker.com](https://www.docker.com/) — installed locally. Used by OWASP ZAP (DAST scanning) and Qdrant (persistent semantic memory). Currently local Docker only — remote Docker hosts and network-accessible containers are not yet supported. |
+| **Claude Code** | Recommended | Installed by init script. Framework is optimized for Claude Code; other AI coding agents can use the methodology but the CLI Setup Addendum and Phase 2 workflow accelerators are Claude Code-specific. |
+
+Init also auto-installs security tooling: Semgrep (SAST), gitleaks (secret detection), Snyk CLI (dependency scanning), Lighthouse (web performance), and OWASP ZAP (DAST, requires Docker).
 
 ### Windows Users
 
@@ -69,16 +74,14 @@ See the [User Guide](docs/user-guide.md) for detailed walkthrough of each step.
 wsl --install
 
 # After restart, open Ubuntu from the Start menu
-# Then install Node.js inside WSL:
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs git
+# Install Git (needed to clone the repo):
+sudo apt install -y git
 
 # Clone and run from within WSL, not from Windows
+# The init script will offer to install Node.js and other prerequisites
 ```
 
 All subsequent commands in this README and the Builder's Guide assume a Unix-like terminal (macOS Terminal, Linux shell, or WSL on Windows).
-
-The init script handles installation of Semgrep, gitleaks, Snyk CLI, Lighthouse, and OWASP ZAP.
 
 ---
 
@@ -86,44 +89,84 @@ The init script handles installation of Semgrep, gitleaks, Snyk CLI, Lighthouse,
 
 When you run `init.sh`, it creates a project directory with this structure:
 
+### Project directory (created by init.sh)
+
 ```
 your-project/
-├── CLAUDE.md                           # Agent instructions (auto-generated)
-├── PROJECT_INTAKE.md                   # Your product definition (fill this out)
+├── CLAUDE.md                              # Agent instructions (auto-generated)
+├── PROJECT_INTAKE.md                      # Your product definition (fill this out)
+├── APPROVAL_LOG.md                        # Phase gate approval record
 ├── .github/workflows/
-│   ├── ci.yml                         # CI pipeline — language-specific (test, lint, SAST, audit)
-│   └── release.yml                    # Release pipeline — platform-specific (build, sign, distribute)
-├── .gitignore                          # Language + platform-appropriate ignores
+│   ├── ci.yml                            # CI pipeline — language-specific
+│   └── release.yml                       # Release pipeline — platform-specific
+├── .gitignore                             # Language + platform-appropriate ignores
+├── .git/hooks/
+│   └── pre-commit                        # Secret detection + SAST quick scan
 ├── .claude/
-│   ├── framework/                     # Claude Dev Framework (Git hook guardrails)
-│   ├── framework-config.yml           # Active profile configuration
-│   └── framework-version.txt          # Pinned framework commit SHA
+│   ├── framework/                        # Claude Dev Framework (Git hook guardrails)
+│   ├── framework-config.yml              # Active profile configuration
+│   ├── framework-version.txt             # Pinned framework commit SHA
+│   └── phase-state.json                  # Current phase tracking
 ├── docs/
 │   ├── framework/
-│   │   ├── builders-guide.md           # The complete methodology
-│   │   ├── governance-framework.md     # Enterprise governance (if organizational)
-│   │   ├── executive-review.md         # CIO business case
-│   │   └── cli-setup-addendum.md       # Claude Code configuration
+│   │   ├── builders-guide.md              # The complete methodology
+│   │   ├── user-guide.md                 # Step-by-step walkthrough
+│   │   ├── governance-framework.md        # Enterprise governance
+│   │   ├── executive-review.md            # CIO business case
+│   │   ├── cli-setup-addendum.md          # Claude Code configuration
+│   │   └── security-scan-guide.md         # Common scan findings explained
 │   ├── platform-modules/
-│   │   └── [your-platform].md          # Platform-specific guidance
-│   └── test-results/                   # Phase 3 test evidence (populated during build)
+│   │   └── [web|desktop|mobile].md        # Platform-specific guidance
+│   └── test-results/                      # Phase 3 test evidence (empty until Phase 3)
+├── evaluation-prompts/
+│   └── Projects/
+│       ├── bases/                         # 6 adversarial reviewer perspectives
+│       ├── modules/                       # Platform-specific review context
+│       ├── compose.sh                     # Generates review prompts for your project
+│       ├── run-reviews.sh                 # Runs all reviews in sequence
+│       └── README.md                      # How to use evaluation prompts
 ├── scripts/
-│   ├── intake-wizard.sh               # Guided intake wizard (interactive or AI-assisted)
-│   ├── validate.sh                    # Framework compliance checker
-│   ├── check-phase-gate.sh            # Phase gate validator
-│   ├── check-updates.sh               # Upstream framework update checker
-│   └── resume.sh                      # Session resume prompt generator
+│   ├── intake-wizard.sh                   # Guided intake wizard (interactive or AI-assisted)
+│   ├── validate.sh                        # Framework compliance checker
+│   ├── check-phase-gate.sh                # Phase gate validator
+│   ├── check-updates.sh                   # Upstream framework update checker
+│   └── resume.sh                          # Session resume prompt generator
 ├── templates/
-│   └── intake-suggestions/            # Context-aware suggestions for the intake wizard
+│   └── intake-suggestions/                # Context-aware suggestions for the intake wizard
+│       ├── common.json                    # Platform-independent (budget, timeline, accessibility)
+│       ├── web.json                       # Web platform (auth, hosting, DB, frameworks)
+│       ├── desktop.json                   # Desktop platform
+│       └── mobile.json                    # Mobile platform
 ```
 
-The init script generates **two pipelines** per project. The CI pipeline (`ci.yml`) is selected by your **language** — it handles testing, linting, SAST scanning, dependency auditing, and license checking using your language's toolchain. The release pipeline (`release.yml`) is selected by your **platform** — it handles building, signing, packaging, and distributing for your target platform. CI pipelines are working GitHub Actions workflows that run immediately on first push. Release pipelines are production-ready templates that require configuration (code signing, deployment secrets, store credentials) before first use.
+### System-wide installations (with user prompting)
+
+The init script installs these tools globally on your machine. Each installation prompts for confirmation — nothing is installed without your approval.
+
+| Tool | Purpose | Install Method |
+|---|---|---|
+| **Semgrep** | SAST scanning (static analysis) | brew (macOS) or pip (Linux) |
+| **gitleaks** | Secret detection in commits | brew (macOS) or binary download (Linux) |
+| **Snyk CLI** | Dependency vulnerability scanning | npm global |
+| **Claude Code** | AI coding agent | brew (macOS) or npm global (Linux) |
+| **Lighthouse** | Web performance auditing (web projects only) | npm global |
+| **OWASP ZAP** | DAST scanning (web projects with Docker only) | Docker image pull |
+
+**Optional enhancements (user-configured after init):**
+
+| Tool | Purpose | How to Install |
+|---|---|---|
+| **Superpowers** | Agentic skills plugin for Claude Code (TDD, subagents, debugging) | `claude plugins add superpowers` |
+| **Context7 MCP** | Live library documentation for the AI agent | `claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp` |
+| **Qdrant MCP** | Persistent semantic memory across sessions | Docker container + MCP server config |
+
+See the [CLI Setup Addendum](docs/cli-setup-addendum.md) or its [Quick Setup](docs/cli-setup-addendum.md#quick-setup--all-recommended-enhancements) section.
+
+### Pipelines
+
+The init script generates **two pipelines** per project. The CI pipeline (`ci.yml`) is selected by your **language** — it handles testing, linting, SAST scanning, dependency auditing, and license checking. The release pipeline (`release.yml`) is selected by your **platform** — it handles building, signing, packaging, and distributing. CI pipelines are working GitHub Actions workflows that run immediately on first push. Release pipelines are templates that require configuration (code signing, deployment secrets, store credentials) before first release.
 
 All framework documents are copied into the project. Each project is self-contained — no external dependencies on this repo after init.
-
-**Utility scripts:** Every project includes `scripts/validate.sh` (framework compliance checker), `scripts/check-phase-gate.sh` (phase gate validator, also runs in CI), `scripts/resume.sh` (generates a session resume prompt from project state), and `scripts/intake-wizard.sh` (guided intake with interactive script or AI-assisted conversation modes, save/resume, and context-aware suggestions).
-
-**Security scan guide:** `docs/framework/security-scan-guide.md` provides plain-language explanations for the 10 most common Semgrep findings and 5 most common Snyk findings in the recommended stacks, including how to determine if a finding is real or a false positive.
 
 ---
 
@@ -133,33 +176,50 @@ All framework documents are copied into the project. Each project is self-contai
 
 | Document | Purpose | Audience |
 |---|---|---|
-| **[User Guide](docs/user-guide.md)** | **Start here.** Step-by-step walkthrough from setup to maintenance. Personal and organizational paths. What you do, when, and why. | Solo Orchestrator |
+| **[User Guide](docs/user-guide.md)** | **Start here.** Step-by-step walkthrough from setup to first release. Personal and organizational paths. What you do, when, and why. | Solo Orchestrator |
 | **Builder's Guide** | The complete methodology. Phases 0-4, prompts, quality gates, remediation tables, glossary. Reference material — the User Guide tells you when to consult it. | Solo Orchestrator |
-| **Project Intake Template** | Structured input. Every decision the AI needs to work autonomously. You fill this out before Phase 0. | Solo Orchestrator |
+| **Project Intake Template** | Structured input. Every decision the AI needs to work autonomously. Fill out using the [Intake Wizard](docs/user-guide.md#using-the-intake-wizard) or directly before Phase 0. | Solo Orchestrator |
 | **Platform Modules** | Platform-specific architecture, tooling, testing, distribution. Referenced from the Builder's Guide at integration points. | Solo Orchestrator |
 | **CLI Setup Addendum** | Claude Code configuration: Superpowers, Claude Dev Framework (Git hook guardrails), MCP servers (Context7, Qdrant), CLAUDE.md. | Solo Orchestrator |
+| **Security Scan Guide** | Plain-language explanations of the most common Semgrep and Snyk findings. How to determine if a finding is real or a false positive. | Solo Orchestrator |
+| **Evaluation Prompts** | 6 adversarial reviewer perspectives (senior engineer, CIO, security, legal, technical user, red team) for project validation. | Solo Orchestrator, Reviewers |
 | **Enterprise Governance Framework** | Approval authorities, compliance, risk, portfolio governance. Required for organizational deployments. | CIO, IT Security, Legal |
 | **Executive Review** | Business case for CIO evaluation. Can be reviewed independently — including by AI models. | CIO, VP Engineering |
 
 ### The Process
+
+**Full path** (Personal projects + Organizational Production):
 
 ```
 Phase 0: Product Discovery        → Product Manifesto
 Phase 1: Architecture & Planning   → Project Bible (+ Threat Model)
 Phase 2: Construction (Loom)       → Working codebase + tests + docs
 Phase 3: Validation & Security     → Scan results + test evidence
-Phase 4: Release & Maintenance     → Production deployment + monitoring
+Phase 4: Release & Maintenance     → MVP release + monitoring
 ```
+
+**POC path** (Sponsored POC + Private POC):
+
+```
+Phase 0: Product Discovery        → Product Manifesto
+Phase 1: Architecture & Planning   → Project Bible (+ Threat Model)
+Phase 2: Construction (Loom)       → Working codebase + tests + docs
+Phase 3: Validation & Security     → Scan results + test evidence
+Phase 4: Ready to deploy           → No production release (upgrade to full path first)
+```
+
+Both paths produce the same quality of technical work — same TDD, same security scanning, same documentation. The difference is that POC projects stop before production deployment. Organizational Production adds governance checkpoints (sponsor approval, IT Security review, ITSM tracking) throughout.
 
 Each phase produces artifacts that gate entry into the next phase. The AI executes within constraints. The human validates at decision gates.
 
 ### The Workflow
 
-1. **Fill out the Intake** — product decisions, constraints, technical preferences
+1. **Fill out the Intake** — run `bash scripts/intake-wizard.sh` for a guided walkthrough, or open `PROJECT_INTAKE.md` directly
 2. **Start Claude Code** — point it at the Intake and Builder's Guide
-3. **The agent executes Phases 0-4** — asking you only for clarifying questions
-4. **You review at decision gates** — architecture selection, test assertions, go-live
-5. **You test the MVP** — pass/fail
+3. **The agent executes each phase** — asking you only for clarifying questions and approval at decision gates
+4. **You review at decision gates** — architecture selection, test assertions, security scan results, go-live readiness
+5. **Phase 3 validates everything** — security scans, integration tests, accessibility audit, threat model verification. Zero critical findings before proceeding.
+6. **Phase 4 releases** (full path) or **confirms ready to deploy** (POC path)
 
 The [User Guide](docs/user-guide.md) walks through each step in detail — what you do, what the agent does, what external approvals are needed (organizational), and what output to expect at each phase.
 
@@ -175,13 +235,13 @@ The framework is built on two independent extensibility axes: **platforms** and 
 
 This separation means adding support for a new platform requires two files: a platform module (documentation) and a release pipeline template (CI/CD). Adding a new language requires one file: a CI template. Nothing in the Builder's Guide, existing modules, or existing templates changes. The web, desktop, and mobile modules were each built this way — added independently without modifying the core framework or each other.
 
-**Extensibility example:** To add "Azure Microservices" as a platform, write `docs/platform-modules/azure-microservices.md` (standard module structure) and `templates/pipelines/release/azure-microservices.yml` (with `__PLACEHOLDER__` tokens for language injection). Add the option to the init script's platform prompt. The release pipeline generator auto-discovers templates by filename — no code change needed for pipeline generation.
+**Extensibility example:** To add "Azure Microservices" as a platform, write `docs/platform-modules/azure-microservices.md` (standard module structure) and `templates/pipelines/release/azure-microservices.yml` (with `__PLACEHOLDER__` tokens for language injection). Optionally add `templates/intake-suggestions/azure-microservices.json` for context-aware suggestions in the intake wizard (falls back to common suggestions if not present). The init script auto-discovers available platforms from the `docs/platform-modules/` and `templates/pipelines/release/` directories and auto-discovers available languages from `templates/pipelines/ci/`. No code changes to the init script are needed — new platforms and languages appear as options automatically.
 
 ---
 
 ## Platform Support
 
-### Production-Deployable
+### Supported Platforms
 
 | Platform | Module | Status |
 |---|---|---|
@@ -189,32 +249,28 @@ This separation means adding support for a new platform requires two files: a pl
 | **Desktop** (Windows, macOS, Linux) | `desktop.md` | v1.0 — Complete |
 | **Mobile** (iOS, Android) | `mobile.md` | v1.0 — Complete |
 
-### Roadmap
+Projects on unsupported platforms can select "other" during init. The Builder's Guide works standalone — you just won't have platform-specific architecture and distribution guidance.
 
-| Platform | Module | Status |
-|---|---|---|
-| **CLI** | — | No dedicated module. Core guide works standalone for simple CLI tools. |
-
-New platform modules can be added without modifying the core framework. A module is production-deployable when it covers: Architecture → Tooling → Build & Packaging → Testing → Distribution → Maintenance.
+New platform modules can be added without modifying the core framework. A platform module is complete when it covers: Architecture → Tooling → Build & Packaging → Testing → Distribution → Maintenance.
 
 ---
 
-## Language Support
+## Language Support (Current)
 
-The init script generates language-appropriate CI pipelines, `.gitignore` entries, and runtime validation for 10 languages:
+The init script auto-discovers available languages from `templates/pipelines/ci/` and generates language-appropriate CI pipelines, `.gitignore` entries, and runtime validation. New languages can be added by dropping a CI template in that directory — no init.sh changes needed.
 
 | Language | CI: Build/Test | CI: Lint | CI: Dependency Audit | CI: License Check |
 |---|---|---|---|---|
 | **TypeScript** | `npm run build` / `npm test` | `npm run lint` | `npm audit` | `license-checker` |
-| **JavaScript** | (same as TypeScript) | | | |
 | **Python** | `pip install` / `pytest` | `ruff check` | `pip-audit` | `pip-licenses` |
 | **Rust** | `cargo build` / `cargo test` | `cargo clippy`, `cargo fmt` | `cargo audit` | `cargo license` |
 | **C#** | `dotnet build` / `dotnet test` | (built into build) | `dotnet list package --vulnerable` | `dotnet-project-licenses` |
-| **Kotlin** | `./gradlew build` / `./gradlew test` | `detekt` (plugin) | `dependencyCheckAnalyze` (plugin) | `checkLicense` (plugin) |
-| **Java** | (same as Kotlin) | | | |
+| **JVM** (Kotlin, Java) | `./gradlew build` / `./gradlew test` | `detekt` (plugin) | `dependencyCheckAnalyze` (plugin) | `checkLicense` (plugin) |
 | **Go** | `go build` / `go test -race` | `golangci-lint` | `govulncheck` | `go-licenses` |
-| **Dart** | `flutter pub get` / `flutter test` | `flutter analyze` | `osv-scanner` (GitHub Action) | `dart_license_checker` |
+| **Dart** (Flutter) | `flutter pub get` / `flutter test` | `flutter analyze` | `osv-scanner` (GitHub Action) | `dart_license_checker` |
 | **Other** | TODO skeleton | TODO | TODO | TODO |
+
+**Known gap:** Swift (iOS native) is referenced in the mobile platform module but does not have a CI template yet. Select "other" for Swift projects and customize the CI pipeline manually.
 
 All CI templates include Semgrep SAST scanning. Languages that require external tools (Rust, Python, Dart) install them explicitly in the pipeline. JVM templates include Gradle plugin setup instructions for tools that require project configuration.
 
@@ -230,18 +286,9 @@ The release pipeline is driven by your **platform** selection, not language — 
 | **Standard** | External users, moderate complexity, <$10K/month | All phases. Lightweight market validation. |
 | **Full** | Enterprise buyers, sensitive data, >$10K/month | All phases at max depth. Customer interviews. Pen testing mandatory. |
 
+Tracks control scope depth. For organizational deployments, POC modes (Sponsored or Private) control governance requirements independently — a Sponsored POC can be any track. See [The Process](#the-process) above.
+
 ---
-
-## Optional Enhancements
-
-These are configured per the [CLI Setup Addendum](docs/cli-setup-addendum.md):
-
-| Tool | What It Does |
-|---|---|
-| **Superpowers** | Agentic skills plugin for Claude Code. Subagent-driven development, strict TDD, systematic debugging, git worktrees. Phase 2 workflow accelerator. |
-| **Claude Dev Framework** | Git hook-based guardrails for coding standards, security scanning, and documentation. Uses a layered defense model where multiple hook-based checks cover different failure modes. **Auto-installed by init.sh** into `.claude/framework/` with the appropriate profile for your platform. This is a separate project (github.com/kraulerson/claude-dev-framework) that can be used independently. The Solo Orchestrator init script installs it automatically, but it is not required. |
-| **Context7 MCP** | Provides Claude with up-to-date library documentation during architecture selection and construction. |
-| **Qdrant MCP** | Persistent semantic memory across Claude Code sessions. Stores project decisions and patterns. |
 
 ---
 
@@ -251,7 +298,7 @@ The [Executive Review](docs/executive-review.md) is designed to be evaluated ind
 
 Evaluation prompts are in `evaluation-prompts/`:
 - **Framework reviews** (`evaluation-prompts/Framework/`) — 6 independent adversarial reviews of the framework itself: Senior Engineer, CIO, SVP IT Security, Corporate Legal, Technical User, and Red Team. Run after framework updates.
-- **Project reviews** (`evaluation-prompts/Projects/`) — 6 independent adversarial reviews of any project built with the framework: same 6 perspectives, with domain-specific modules for web, desktop, mobile, API, CLI, and framework project types. Run during Phase 3 validation.
+- **Project reviews** (`evaluation-prompts/Projects/`) — 6 independent adversarial reviews of any project built with the framework: same 6 perspectives, with domain-specific modules for web, desktop, mobile, API, and framework project types. Run during Phase 3 validation.
 
 ---
 
@@ -265,7 +312,7 @@ These elements work with any sufficiently capable AI coding agent and do not dep
 
 - **The process:** Five-phase, gate-controlled development (Discovery → Architecture → Construction → Validation → Release)
 - **Quality mandates:** Test-driven development, per-feature security audits, threat modeling, documentation requirements
-- **Governance controls:** Approval authorities, compliance screening, backup maintainer model, portfolio management, escalation paths
+- **Governance controls:** Approval authorities, compliance screening, backup maintainer model, portfolio management, escalation paths, POC modes (Sponsored/Private) for pre-approval validation
 - **Document artifacts:** Product Manifesto, Project Bible, ADRs, test results, HANDOFF.md, Approval Log
 - **Security tooling:** Semgrep, gitleaks, Snyk, OWASP ZAP, SBOM generation — all agent-independent
 - **CI/CD pipelines:** Language-specific CI and platform-specific release pipelines — standard GitHub Actions
@@ -303,14 +350,16 @@ The annual cross-model validation (required for organizational deployments — s
 
 ---
 
-## What This Is Not
+## What This Is Not (Today)
 
-- Not for compliance-regulated systems (SOC 2, HIPAA, PCI-DSS, FedRAMP)
-- Not for high-availability systems (99.99%+ SLA)
-- Not for large-scale distributed systems (microservices, multi-region)
-- Not for enterprise integration projects (SAP, Salesforce, ERP)
+The following are outside the current POC scope. The framework's modular architecture can be extended to cover each of these — they are scope boundaries, not architectural limitations.
 
-It's for the projects that sit in the backlog because they don't justify a team: internal tools, departmental applications, prototypes, MVPs, and utilities.
+- **Compliance-regulated systems (SOC 2, HIPAA, PCI-DSS, FedRAMP)** — Could be addressed with compliance-specific modules (audit controls, evidence collection, data handling checklists). The governance layer has the structure; it needs compliance-specific content.
+- **High-availability systems (99.99%+ SLA)** — The framework could build an application *architected* for HA, but guaranteeing an SLA is an operational commitment that requires dedicated operations staffing beyond the solo orchestrator role. The framework is for development, not operations.
+- **Large-scale distributed systems (microservices, multi-region)** — New platform modules could cover distributed architecture patterns. The extensibility model supports it; the modules haven't been written.
+- **Enterprise integration projects (SAP, Salesforce, ERP)** — Specialized domains with their own SDKs and deployment models. Could be addressed through dedicated platform modules and suggestion files.
+
+Today, it's for the projects that sit in the backlog because they don't justify a team: internal tools, departmental applications, prototypes, MVPs, and utilities.
 
 ## Should You Use This Framework?
 
@@ -321,7 +370,7 @@ It's for the projects that sit in the backlog because they don't justify a team:
 | **Will other people use it?** | **Use the framework** (Standard or Light track) | Continue below |
 | **Will you maintain it for more than 6 months?** | **Use the framework** (Light track) | Use Claude Code with a CLAUDE.md |
 
-For enterprise/organizational use: always use the framework. The governance artifacts alone justify the overhead.
+For enterprise/organizational use: always use the framework. The governance artifacts alone justify the overhead. If full approvals aren't available yet, use a POC mode (Sponsored or Private) to validate the framework first — all technical work carries forward when you upgrade to production.
 
 **Minimum skills assumed:**
 - Navigate a terminal (cd, ls, running commands)
@@ -338,8 +387,8 @@ For enterprise/organizational use: always use the framework. The governance arti
 |---|---|---|
 | Agent instructions | Single CLAUDE.md file | CLAUDE.md + Builder's Guide + Platform Module — comprehensive AI instruction set |
 | Project planning | Ad hoc | Structured Intake Template + phase-gated discovery (Phases 0-1) |
-| CI security scanning | Manual pipeline setup | 8 language-specific templates with Semgrep SAST, dependency audit, license checking |
-| Release pipeline | Manual pipeline setup | 4 platform-specific templates (web, desktop, mobile, CLI) |
+| CI security scanning | Manual pipeline setup | 7 language-specific templates with Semgrep SAST, dependency audit, license checking |
+| Release pipeline | Manual pipeline setup | 3 platform-specific templates (web, desktop, mobile) |
 | Platform guidance | None | Web, Desktop, Mobile modules with architecture patterns, tooling, testing, distribution |
 | Enterprise governance | None | Full framework with approval authorities, compliance screening, portfolio governance, and POC modes for pre-approval validation |
 | Project intake | Manual CLAUDE.md | Guided intake wizard (interactive script or AI-assisted) with context-aware suggestions per platform |
@@ -353,8 +402,10 @@ The methodology, intake template, platform modules, and CI pipeline templates ar
 
 ## Known Limitations
 
-- **Enforcement is primarily CI-based.** The CI pipeline (SAST, dependency audit, license checking, tests) provides mechanical enforcement. Phase gates, TDD ordering, scope control, and documentation updates rely on the AI agent following instructions in CLAUDE.md and the Builder's Guide. This is the nature of a methodology framework — it provides comprehensive guidance, but enforcement beyond CI depends on the operator and agent following the process.
-- **Release pipelines require configuration.** CI pipelines work immediately on first push. Release pipelines are production-ready templates with TODOs for code signing, deployment secrets, and store credentials that must be configured before first release.
+- **Enforcement has two mechanical layers but gaps remain.** The CI pipeline (SAST, dependency audit, license checking, tests) blocks merges on failure. The Claude Dev Framework pre-commit hooks (gitleaks, Semgrep) catch issues at commit time locally. Together these provide mechanical enforcement for security, testing, and code quality. However, phase gates, TDD ordering, scope control, and documentation updates currently rely on the AI agent following CLAUDE.md instructions and the human reviewing at decision gates. These are Tier 3 (guided) controls with no automated backstop yet.
+- **Release pipelines require configuration.** CI pipelines work immediately on first push. Release pipelines are templates with TODOs for code signing, deployment secrets, and store credentials that must be configured before first release.
+- **Docker is local only.** OWASP ZAP and Qdrant run as local Docker containers. Remote Docker hosts and network-accessible containers are not yet supported.
+- **Swift CI gap.** Swift (iOS native) is referenced in the mobile platform module but does not have a CI pipeline template. Select "other" for Swift projects.
 - **CI/CD templates are GitHub Actions only.** The framework provides pipeline templates for GitHub Actions. GitLab CI and Azure DevOps are supported as repository hosts, but pipeline templates must be translated manually.
 - **Single language per init.** The init script generates CI for one primary language. Polyglot projects (e.g., TypeScript frontend + Python backend) require manual addition of CI steps for secondary languages.
 - **Not yet validated through an organizational pilot.** The framework has been used for personal projects. The pilot evaluation process (Executive Review, Section X) defines how to test it organizationally. Treat this as a well-structured hypothesis, not a proven methodology.
@@ -380,6 +431,9 @@ This is the initial release of the Solo Orchestrator Framework. It has been used
 | Platform Module: Web | v1.0 | 2026-04-02 |
 | Platform Module: Desktop | v1.0 | 2026-04-02 |
 | Platform Module: Mobile | v1.0 | 2026-04-02 |
+| Security Scan Guide | v1.0 | 2026-04-02 |
+| Evaluation Prompts (Framework) | v1.0 | 2026-04-02 |
+| Evaluation Prompts (Projects) | v1.0 | 2026-04-02 |
 
 ---
 
