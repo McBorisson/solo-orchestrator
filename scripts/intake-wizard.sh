@@ -52,7 +52,11 @@ prompt_input() {
   else
     read -rp "$(echo -e "  ${BOLD}$prompt${NC}: ")" result
   fi
-  check_pause "$result"
+  if [ "$result" = "pause" ] || [ "$result" = "PAUSE" ] || [ "$result" = "Pause" ]; then
+    _request_pause
+    echo ""
+    return
+  fi
   echo "$result"
 }
 
@@ -70,7 +74,11 @@ prompt_choice() {
   local choice
   while true; do
     read -rp "$(echo -e "  ${BOLD}Select [1-${#options[@]}]${NC}: ")" choice
-    check_pause "$choice"
+    if [ "$choice" = "pause" ] || [ "$choice" = "PAUSE" ] || [ "$choice" = "Pause" ]; then
+      _request_pause
+      echo ""
+      return
+    fi
     if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#options[@]}" ]; then
       echo "${options[$((choice-1))]}"
       return
@@ -95,7 +103,11 @@ prompt_with_suggestions() {
       read -rp "$(echo -e "  ${BOLD}$prompt${NC} [? for suggestions]: ")" result
     fi
 
-    check_pause "$result"
+    if [ "$result" = "pause" ] || [ "$result" = "PAUSE" ] || [ "$result" = "Pause" ]; then
+      _request_pause
+      echo ""
+      return
+    fi
 
     if [ "$result" = "?" ]; then
       show_suggestions "$suggestion_key"
@@ -184,12 +196,18 @@ PYEOF
   fi
 }
 
-# ================================================================
-# PAUSE: Handle user requesting a pause
-# ================================================================
-check_pause() {
-  local input="$1"
-  if [ "$input" = "pause" ] || [ "$input" = "PAUSE" ] || [ "$input" = "Pause" ]; then
+# Pause detection: prompt functions write a sentinel file when the user
+# types "pause". The section runner checks for this file after each prompt.
+_PAUSE_FILE="/tmp/.solo-intake-pause-$$"
+
+_request_pause() {
+  touch "$_PAUSE_FILE"
+}
+
+# Check if pause was requested. Call this in the main loop, not in subshells.
+check_pause_requested() {
+  if [ -f "$_PAUSE_FILE" ]; then
+    rm -f "$_PAUSE_FILE"
     echo ""
     print_info "Pausing intake wizard. Progress saved."
     print_info "Resume with: scripts/intake-wizard.sh --resume"
@@ -197,31 +215,34 @@ check_pause() {
   fi
 }
 
+# Clean up pause file on exit
+trap 'rm -f "$_PAUSE_FILE"' EXIT
+
 # ================================================================
 # PROGRESS: Initialize progress file
 # ================================================================
 init_progress() {
   mkdir -p "$(dirname "$PROGRESS_FILE")"
   if command -v python3 &>/dev/null; then
-    python3 << PYEOF
-import json
+    python3 -c "
+import json, sys
 data = {
-    "version": 1,
-    "started_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-    "last_section": 0,
-    "completed_sections": [],
-    "project_name": "$PROJECT_NAME",
-    "platform": "$PLATFORM",
-    "track": "$TRACK",
-    "deployment": "$DEPLOYMENT",
-    "language": "$LANGUAGE",
-    "description": "$PROJECT_DESCRIPTION",
-    "poc_mode": None,
-    "answers": {}
+    'version': 1,
+    'started_at': sys.argv[1],
+    'last_section': 0,
+    'completed_sections': [],
+    'project_name': sys.argv[2],
+    'platform': sys.argv[3],
+    'track': sys.argv[4],
+    'deployment': sys.argv[5],
+    'language': sys.argv[6],
+    'description': sys.argv[7],
+    'poc_mode': None,
+    'answers': {}
 }
-with open('$PROGRESS_FILE', 'w') as f:
+with open(sys.argv[8], 'w') as f:
     json.dump(data, f, indent=2)
-PYEOF
+" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$PROJECT_NAME" "$PLATFORM" "$TRACK" "$DEPLOYMENT" "$LANGUAGE" "$PROJECT_DESCRIPTION" "$PROGRESS_FILE"
   fi
 }
 
@@ -231,17 +252,18 @@ PYEOF
 save_section() {
   local section_num="$1"
   if command -v python3 &>/dev/null; then
-    python3 << PYEOF
-import json
-with open('$PROGRESS_FILE') as f:
+    python3 -c "
+import json, sys
+section, path = int(sys.argv[1]), sys.argv[2]
+with open(path) as f:
     data = json.load(f)
-data['last_section'] = $section_num
-if $section_num not in data['completed_sections']:
-    data['completed_sections'].append($section_num)
+data['last_section'] = section
+if section not in data['completed_sections']:
+    data['completed_sections'].append(section)
     data['completed_sections'].sort()
-with open('$PROGRESS_FILE', 'w') as f:
+with open(path, 'w') as f:
     json.dump(data, f, indent=2)
-PYEOF
+" "$section_num" "$PROGRESS_FILE"
   fi
   print_ok "Section $section_num saved."
 }
@@ -253,14 +275,15 @@ save_answer() {
   local key="$1"
   local value="$2"
   if command -v python3 &>/dev/null; then
-    python3 << PYEOF
-import json
-with open('$PROGRESS_FILE') as f:
+    python3 -c "
+import json, sys
+key, value, path = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(path) as f:
     data = json.load(f)
-data['answers'][$(python3 -c "import json; print(json.dumps('$key'))")] = $(python3 -c "import json; print(json.dumps('''$value'''))")
-with open('$PROGRESS_FILE', 'w') as f:
+data['answers'][key] = value
+with open(path, 'w') as f:
     json.dump(data, f, indent=2)
-PYEOF
+" "$key" "$value" "$PROGRESS_FILE"
   fi
 }
 
@@ -274,23 +297,29 @@ load_progress() {
   fi
 
   if command -v python3 &>/dev/null; then
-    eval "$(python3 << PYEOF
-import json
-with open('$PROGRESS_FILE') as f:
+    # Write to a temp file to avoid eval injection from user-provided values
+    local tmpfile
+    tmpfile=$(mktemp)
+    python3 -c "
+import json, sys, shlex
+with open(sys.argv[1]) as f:
     data = json.load(f)
-print(f"LAST_SECTION={data['last_section']}")
-print(f"PROJECT_NAME='{data['project_name']}'")
-print(f"PLATFORM='{data['platform']}'")
-print(f"TRACK='{data['track']}'")
-print(f"DEPLOYMENT='{data['deployment']}'")
-print(f"LANGUAGE='{data['language']}'")
-print(f"PROJECT_DESCRIPTION='{data['description']}'")
+# Use shlex.quote to safely escape all values for shell assignment
+print(f\"LAST_SECTION={data['last_section']}\")
+print(f\"PROJECT_NAME={shlex.quote(data['project_name'])}\")
+print(f\"PLATFORM={shlex.quote(data['platform'])}\")
+print(f\"TRACK={shlex.quote(data['track'])}\")
+print(f\"DEPLOYMENT={shlex.quote(data['deployment'])}\")
+print(f\"LANGUAGE={shlex.quote(data['language'])}\")
+print(f\"PROJECT_DESCRIPTION={shlex.quote(data['description'])}\")
 poc = data.get('poc_mode') or ''
-print(f"POC_MODE='{poc}'")
+print(f\"POC_MODE={shlex.quote(poc)}\")
 completed = ' '.join(str(s) for s in data.get('completed_sections', []))
-print(f"COMPLETED_SECTIONS='{completed}'")
-PYEOF
-)"
+print(f\"COMPLETED_SECTIONS={shlex.quote(completed)}\")
+" "$PROGRESS_FILE" > "$tmpfile"
+    # shellcheck disable=SC1090
+    source "$tmpfile"
+    rm -f "$tmpfile"
   fi
 }
 
@@ -300,13 +329,17 @@ PYEOF
 load_project_context() {
   local phase_file="$PROJECT_ROOT/.claude/phase-state.json"
   if [ -f "$phase_file" ] && command -v python3 &>/dev/null; then
-    eval "$(python3 << PYEOF
-import json
-with open('$phase_file') as f:
+    local tmpfile
+    tmpfile=$(mktemp)
+    python3 -c "
+import json, sys, shlex
+with open(sys.argv[1]) as f:
     data = json.load(f)
-print(f"PROJECT_NAME='{data.get('project', '')}'")
-PYEOF
-)"
+print(f\"PROJECT_NAME={shlex.quote(data.get('project', ''))}\")
+" "$phase_file" > "$tmpfile"
+    # shellcheck disable=SC1090
+    source "$tmpfile"
+    rm -f "$tmpfile"
   fi
 }
 
@@ -894,14 +927,15 @@ run_section_8() {
 
   # Update progress file with POC mode
   if command -v python3 &>/dev/null; then
-    python3 << PYEOF
-import json
-with open('$PROGRESS_FILE') as f:
+    python3 -c "
+import json, sys
+poc_mode = sys.argv[1] if sys.argv[1] else None
+with open(sys.argv[2]) as f:
     data = json.load(f)
-data['poc_mode'] = '$POC_MODE' if '$POC_MODE' else None
-with open('$PROGRESS_FILE', 'w') as f:
+data['poc_mode'] = poc_mode
+with open(sys.argv[2], 'w') as f:
     json.dump(data, f, indent=2)
-PYEOF
+" "$POC_MODE" "$PROGRESS_FILE"
   fi
 
   if [ -n "$POC_MODE" ]; then
@@ -1195,6 +1229,7 @@ run_script_mode() {
     fi
 
     "run_section_$section"
+    check_pause_requested
   done
 
   echo ""
@@ -1340,14 +1375,14 @@ run_upgrade_to_production() {
 
   # Update progress file
   if command -v python3 &>/dev/null; then
-    python3 << PYEOF
-import json
-with open('$PROGRESS_FILE') as f:
+    python3 -c "
+import json, sys
+with open(sys.argv[1]) as f:
     data = json.load(f)
 data['poc_mode'] = None
-with open('$PROGRESS_FILE', 'w') as f:
+with open(sys.argv[1], 'w') as f:
     json.dump(data, f, indent=2)
-PYEOF
+" "$PROGRESS_FILE"
   fi
 
   print_ok "Upgraded to Production Build."

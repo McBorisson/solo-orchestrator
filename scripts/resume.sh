@@ -21,7 +21,9 @@ echo ""
 # Current phase
 PHASE="unknown"
 if [ -f ".claude/phase-state.json" ]; then
-  PHASE=$(grep -o '"current_phase"[[:space:]]*:[[:space:]]*"[^"]*"' .claude/phase-state.json 2>/dev/null | sed 's/.*"current_phase"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "unknown")
+  # current_phase can be a bare integer (0) or quoted string ("0")
+  PHASE=$(grep -o '"current_phase"[[:space:]]*:[[:space:]]*[0-9]*' .claude/phase-state.json 2>/dev/null | grep -o '[0-9]*$' || echo "unknown")
+  [ -z "$PHASE" ] && PHASE="unknown"
 fi
 
 # Last 3 git log entries
@@ -58,7 +60,7 @@ if [ -f "CLAUDE.md" ]; then
   # Extract "Last session summary:" line
   line=$(grep -i "last session" CLAUDE.md 2>/dev/null | head -1 || true)
   if [ -n "$line" ]; then
-    LAST_SESSION=$(echo "$line" | sed 's/.*[Ll]ast session[[:space:]]*summary[[:space:]]*:[[:space:]]*//')
+    LAST_SESSION=$(echo "$line" | sed 's/.*[Ll]ast session[[:space:]]*\(summary[[:space:]]*\)\{0,1\}:[[:space:]]*//')
   fi
 fi
 

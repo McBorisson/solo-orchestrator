@@ -63,8 +63,14 @@ prompt_choice() {
     echo "  $((i+1)). ${options[$i]}" >&2
   done
   local choice
-  read -rp "$(echo -e "${BOLD}Select [1-${#options[@]}]${NC}: ")" choice
-  echo "${options[$((choice-1))]}"
+  while true; do
+    read -rp "$(echo -e "${BOLD}Select [1-${#options[@]}]${NC}: ")" choice
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#options[@]}" ]; then
+      echo "${options[$((choice-1))]}"
+      return
+    fi
+    echo "  Invalid choice. Enter a number between 1 and ${#options[@]}." >&2
+  done
 }
 
 # Prompt user to install a missing tool. Returns 0 if installed, 1 if skipped.

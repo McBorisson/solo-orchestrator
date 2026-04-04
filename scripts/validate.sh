@@ -13,9 +13,9 @@ set -euo pipefail
 # Colors (disabled if not a terminal)
 if [ -t 1 ]; then
   RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
-  BLUE='\033[0;34m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
+  BLUE='\033[0;34m'; BOLD='\033[1m'; NC='\033[0m'
 else
-  RED=''; GREEN=''; YELLOW=''; BLUE=''; CYAN=''; BOLD=''; NC=''
+  RED=''; GREEN=''; YELLOW=''; BLUE=''; BOLD=''; NC=''
 fi
 
 print_ok()   { echo -e "${GREEN}  [OK]${NC} $1"; }
@@ -27,8 +27,8 @@ print_section() { echo ""; echo -e "${BOLD}── $1 ──${NC}"; }
 errors=0
 warnings=0
 
-fail() { ((errors++)); print_fail "$1"; }
-warn() { ((warnings++)); print_warn "$1"; }
+fail() { errors=$((errors + 1)); print_fail "$1"; }
+warn() { warnings=$((warnings + 1)); print_warn "$1"; }
 
 # ================================================================
 # Verify we're in a Solo Orchestrator project
@@ -357,23 +357,23 @@ if [ -f "PROJECT_INTAKE.md" ] && [ -f ".github/workflows/ci.yml" ] && [ $phase -
     domain_row=$(grep -i "$domain" PROJECT_INTAKE.md | grep -i "|" | head -1 || true)
     if echo "$domain_row" | grep -qi "| *No *|"; then
       # Domain is marked "No" — check CI has the corresponding tool
-      if echo "$ci_content" | grep -qi "$ci_check"; then
+      if echo "$ci_content" | grep -qiE "$ci_check"; then
         print_ok "$domain: marked 'No' — $tool_name present in CI"
       else
         warn "$domain: marked 'No' but $tool_name not found in CI pipeline"
-        ((matrix_issues++))
+        matrix_issues=$((matrix_issues + 1))
       fi
     fi
   }
 
-  check_competency "Security"      "semgrep\|snyk\|sast\|zap"        "SAST/dependency scanning"
-  check_competency "Accessibility"  "lighthouse\|axe\|a11y"           "accessibility scanning"
-  check_competency "Performance"    "lighthouse\|k6\|benchmark"       "performance testing"
-  check_competency "Database"       "migration\|prisma\|alembic\|flyway" "migration tooling"
+  check_competency "Security"      "semgrep|snyk|sast|zap"        "SAST/dependency scanning"
+  check_competency "Accessibility"  "lighthouse|axe|a11y"           "accessibility scanning"
+  check_competency "Performance"    "lighthouse|k6|benchmark"       "performance testing"
+  check_competency "Database"       "migration|prisma|alembic|flyway" "migration tooling"
 
   if [ $matrix_issues -eq 0 ]; then
     # Check if any rows were actually filled in
-    has_no=$(grep -i "| *No *|" PROJECT_INTAKE.md | grep -ciE "Security|Accessibility|Performance|Database" || true)
+    has_no=$(grep -i "| *No *|" PROJECT_INTAKE.md | grep -ciE "Security|Accessibility|Performance|Database" || echo "0")
     if [ "$has_no" -eq 0 ]; then
       print_info "No domains marked 'No' in Competency Matrix (or matrix not yet filled out)"
     fi
