@@ -22,7 +22,7 @@ For what the framework *is*, how it works at a conceptual level, and what it is 
 |---|---|---|
 | **This guide** (user-guide.md) | What you do, step by step, from setup to maintenance | Start here |
 | [**README**](../README.md) | Framework overview, prerequisites, platform/language support | Before starting |
-| [**Builder's Guide**](builders-guide.md) | The complete methodology — phases, prompts, remediation tables, glossary | During every phase |
+| [**Builder's Guide**](builders-guide.md) | The complete methodology — deep reference for phases, glossary, and advanced procedures | When you need detail beyond what this guide provides |
 | [**Project Intake**](../templates/project-intake.md) | Your product definition — fill this out before Phase 0 | Pre-Phase 0 |
 | [**Governance Framework**](governance-framework.md) | Approval authorities, compliance, risk, portfolio governance | Organizational deployments |
 | [**CLI Setup Addendum**](cli-setup-addendum.md) | Claude Code configuration, Superpowers, MCP servers | After init, before Phase 0 |
@@ -47,9 +47,22 @@ A structured methodology for a single experienced technologist to build producti
 
 ### What This Framework Expects of You
 
-You are an experienced technologist. You can read code, evaluate architecture trade-offs, write test assertions, and run security tools. The AI writes the code. You make every decision, validate every output, and gate every phase transition.
+You are a technically literate person who can navigate a terminal, use Git, read code, and run command-line tools. The AI writes the code. You make every decision, validate every output, and gate every phase transition.
 
-This is not a tool for learning to program. If you cannot look at AI-generated code and determine whether it is correct, the framework's quality controls will not compensate for that gap. You need practical experience with at least one modern language/framework, basic security concepts (authentication, input validation, injection attacks), and the ability to interpret test results and scan output.
+This is not a tool for learning to program. If you cannot look at AI-generated code and determine whether it is roughly correct, the framework's quality controls will not compensate for that gap.
+
+#### Self-Assessment Checklist
+
+Before starting, confirm you can do the following. If more than 2 items are unfamiliar, invest time learning them first.
+
+- [ ] Navigate a terminal: `cd`, `ls`, run commands, read output
+- [ ] Basic Git: clone a repo, make commits, push, create branches
+- [ ] Understand what a test is and interpret pass/fail output
+- [ ] Read code well enough to spot obvious problems (wrong variable, missing check, hardcoded secret)
+- [ ] Edit JSON and YAML files without breaking their syntax
+- [ ] Understand what an API is and how HTTP request/response works (for web projects)
+- [ ] Install software from the command line (npm, pip, brew, apt, or equivalent)
+- [ ] Read a stack trace or error message and identify the relevant line
 
 ### What Is Enforced vs. What Is Guided
 
@@ -213,6 +226,24 @@ The script prompts for 7 inputs:
 Each project is self-contained. No runtime dependency on the solo-orchestrator repo after init.
 
 The init script also generates **two pipelines**: a CI pipeline (`ci.yml`) selected by your language (handles testing, linting, SAST, dependency audit, license checking) and a release pipeline (`release.yml`) selected by your platform (handles building, signing, packaging, and distribution). CI pipelines are working GitHub Actions workflows that run immediately on first push. Release pipelines are production-ready templates that require configuration — code signing, deployment secrets, and store credentials must be set up before your first release.
+
+### What Is Auto-Generated vs. What You Configure
+
+| File | Created By | You Must | Notes |
+|---|---|---|---|
+| `CLAUDE.md` | init.sh (starter version) | Update at each phase transition and end of each session | Replace with the enhanced template from the [CLI Setup Addendum](cli-setup-addendum.md#6-claudemd) when you configure optional enhancements |
+| `PROJECT_INTAKE.md` | init.sh (blank template) | Fill out completely before Phase 0 | The primary input to the entire process |
+| `APPROVAL_LOG.md` | init.sh (empty with headers) | Add entries at each phase gate | Append-only — never edit previous entries |
+| `.github/workflows/ci.yml` | init.sh (language-specific) | Nothing — works on first push | Modify only if adding a secondary language |
+| `.github/workflows/release.yml` | init.sh (platform-specific) | Configure secrets and signing before first release | Contains `TODO` markers for per-project configuration |
+| `.gitignore` | init.sh | Nothing | Add entries as needed |
+| `.claude/framework/` | init.sh (cloned from GitHub) | Nothing | Git hooks are auto-installed |
+| `.claude/phase-state.json` | init.sh | Nothing — updated by scripts | Tracks current phase |
+| `docs/framework/` | init.sh (copied from solo-orchestrator) | Nothing | Reference documents |
+| `docs/platform-modules/` | init.sh (copied) | Nothing | Platform-specific guidance |
+| **Superpowers** | You (optional) | Install plugin, configure in CLAUDE.md | See [CLI Setup Addendum](cli-setup-addendum.md#1-superpowers) |
+| **Context7 MCP** | You (optional) | One command to add MCP server | See [CLI Setup Addendum](cli-setup-addendum.md#4-context7) |
+| **Qdrant MCP** | You (optional) | Docker + MCP server config | See [CLI Setup Addendum](cli-setup-addendum.md#5-qdrant) |
 
 ### What to Check After Init
 
@@ -418,6 +449,156 @@ This section covers what **you** do at each phase — not what the agent does. F
 - Do the data contracts match your Section 5 inputs?
 - Are the out-of-scope items explicitly listed? (They prevent scope creep in Phase 2.)
 
+<details>
+<summary><strong>Phase 0 — Agent Prompts (click to expand)</strong></summary>
+
+Use these prompts with your AI agent. Choose "With Intake" versions if you filled out the Project Intake first (recommended), or "Without Intake" versions for conversational discovery.
+
+**Step 0.1: Functional Feature Set**
+
+*With Intake (recommended):*
+
+```
+I am the Solo Orchestrator for [PROJECT NAME]. The attached Project
+Intake contains my requirements and constraints.
+
+Using the Intake as the primary source, generate a Functional
+Requirements Document.
+
+For each Must-Have feature:
+1. Expand the business logic trigger into a complete specification.
+2. Expand the failure state into a complete error/recovery flow.
+3. Identify contradictions between features.
+4. Identify implicit dependencies I haven't listed.
+
+For the Will-Not-Have list: flag if any Must-Have implicitly requires
+something on the exclusion list.
+
+Do not add features beyond the Intake. Flag recommendations separately.
+```
+
+*Without Intake:*
+
+```
+I am the Solo Orchestrator for [PROJECT NAME]. Before we discuss code
+or technology, we need to define the Feature Set.
+
+Act as a Lead Product Manager with 15 years of experience. Based on
+my goal of [INSERT GOAL], generate a Functional Requirements Document.
+
+CONSTRAINTS:
+- Budget: [$ per month for hosting/services, or one-time budget]
+- Timeline: [X weeks to MVP]
+- Target users at launch: [number]
+- Target users at 12 months: [number]
+
+REQUIREMENTS:
+1. List the Must-Have features for MVP. For each: "If [condition],
+   the system must [action] and output [result]."
+2. List the Should-Have features for v1.1.
+3. List the Will-Not-Have features (explicit scope boundaries).
+4. For every Must-Have, define the failure state.
+```
+
+**Step 0.2: User Personas & Interaction Flow**
+
+*With Intake:*
+
+```
+Using the Intake persona (Section 2.2) and Must-Have features (Section 4.1),
+generate a complete User Journey Map.
+
+Map the Success Path through ALL Must-Have features as a coherent experience.
+For each step: what user sees, does, system responds, feedback mechanism.
+Define failure recovery using the failure states from the Intake.
+Flag any point where the journey reveals a feature gap.
+```
+
+*Without Intake:*
+
+```
+Map the User Journey for the primary persona.
+
+1. Persona: Who, skill level, goal, emotional state on arrival.
+2. Entry Point: How they first encounter the application.
+3. Success Path: 3-5 steps. For each: what user sees, does, system responds.
+4. Failure Recovery: At each step, what happens on bad input, lost
+   connectivity, or abandonment.
+5. Feedback Loops: How the app communicates success/failure/progress.
+6. Exit Points: Where the user might abandon. Recovery strategies.
+```
+
+**Step 0.3: Data Input/Output & State Logic**
+
+*With Intake:*
+
+```
+Using the Intake data definitions (Section 5), generate a formal Data Contract.
+
+Verify validation rules are complete. Confirm sensitivity classifications.
+Identify inputs implied by features but not listed. Define data flow from
+input to storage to output. Flag integrations where "unavailable" breaks
+a Must-Have. Review persistence model against budget constraints.
+```
+
+*Without Intake:*
+
+```
+Define the Data Contract.
+
+1. INPUTS: Data type, validation rules, sensitivity classification per input.
+2. TRANSFORMATIONS: Each processing step as a discrete operation.
+3. OUTPUTS: Format, latency expectation per output.
+4. THIRD-PARTY DATA: APIs/sources, fallback if unavailable, caching.
+5. STATE: What persists across sessions vs. ephemeral. Define the boundary
+   between "stored permanently" and "stored in memory/local session."
+```
+
+**Step 0.4: Product Manifesto & MVP Cutline**
+
+*With Intake:*
+
+```
+Synthesize into a Product Manifesto. Use the Intake problem statement
+(Section 2.1) as the foundation. MVP Cutline reflects Intake Section 4.1,
+adjusted for any changes from Steps 0.1-0.3. If recommending a feature
+move (Must-Have → Should-Have or vice versa), state the recommendation
+and reason — do not change the cutline without my approval.
+
+Include Open Questions: anything flagged during Steps 0.1-0.3 that
+requires my decision before Phase 1.
+```
+
+*Without Intake:*
+
+```
+Combine the FRD, User Journeys, and Data Contracts into a Product Manifesto.
+
+1. Product Intent: One paragraph — what and why.
+2. MVP Cutline: Hard line. Only first-release features. Everything else
+   goes to Post-MVP Backlog.
+3. Manifesto Rules:
+   - Architecture that contradicts the Manifesto is rejected.
+   - Features not in the MVP Cutline are not built in Phase 2.
+   - Post-MVP prioritized by user feedback, not this document.
+
+Confirm: "I will use this Manifesto as my primary constraint."
+```
+
+</details>
+
+<details>
+<summary><strong>Phase 0 — Remediation Table (click to expand)</strong></summary>
+
+| Issue | Detection | Response |
+|---|---|---|
+| **Feature Creep** | AI suggests features not in the Manifesto | "Not in the Manifesto. Not in Phase 2. Move to Post-MVP Backlog." |
+| **Vague Logic** | AI says "the system handles the data" without specifics | "Be specific. Input format? Validation? Storage? User feedback on success and failure?" |
+| **Missing Failure States** | User journey has no error/recovery path | "What happens on invalid data at Step [X]? Define the error feedback loop and recovery." |
+| **Platform Scope Creep** | AI suggests multi-platform before validating single-platform | "Ship on one platform first. Add others after the core product works." |
+
+</details>
+
 ---
 
 ### Phase 1: Architecture & Planning (2-4 days, 4-8 human hours)
@@ -450,6 +631,52 @@ The architecture stress test should include: 5 edge cases where the stack would 
 **Data migration (if replacing an existing system):** If legacy data exists, the agent produces a migration plan with source inventory, field mapping, transformation rules, a repeatable import script, rollback procedure, and validation criteria. You must be able to confirm migrated data is correct and complete.
 
 **This is the point of no return.** If the architecture is wrong, fix it now. Discovering it mid-Phase 2 is far more expensive.
+
+<details>
+<summary><strong>Phase 1 — Architecture Selection Prompt (click to expand)</strong></summary>
+
+```
+Based on the attached Product Manifesto, propose 3 architecture options.
+
+CONSTRAINTS:
+- Stack familiarity: [from Intake Section 6.1 or state here]
+- Budget ceiling: [from Revenue Model or Intake Section 3.2]
+- Solo maintainer — prioritize managed services, minimal infrastructure.
+- Target MVP timeline: [X weeks].
+- Target platforms: [from Intake — e.g., "Windows, macOS, Linux" or
+  "Web" or "iOS and Android"]
+
+For EACH option, include ALL of the following as first-class decisions:
+1. Languages & Frameworks (exact versions)
+2. Data storage strategy (justified by the data contracts)
+3. Application architecture pattern
+4. Authentication & Identity strategy (if applicable)
+5. Observability: structured logging, error reporting. Day 1 decisions.
+6. Secrets management
+7. Build & packaging strategy for all target platforms
+8. Scalability vs. Velocity trade-off
+9. Distribution strategy (how users get the application)
+10. Auto-update mechanism (if applicable)
+
+[APPEND PLATFORM-SPECIFIC REQUIREMENTS FROM YOUR PLATFORM MODULE]
+```
+
+</details>
+
+<details>
+<summary><strong>Phase 1 — Remediation Table (click to expand)</strong></summary>
+
+| Issue | Detection | Response |
+|---|---|---|
+| **Over-Engineering** | AI suggests complex infrastructure for an MVP | "Solo maintainer with a $[X] ceiling. Simplify." |
+| **Platform Mismatch** | Architecture doesn't match target platform constraints | "This must run as [platform requirement]. Redesign for that constraint." |
+| **Security Gaps** | AI omits auth, data isolation, or encryption | "Missing [control]. Rewrite. Non-negotiable." |
+| **Shallow Threat Model** | STRIDE analysis is generic | "These threats must be specific to our architecture. How does [vector] apply to [our stack]?" |
+| **Missing Observability** | No logging, error tracking, or monitoring | "Observability is Day 1. Define logging, correlation IDs, error reporting now." |
+| **Missing Build Strategy** | No plan for packaging/distributing on all target platforms | "How does this get to the user on [platform]? Define the build and distribution pipeline." |
+| **Maintenance Overload** | Architecture requires DevOps the Orchestrator can't maintain | "Simplify. I cannot maintain this." |
+
+</details>
 
 ---
 
@@ -544,6 +771,22 @@ If any check fails, return to the Build Loop. Do not proceed to Phase 3.
 | Senior Technical Authority reviews this log at the Phase 2 exit |
 | If your Competency Matrix shows "No" or "Partially" on Security: schedule a 1-2 hour security peer review with IT Security covering authorization logic, data isolation, business logic abuse, and auth edge cases |
 
+<details>
+<summary><strong>Phase 2 — Remediation Table (click to expand)</strong></summary>
+
+| Issue | Detection | Response |
+|---|---|---|
+| **Context Window Bleed** | AI hallucinates variables, forgets structure | Fresh session with Bible + last 3-4 active files |
+| **Dependency Creep** | New package for every small problem | "Achieve this with the existing stack. Justify any new dependency." |
+| **Logic Circularity** | AI rewrites the same bug in circles | "Stop coding. Explain the logic step-by-step. Find the flaw before fixing syntax." |
+| **Silent Failures** | Code runs but errors are swallowed | "Every failure must produce a structured log entry and user-visible feedback." |
+| **Regression** | Feature B breaks Feature A | "Run full suite. Identify conflict. Fix preserving both. Do not delete tests." |
+| **Data Model Modified Directly** | Schema changed outside migration tool | "Revert. Generate a versioned migration. Apply through the tool." |
+| **Architecture Wrong Mid-Build** | Construction reveals architecture can't support a requirement | Stop Phase 2. Return to Phase 1.2. Revise Bible. Expensive but cheaper than finishing wrong. |
+| **Platform Inconsistency** | Works on one OS but not another | "Run tests on all target platforms. Fix platform-specific issues before continuing." |
+
+</details>
+
 ---
 
 ### Phase 3: Validation & Security (3-7 days, 5-12 human hours)
@@ -579,6 +822,20 @@ If any check fails, return to the Build Loop. Do not proceed to Phase 3.
 **What you produce:** `docs/test-results/` (all scan reports), SBOM, Privacy Policy (if applicable), user documentation, go-live checklist
 
 **Zero critical or high-severity findings before proceeding.** No exceptions.
+
+<details>
+<summary><strong>Phase 3 — Remediation Table (click to expand)</strong></summary>
+
+| Issue | Detection | Response |
+|---|---|---|
+| **Logic Drift** | App works but doesn't solve the Phase 0 problem | "Strayed from Manifesto. Remove [Feature X]. Re-align." |
+| **Silent Errors** | App fails without user feedback | "Error boundaries. Every failure shows recovery suggestion." |
+| **Security Regression** | Change broke auth or data isolation | "Full security audit from 3.2. Non-negotiable." |
+| **Accessibility Failures** | Below target scores or broken keyboard navigation | "Address every finding. Ship nothing below target." |
+| **Performance Regression** | Below target on any metric | "Profile and audit. Address largest bottleneck first." |
+| **Cross-Platform Failure** | Works on one platform, broken on another | "Fix before proceeding. All target platforms must pass." |
+
+</details>
 
 ---
 
@@ -624,6 +881,19 @@ The release pipeline (`.github/workflows/release.yml`) runs automatically on ver
 **The handoff test (organizational):** Your backup maintainer follows `HANDOFF.md` from scratch — clone, set up development environment, build, run tests, run security scans, execute the deployment procedure. Every gap they find gets fixed in the document. Repeat until they can operate independently.
 
 **What you produce:** `HANDOFF.md`, `RELEASE_NOTES.md`, `docs/INCIDENT_RESPONSE.md`, monitoring configuration
+
+<details>
+<summary><strong>Phase 4 — Remediation Table (click to expand)</strong></summary>
+
+| Issue | Detection | Response |
+|---|---|---|
+| **Build Failure** | CI fails on one or more platforms | "Isolate the platform. Fix on a branch. Full test suite before merging." |
+| **Environment Mismatch** | Works in dev, fails in production | "Diff configurations. Check platform-specific settings." |
+| **Cost Spike** | Hosting/distribution costs exceed ceiling | "Identify the resource. Optimize or restructure." |
+| **Dependency Break** | Update breaks the app | "Revert to last tagged release. Fix on a branch." |
+| **Rollback Failure** | Rollback procedure doesn't work | "Fix the runbook first. Broken runbook is higher priority than broken feature." |
+
+</details>
 
 ---
 
@@ -848,6 +1118,22 @@ Findings flagged by multiple reviewers are confirmed issues — prioritize these
 Running the same prompt across different AI models (Claude, Gemini, ChatGPT) increases coverage. Each model has different training data and reasoning patterns, so they catch different issues. This is particularly valuable for the legal and security reviews.
 
 The red team review is the most likely to find issues that automated scanners (SAST, DAST, SCA) miss, because it constructs multi-step attack chains and tests business logic flaws that pattern-matching tools cannot detect.
+
+---
+
+## Quick Reference — Common Issues
+
+| Issue | Detection Signal | Response |
+|---|---|---|
+| **Context Window Bleed** | AI hallucinates variables, forgets structure | Fresh session with Bible + last 3-4 active files |
+| **Code Drift** | Feature works but contradicts the Bible | Stop. Re-inject Bible. Realign before continuing. |
+| **Logic Drift** | App works but doesn't solve Phase 0 problem | Re-read Manifesto to AI. Remove non-Manifesto features. |
+| **Feature Creep** | AI suggests features outside MVP Cutline | "Not in the Cutline. Not in Phase 2. Post-MVP Backlog." |
+| **Dependency Creep** | New package for every small problem | "Achieve with existing stack. Justify any new dependency." |
+| **Security Regression** | Change broke auth or data isolation | Re-run Phase 3.2. Non-negotiable. |
+| **Rollback Failure** | Procedure doesn't work | Fix runbook first. Higher priority than broken feature. |
+| **AI Quality Variance** | Consistently poor output in a session | End session, start fresh. Quality varies across sessions. |
+| **Architecture Wrong Mid-Build** | Can't support a requirement | Stop Phase 2. Return to Phase 1.2. Revise Bible. |
 
 ---
 

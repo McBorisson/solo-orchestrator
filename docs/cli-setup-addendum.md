@@ -361,6 +361,8 @@ CLAUDE.md is a file that Claude Code automatically reads at the start of every s
 
 For the Solo Orchestrator workflow, CLAUDE.md is where the Project Bible's key constraints live in a form the agent consumes automatically. It evolves across phases as the project takes shape.
 
+**Relationship to init-generated CLAUDE.md:** The init script generates a minimal starter CLAUDE.md with your project name, description, and basic agent instructions. The template below is the full version with Superpowers integration, Context7 usage instructions, Qdrant memory triggers, and phase-evolving sections. **When you configure any optional enhancement (Superpowers, Context7, or Qdrant), replace the init-generated CLAUDE.md with this template** and fill in the project-specific sections.
+
 ### How It Applies to the Builder's Guide
 
 The Builder's Guide says "provide the Project Bible at session start." CLAUDE.md is the mechanism. But instead of dumping the entire Bible into CLAUDE.md (which wastes context on information irrelevant to the current task), the CLAUDE.md contains:

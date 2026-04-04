@@ -302,6 +302,26 @@ The annual cross-model validation (required for organizational deployments — s
 
 It's for the projects that sit in the backlog because they don't justify a team: internal tools, departmental applications, prototypes, MVPs, and utilities.
 
+## Should You Use This Framework?
+
+| Question | If Yes | If No |
+|---|---|---|
+| **Will your project have more than 3 features?** | Continue below | Use Claude Code with a well-written CLAUDE.md |
+| **Will it handle user authentication or sensitive data?** | **Use the framework** (Standard or Full track) | Continue below |
+| **Will other people use it?** | **Use the framework** (Standard or Light track) | Continue below |
+| **Will you maintain it for more than 6 months?** | **Use the framework** (Light track) | Use Claude Code with a CLAUDE.md |
+
+For enterprise/organizational use: always use the framework. The governance artifacts alone justify the overhead.
+
+**Minimum skills assumed:**
+- Navigate a terminal (cd, ls, running commands)
+- Basic Git operations (clone, commit, push, pull, branches)
+- Read code well enough to identify obvious problems
+- Understand what a test is and how pass/fail works
+- Edit JSON and YAML files without breaking their syntax
+- Install software from the command line (npm, pip, brew, apt, or equivalent)
+- For web projects: understand HTTP status codes and request/response basics
+
 ## What This Provides Beyond a Plain Setup
 
 | Capability | CLAUDE.md + Hooks + CI | Solo Orchestrator |
