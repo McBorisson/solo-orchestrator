@@ -1388,6 +1388,42 @@ with open(sys.argv[1], 'w') as f:
   print_ok "Upgraded to Production Build."
   print_info "Review APPROVAL_LOG.md and CLAUDE.md to remove POC watermarks."
   echo ""
+
+  # Re-resolve tools for new track
+  if [ -x "scripts/resolve-tools.sh" ] && [ -f ".claude/tool-preferences.json" ]; then
+    print_info "Re-resolving tools for production track..."
+    # Update track in tool-preferences.json
+    if command -v jq &>/dev/null; then
+      local tmp_prefs
+      tmp_prefs=$(mktemp)
+      jq '.context.track = "standard"' ".claude/tool-preferences.json" > "$tmp_prefs" && mv "$tmp_prefs" ".claude/tool-preferences.json"
+    fi
+    local dev_os platform language track
+    dev_os=$(jq -r '.context.dev_os' ".claude/tool-preferences.json")
+    platform=$(jq -r '.context.platform' ".claude/tool-preferences.json")
+    language=$(jq -r '.context.language' ".claude/tool-preferences.json")
+    track=$(jq -r '.context.track' ".claude/tool-preferences.json")
+    local current_phase
+    current_phase=$(grep -o '"current_phase"[[:space:]]*:[[:space:]]*[0-9]' ".claude/phase-state.json" | grep -o '[0-9]$' || echo "2")
+
+    local tool_output
+    tool_output=$(bash scripts/resolve-tools.sh \
+      --dev-os "$dev_os" --platform "$platform" --language "$language" \
+      --track "$track" --phase "$current_phase" \
+      --matrix-dir templates/tool-matrix \
+      --tool-prefs ".claude/tool-preferences.json" 2>/dev/null) || true
+
+    if [ -n "$tool_output" ]; then
+      local new_tools
+      new_tools=$(echo "$tool_output" | jq '[(.auto_install + .manual_install)[] | .name] | length')
+      if [ "$new_tools" -gt 0 ]; then
+        print_info "New tools available for production track:"
+        echo "$tool_output" | jq -r '(.auto_install + .manual_install)[] | "  • \(.name) (\(.category))"'
+        echo ""
+        print_info "Run scripts/resolve-tools.sh to install them."
+      fi
+    fi
+  fi
 }
 
 # ================================================================
@@ -1426,6 +1462,9 @@ main() {
       echo "  (no flags)              Start the intake wizard or choose mode"
       echo "  --resume                Resume from last save point"
       echo "  --upgrade-to-production Upgrade a POC project to production"
+      echo "  --upgrade-track TYPE    Upgrade track (light|standard|full)"
+      echo "  --upgrade-deployment T  Upgrade deployment (personal|organizational)"
+      echo "  --to-sponsored-poc      Convert to sponsored POC"
       echo "  --help                  Show this help"
       exit 0
       ;;
@@ -1451,8 +1490,44 @@ main() {
       exit 0
       ;;
     --upgrade-to-production)
-      run_upgrade_to_production
+      if [ -x "scripts/upgrade-project.sh" ]; then
+        exec bash scripts/upgrade-project.sh --to-production
+      else
+        run_upgrade_to_production  # fallback to built-in
+      fi
       exit 0
+      ;;
+    --upgrade-track)
+      if [ -z "${2:-}" ]; then
+        echo "Error: --upgrade-track requires a value (light|standard|full)"
+        exit 1
+      fi
+      if [ -x "scripts/upgrade-project.sh" ]; then
+        exec bash scripts/upgrade-project.sh --track "$2"
+      else
+        echo "Error: scripts/upgrade-project.sh not found. Run 'solo init' first."
+        exit 1
+      fi
+      ;;
+    --upgrade-deployment)
+      if [ -z "${2:-}" ]; then
+        echo "Error: --upgrade-deployment requires a value (personal|organizational)"
+        exit 1
+      fi
+      if [ -x "scripts/upgrade-project.sh" ]; then
+        exec bash scripts/upgrade-project.sh --deployment "$2"
+      else
+        echo "Error: scripts/upgrade-project.sh not found. Run 'solo init' first."
+        exit 1
+      fi
+      ;;
+    --to-sponsored-poc)
+      if [ -x "scripts/upgrade-project.sh" ]; then
+        exec bash scripts/upgrade-project.sh --to-sponsored-poc
+      else
+        echo "Error: scripts/upgrade-project.sh not found. Run 'solo init' first."
+        exit 1
+      fi
       ;;
   esac
 

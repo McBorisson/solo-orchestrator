@@ -1116,6 +1116,13 @@ You are the AI coding agent for this Solo Orchestrator project. The human is the
 - Debugging and refactoring (use systematic approach, present results)
 - Documentation generation (follow the templates)
 - Routine security audit checks per Phase 2.4 checklist
+
+### Upgrade Paths
+This project can be upgraded without losing technical work:
+- **Track upgrade** (light → standard → full): \`bash scripts/upgrade-project.sh --track standard\`
+- **Deployment upgrade** (personal → organizational): \`bash scripts/upgrade-project.sh --deployment organizational\`
+- **POC → Production**: \`bash scripts/upgrade-project.sh --to-production\`
+All technical artifacts carry forward unchanged. Upgrades add governance requirements, tooling, and validation — they never remove work.
 CLAUDEEOF
 }
 
@@ -1772,6 +1779,12 @@ print_next_steps() {
   echo "     docs/framework/cli-setup-addendum.md   — Claude Code configuration"
   echo "     docs/platform-modules/                — Platform-specific guidance"
   echo ""
+  if [ "$TRACK" = "light" ] || [ "$DEPLOYMENT" = "personal" ]; then
+  echo "  UPGRADE (if this is a POC or light track project):"
+  echo "     bash scripts/upgrade-project.sh --help     — see all upgrade options"
+  echo "     bash scripts/upgrade-project.sh --to-production  — upgrade to production"
+  echo ""
+  fi
 }
 
 # ================================================================

@@ -211,6 +211,20 @@ Phase 4: Ready to deploy           → No production release (upgrade to full pa
 
 Both paths produce the same quality of technical work — same TDD, same security scanning, same documentation. The difference is that POC projects stop before production deployment. Organizational Production adds governance checkpoints (sponsor approval, IT Security review, ITSM tracking) throughout.
 
+### Upgrade Paths
+
+All upgrade paths preserve existing technical work:
+
+| From | To | Command |
+|---|---|---|
+| Private POC (personal/light) | Sponsored POC (org/light) | `scripts/upgrade-project.sh --to-sponsored-poc` |
+| Private POC (personal/light) | Production (org/standard+) | `scripts/upgrade-project.sh --to-production` |
+| Sponsored POC (org/light) | Production (org/standard+) | `scripts/upgrade-project.sh --to-production` |
+| Any track | Higher track | `scripts/upgrade-project.sh --track standard` |
+| Personal | Organizational | `scripts/upgrade-project.sh --deployment organizational` |
+
+Upgrades add requirements (governance, tooling, validation) — they never remove work. The tool matrix resolver automatically surfaces new tools needed for the higher track.
+
 Each phase produces artifacts that gate entry into the next phase. The AI executes within constraints. The human validates at decision gates.
 
 ### The Workflow
