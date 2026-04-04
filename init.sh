@@ -970,45 +970,72 @@ fi
 
 HOOKEOF
 
-  # Append the test co-location check only if we have a meaningful pattern
-  # (Rust uses inline tests so co-location check doesn't apply)
+  # Append the TDD ordering check only if we have a meaningful pattern
+  # (Rust uses inline tests so TDD ordering check doesn't apply)
   if [ -n "$test_pattern" ] && [ -n "$src_ext" ]; then
-    cat >> .git/hooks/pre-commit << TESTEOF
+    cat >> .git/hooks/pre-commit << TDDEOF
 
-# --- Test Co-Location Check ---
-# Warns (does not block) when source files are committed without corresponding test files.
-# This is a heuristic — it checks the same commit, not the order of creation.
+# --- TDD Ordering Check ---
+# Warns when implementation files are staged without any test files in the same commit.
 SRC_EXT_PATTERN="\\.(${src_ext})$"
 TEST_PATTERN="${test_pattern}"
 
-staged_src=\$(git diff --cached --name-only --diff-filter=ACM | grep -E "\$SRC_EXT_PATTERN" | grep -vE "\$TEST_PATTERN" | grep -vE "(config|setup|migration|seed|fixture)" || true)
+staged_impl=\$(git diff --cached --name-only --diff-filter=ACM \\
+  | grep -E "\$SRC_EXT_PATTERN" \\
+  | grep -vE "\$TEST_PATTERN" \\
+  | grep -vE "(config|setup|migration|seed|fixture|generated|__mocks__|\.d\.)" \\
+  || true)
 
-if [ -n "\$staged_src" ]; then
-  missing_tests=0
-  while IFS= read -r src_file; do
-    # Skip files that are themselves test files, configs, or generated
-    [ -z "\$src_file" ] && continue
-    # Check if any test file for this source is also staged
-    basename_no_ext=\$(basename "\$src_file" | sed 's/\.[^.]*\$//')
-    has_test=\$(git diff --cached --name-only | grep -E "\$basename_no_ext" | grep -E "\$TEST_PATTERN" || true)
-    if [ -z "\$has_test" ]; then
-      if [ \$missing_tests -eq 0 ]; then
-        echo ""
-        echo "[WARN] Source files staged without corresponding test files:"
-      fi
-      echo "  \$src_file"
-      missing_tests=\$((missing_tests + 1))
-    fi
-  done <<< "\$staged_src"
-  if [ \$missing_tests -gt 0 ]; then
+staged_tests=\$(git diff --cached --name-only --diff-filter=ACM \\
+  | grep -E "\$TEST_PATTERN" \\
+  || true)
+
+if [ -n "\$staged_impl" ] && [ -z "\$staged_tests" ]; then
+  echo ""
+  echo "[WARN] Implementation files staged without any test files:"
+  echo "\$staged_impl" | head -10 | sed 's/^/  /'
+  count=\$(echo "\$staged_impl" | wc -l | tr -d ' ')
+  [ "\$count" -gt 10 ] && echo "  ... and \$((\$count - 10)) more"
+  echo ""
+  echo "  The Solo Orchestrator methodology requires test-first development."
+  echo "  Consider committing tests before or alongside implementation."
+  echo "  (This is a warning — commit is not blocked.)"
+fi
+TDDEOF
+  fi
+
+  # Append the schema migration check (active in Phase 2+ only)
+  cat >> .git/hooks/pre-commit << 'SCHEMAEOF'
+
+# --- Schema Migration Check ---
+# Warns when schema files are edited directly instead of through migrations (Phase 2+).
+PHASE_STATE=".claude/phase-state.json"
+CURRENT_PHASE=0
+if [ -f "$PHASE_STATE" ]; then
+  CURRENT_PHASE=$(grep -o '"current_phase"[[:space:]]*:[[:space:]]*"*[0-9][0-9]*"*' \
+    "$PHASE_STATE" | grep -o '[0-9][0-9]*' || echo "0")
+fi
+
+if [ "$CURRENT_PHASE" -ge 2 ]; then
+  SCHEMA_PATTERNS='(schema\.prisma|schema\.sql|schema\.rb|models\.py|\.schema\.ts|\.entity\.ts|schema\.graphql)$'
+  staged_schema=$(git diff --cached --name-only --diff-filter=ACM \
+    | grep -E "$SCHEMA_PATTERNS" \
+    | grep -vE '(migrations?/|migrate/)' \
+    || true)
+
+  if [ -n "$staged_schema" ]; then
     echo ""
-    echo "  The Solo Orchestrator methodology requires test-first development."
-    echo "  Consider writing tests before or alongside implementation."
+    echo "[WARN] Direct schema file changes detected (Phase $CURRENT_PHASE):"
+    echo "$staged_schema" | sed 's/^/  /'
+    echo ""
+    echo "  The Solo Orchestrator methodology requires data model changes"
+    echo "  through versioned migrations, not direct schema edits."
+    echo "  If this is intentional (e.g., Prisma schema before migration gen),"
+    echo "  this warning can be ignored."
     echo "  (This is a warning — commit is not blocked.)"
   fi
 fi
-TESTEOF
-  fi
+SCHEMAEOF
 
   # Append exit
   cat >> .git/hooks/pre-commit << 'EXITEOF'
@@ -1017,7 +1044,7 @@ exit $FAILED
 EXITEOF
 
   chmod +x .git/hooks/pre-commit
-  print_ok "Pre-commit hook installed (gitleaks secret detection + Semgrep SAST + test co-location check)"
+  print_ok "Pre-commit hook installed (gitleaks + Semgrep + TDD ordering + schema migration checks)"
 }
 
 # ================================================================
