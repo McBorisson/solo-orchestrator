@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | **Document ID** | SOI-007-GUIDE |
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-04-02 |
 | **Classification** | User Guide |
 | **Companion Documents** | SOI-002-BUILD v1.0 (Builder's Guide), SOI-003-GOV v1.0 (Governance Framework), SOI-004-INTAKE v1.0 (Project Intake Template) |
@@ -28,6 +28,8 @@ For what the framework *is*, how it works at a conceptual level, and what it is 
 | [**CLI Setup Addendum**](cli-setup-addendum.md) | Claude Code configuration, Superpowers, MCP servers | After init, before Phase 0 |
 | [**Platform Module**](platform-modules/) | Platform-specific architecture, tooling, testing, distribution | Phases 1-4 |
 | [**Executive Review**](executive-review.md) | Business case for CIO evaluation | Organizational evaluation |
+| [**Framework Evaluation Prompts**](../evaluation-prompts/Framework/) | Adversarial reviews of the framework itself from 6 professional perspectives | After framework updates or retooling |
+| [**Project Evaluation Prompts**](../evaluation-prompts/Projects/) | Adversarial reviews of any project built with the framework from 6 professional perspectives | Phase 3 validation, before production deployment |
 
 ---
 
@@ -755,7 +757,101 @@ See the [Governance Framework](governance-framework.md) for the graduation trans
 
 ---
 
-## 8. Troubleshooting & FAQ
+## 8. Evaluation Prompts
+
+The framework ships with two categories of evaluation prompts that provide independent adversarial review from multiple professional perspectives. Framework evaluation prompts assess the methodology and documentation itself. Project evaluation prompts assess any application built using the methodology. No single reviewer catches everything — each perspective has different blind spots, which is why there are six independent reviewers in each category.
+
+### 8.1 Framework Evaluation Prompts
+
+**When to use:** After any framework update, retooling to support a new AI vendor, new platform module addition, or significant documentation change.
+
+**How to run:**
+
+```bash
+# From the solo-orchestrator repository root — run all reviews
+cd /path/to/solo-orchestrator
+chmod +x evaluation-prompts/Framework/run-reviews.sh
+./evaluation-prompts/Framework/run-reviews.sh
+
+# Run a single review
+claude -p "$(cat evaluation-prompts/Framework/01-senior-engineer-review.md)"
+```
+
+Alternatively, paste the prompt file contents into any capable LLM alongside the framework documentation.
+
+| File | Reviewer Perspective | What It Evaluates | Output File |
+|---|---|---|---|
+| `01-senior-engineer-review.md` | Senior Software Engineer (20+ yr) | Architecture, enforcement integrity, cross-platform credibility, real-world viability | `senior-engineer-review-v1.md` |
+| `02-cio-review.md` | CIO (startup to Fortune 500) | Total cost of ownership, vendor risk, governance, scalability, strategic positioning | `cio-review-v1.md` |
+| `03-security-review.md` | SVP IT Security | Attack surfaces, LLM security boundaries, compliance gaps, enforcement vs. security theater | `security-review-v1.md` |
+| `04-legal-review.md` | Corporate Legal / General Counsel | Licensing, AI-generated code IP, regulatory compliance, liability exposure | `legal-review-v1.md` |
+| `05-technical-user-review.md` | Technical User (non-coder) | Onboarding experience, usability, documentation quality, personal and enterprise viability | `technical-user-review-v1.md` |
+| `06-red-team-evaluation.md` | Red Team Engineer / AppSec Architect | Methodology attack surface, exploitable weaknesses, bypass paths, false sense of security | Inline deliverable (two-part assessment) |
+
+Running all framework prompts after a change and cross-referencing findings across multiple AI models (Claude, Gemini, ChatGPT) produces the most reliable results.
+
+### 8.2 Project Evaluation Prompts
+
+**When to use:** Phase 3 validation (after the application is functionally complete but before production deployment), after major feature additions, and periodically during maintenance.
+
+**How to run:**
+
+```bash
+# From the project root directory — run all 6 reviews for a web app
+cd /path/to/your-project
+/path/to/evaluation-prompts/Projects/run-reviews.sh web-app
+
+# Run specific reviewers (engineer + security only)
+/path/to/evaluation-prompts/Projects/run-reviews.sh web-app 1 3
+
+# Compose a prompt without running it (inspect first)
+/path/to/evaluation-prompts/Projects/compose.sh engineer web-app
+```
+
+The project review system is modular. Each review combines a **base template** (`bases/` — reviewer persona and universal evaluation categories) with a **domain module** (`modules/` — project-type-specific categories). The `compose.sh` script assembles them into a complete prompt.
+
+**Base templates** (reviewer personas — in `bases/`):
+
+| File | Reviewer Perspective | What It Evaluates | Output File |
+|---|---|---|---|
+| `bases/01-senior-engineer.md` | Senior Software Engineer (20+ yr) | Architecture, code quality, enforcement, scalability | `senior-engineer-review-v1.md` |
+| `bases/02-cio.md` | CIO (startup to Fortune 500) | Total cost of ownership, vendor risk, governance, strategic positioning | `cio-review-v1.md` |
+| `bases/03-security.md` | SVP IT Security | Attack surfaces, data protection, compliance, enforcement vs. security theater | `security-review-v1.md` |
+| `bases/04-legal.md` | Corporate Legal | Licensing, IP, privacy, regulatory compliance, liability exposure | `legal-review-v1.md` |
+| `bases/05-technical-user.md` | Technical User (non-coder) | Onboarding, usability, documentation, personal and enterprise viability | `technical-user-review-v1.md` |
+| `bases/06-red-team-review.md` | Red Team Engineer / Offensive Security | Exploitable vulnerabilities, attack chains, proof-of-concept exploits, remediation code | `red-team-review-v1.md` |
+
+**Domain modules** (project-type categories — in `modules/`):
+
+| Module | Use For |
+|---|---|
+| `modules/web-app.md` | SPAs, full-stack web apps, server-rendered apps, PWAs |
+| `modules/desktop-app.md` | Electron, Tauri, native desktop (WPF, SwiftUI, GTK) |
+| `modules/mobile-app.md` | iOS native, Android native, cross-platform (React Native, Flutter, KMP) |
+| `modules/api-service.md` | REST APIs, GraphQL, gRPC, microservices, serverless |
+| `modules/cli-tool.md` | Command-line tools, build tools, automation utilities |
+| `modules/framework.md` | Dev frameworks, LLM orchestrators, build systems, compliance tools |
+
+**Scripts:**
+
+| File | Purpose |
+|---|---|
+| `run-reviews.sh` | Orchestrates review execution — composes prompts and runs them via `claude -p` |
+| `compose.sh` | Assembles a base template + domain module into a single runnable prompt |
+
+**Recommended workflow:** Run all six reviewers, address all Critical and High findings from every reviewer before deployment, and cross-reference findings across reviewers to identify patterns. A vulnerability flagged by both the security reviewer and the red team reviewer is a confirmed issue.
+
+### 8.3 Interpreting Results
+
+Findings flagged by multiple reviewers are confirmed issues — prioritize these. Findings flagged by only one reviewer should be manually evaluated; they may be valid but lower-confidence, or they may reflect that reviewer's specific blind spot intersecting with a real gap.
+
+Running the same prompt across different AI models (Claude, Gemini, ChatGPT) increases coverage. Each model has different training data and reasoning patterns, so they catch different issues. This is particularly valuable for the legal and security reviews.
+
+The red team review is the most likely to find issues that automated scanners (SAST, DAST, SCA) miss, because it constructs multi-step attack chains and tests business logic flaws that pattern-matching tools cannot detect.
+
+---
+
+## 9. Troubleshooting & FAQ
 
 **"The agent is asking me questions I already answered in the Intake."**
 
@@ -884,4 +980,5 @@ Pick the primary platform and use its module. Cross-platform concerns (e.g., a w
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.1 | 2026-04-02 | Added evaluation prompts documentation (framework and project review prompts). |
 | 1.0 | 2026-04-02 | Initial release. |

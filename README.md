@@ -239,10 +239,9 @@ These are configured per the [CLI Setup Addendum](docs/cli-setup-addendum.md):
 
 The [Executive Review](docs/executive-review.md) is designed to be evaluated independently — including by AI models. The [Enterprise Governance Framework](docs/governance-framework.md) provides the approval authorities, compliance screening, risk management, and portfolio governance required for organizational adoption.
 
-Evaluation prompts for stress-testing the framework are in `evaluation-prompts/`:
-- **CIO Evaluation** — 10 business dimensions, 6 technical dimensions
-- **Red Team Evaluation** — 15 security attack surface areas
-- **Legal Analysis** — 15 legal risk domains
+Evaluation prompts are in `evaluation-prompts/`:
+- **Framework reviews** (`evaluation-prompts/Framework/`) — 6 independent adversarial reviews of the framework itself: Senior Engineer, CIO, SVP IT Security, Corporate Legal, Technical User, and Red Team. Run after framework updates.
+- **Project reviews** (`evaluation-prompts/Projects/`) — 6 independent adversarial reviews of any project built with the framework: same 6 perspectives, with domain-specific modules for web, desktop, mobile, API, CLI, and framework project types. Run during Phase 3 validation.
 
 ---
 
