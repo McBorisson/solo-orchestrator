@@ -452,6 +452,23 @@ collect_project_info() {
       "Sponsored"*)  POC_MODE="sponsored_poc" ;;
       "Private"*)    POC_MODE="private_poc" ;;
     esac
+
+    # Validate track against governance mode
+    # Sponsored POC and Production Build require Standard or Full track
+    if [ "$TRACK" = "light" ] && [ "$POC_MODE" != "private_poc" ]; then
+      echo ""
+      if [ -z "$POC_MODE" ]; then
+        print_warn "Production builds require Standard or Full track."
+        print_warn "Light track skips market validation, user testing, and security hardening."
+      else
+        print_warn "Sponsored POC requires Standard or Full track."
+        print_warn "A sponsor expects due diligence — Light track skips too many safeguards."
+      fi
+      echo ""
+      TRACK=$(prompt_choice "Select a track:" "standard" "full")
+      print_ok "Track upgraded to $TRACK"
+    fi
+
     if [ -n "$POC_MODE" ]; then
       echo ""
       print_warn "POC MODE: ${POC_MODE//_/ }"
