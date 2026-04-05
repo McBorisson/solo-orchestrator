@@ -273,7 +273,7 @@ check_prerequisites() {
   if [ "$_qd_found" = true ]; then
     print_ok "Qdrant MCP server configured"
   else
-    print_warn "Qdrant MCP not found (recommended — persistent semantic memory across sessions)"
+    print_info "Qdrant MCP not configured yet (will be offered at Phase 1 when Docker is available)"
     if [ "$interactive" = false ]; then
       echo "  Install Docker + uv, then: claude mcp add -s user -e QDRANT_URL=http://localhost:6333 -e COLLECTION_NAME=claude-memory qdrant -- uvx --python 3.13 mcp-server-qdrant"
     elif command -v docker &>/dev/null; then
