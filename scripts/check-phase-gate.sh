@@ -156,11 +156,70 @@ if [ -f "$TOOL_PREFS" ] && [ -x "$RESOLVER" ] && command -v jq &>/dev/null; then
 
       if [ "$missing_count" -gt 0 ]; then
         echo ""
-        echo -e "${YELLOW}${BOLD}Required tools missing for Phase $current_phase:${NC}"
-        echo "$missing_required" | jq -r '.[] | "  • \(.name) (\(.category))"'
+        echo -e "${YELLOW}${BOLD}Tools needed for Phase $current_phase:${NC}"
+        echo "$missing_required" | jq -r '.[] | "  • \(.name) — \(.description // .category)"'
         echo ""
-        echo "Run the tool resolver to install:"
-        echo "  bash scripts/resolve-tools.sh --dev-os $dev_os --platform $platform --language $language --track $track --phase $current_phase --matrix-dir templates/tool-matrix --tool-prefs $TOOL_PREFS"
+
+        # Check if any can be auto-installed
+        auto_installable=$(echo "$tool_output" | jq '[.auto_install[]]')
+        auto_count=$(echo "$auto_installable" | jq 'length')
+
+        if [ "$auto_count" -gt 0 ]; then
+          echo -e "${CYAN}The following can be auto-installed:${NC}"
+          echo "$auto_installable" | jq -r '.[] | "  • \(.name)"'
+          echo ""
+          read -rp "$(echo -e "${BOLD}Install now? [Y/n]${NC}: ")" install_reply
+          if [[ ! "$install_reply" =~ ^[Nn] ]]; then
+            echo "$auto_installable" | jq -r '.[] | .install_command // empty' | while IFS= read -r cmd; do
+              [ -z "$cmd" ] && continue
+              echo -e "  ${CYAN}Running:${NC} $cmd"
+              eval "$cmd" || echo -e "  ${YELLOW}[WARN]${NC} Command failed: $cmd"
+            done
+          fi
+        fi
+
+        # Show manual items
+        manual_items=$(echo "$tool_output" | jq '[.manual_install[]]')
+        manual_count=$(echo "$manual_items" | jq 'length')
+        if [ "$manual_count" -gt 0 ]; then
+          echo ""
+          echo -e "${YELLOW}Manual setup still required:${NC}"
+          echo "$manual_items" | jq -r '.[] | "  • \(.name) — \(.instructions // "see docs")"'
+        fi
+
+        # Special handling: if Qdrant is in the missing list and Docker is running, offer Docker setup
+        if echo "$missing_required" | jq -e '.[] | select(.name == "Qdrant MCP")' >/dev/null 2>&1; then
+          if command -v docker &>/dev/null && docker info &>/dev/null; then
+            echo ""
+            echo -e "${CYAN}Qdrant MCP can be set up now (Docker is running):${NC}"
+            read -rp "$(echo -e "${BOLD}Start Qdrant container and register MCP? [Y/n]${NC}: ")" qd_reply
+            if [[ ! "$qd_reply" =~ ^[Nn] ]]; then
+              # Check if container already exists
+              if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "^qdrant$"; then
+                docker start qdrant 2>/dev/null && echo -e "  ${GREEN}[OK]${NC} Existing Qdrant container started"
+              else
+                docker run -d --name qdrant \
+                  -p 6333:6333 -p 6334:6334 \
+                  -v qdrant_storage:/qdrant/storage \
+                  --restart unless-stopped \
+                  qdrant/qdrant:latest 2>&1 && echo -e "  ${GREEN}[OK]${NC} Qdrant running at http://localhost:6333"
+              fi
+              # Register MCP if uvx available
+              if command -v uvx &>/dev/null; then
+                project_name=$(jq -r '.project // "claude-memory"' .claude/phase-state.json 2>/dev/null)
+                echo "y" | claude mcp add -s user \
+                  -e QDRANT_URL=http://localhost:6333 \
+                  -e COLLECTION_NAME="$project_name" \
+                  qdrant -- uvx --python 3.13 mcp-server-qdrant 2>/dev/null && \
+                  echo -e "  ${GREEN}[OK]${NC} Qdrant MCP registered (collection: $project_name)"
+              else
+                echo -e "  ${YELLOW}[WARN]${NC} uv/uvx not found. Install: curl -LsSf https://astral.sh/uv/install.sh | sh"
+                echo "  Then: claude mcp add -s user -e QDRANT_URL=http://localhost:6333 -e COLLECTION_NAME=claude-memory qdrant -- uvx --python 3.13 mcp-server-qdrant"
+              fi
+            fi
+          fi
+        fi
+
         issues=$((issues + 1))
       fi
     fi

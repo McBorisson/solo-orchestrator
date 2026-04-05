@@ -223,6 +223,27 @@
       "substitution_category": null
     },
     {
+      "category": "dev_framework",
+      "name": "Claude Dev Framework",
+      "description": "Git hook-based guardrails for coding standards, security scanning, and documentation",
+      "required": false,
+      "phase": 0,
+      "tracks": ["light", "standard", "full"],
+      "dev_os": ["darwin", "linux"],
+      "platforms": ["all"],
+      "languages": ["all"],
+      "check_command": "[ -d \"$HOME/.claude-dev-framework/.git\" ] && [ -f \"$HOME/.claude-dev-framework/scripts/init.sh\" ]",
+      "version_command": "cd \"$HOME/.claude-dev-framework\" && git describe --tags --always 2>/dev/null || echo 'installed'",
+      "min_version": null,
+      "latest_check": {"method": "git_tag", "repo": "kraulerson/claude-dev-framework"},
+      "install": {
+        "manual": "Auto-installed by init.sh during project creation"
+      },
+      "auto_installable": false,
+      "substitutable": false,
+      "substitution_category": null
+    },
+    {
       "category": "claude_plugin",
       "name": "Superpowers",
       "description": "Agentic skills plugin for Claude Code (TDD, debugging, code review, git worktrees)",

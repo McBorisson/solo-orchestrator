@@ -124,16 +124,30 @@ check_prerequisites() {
   if command -v docker &>/dev/null; then
     print_ok "Docker $(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',')"
   else
-    print_warn "Docker not found (optional — needed for OWASP ZAP DAST scanning)"
-    if [ "$os_type" = "Darwin" ] && command -v brew &>/dev/null; then
-      echo "  Install with: brew install --cask docker"
-    elif [ "$os_type" = "Linux" ]; then
-      if command -v apt &>/dev/null; then
-        echo "  Install with: sudo apt install -y docker.io && sudo usermod -aG docker \$USER"
-      elif command -v dnf &>/dev/null; then
-        echo "  Install with: sudo dnf install -y docker && sudo usermod -aG docker \$USER"
-      elif command -v pacman &>/dev/null; then
-        echo "  Install with: sudo pacman -S --noconfirm docker && sudo usermod -aG docker \$USER"
+    print_warn "Docker not found (optional — needed for Qdrant semantic memory and OWASP ZAP DAST scanning)"
+    if [ "$interactive" = true ]; then
+      if [ "$os_type" = "Darwin" ] && command -v brew &>/dev/null; then
+        if prompt_install "Docker Desktop" "brew install --cask docker"; then
+          open -a Docker
+          print_info "Waiting for Docker Desktop to start..."
+          for _try in 1 2 3 4 5; do
+            docker info &>/dev/null && break
+            sleep 3
+          done
+        fi
+      elif [ "$os_type" = "Linux" ]; then
+        if command -v apt &>/dev/null; then
+          prompt_install "Docker" "sudo apt install -y docker.io && sudo systemctl enable docker && sudo systemctl start docker && sudo usermod -aG docker $USER" true
+        elif command -v dnf &>/dev/null; then
+          prompt_install "Docker" "sudo dnf install -y docker && sudo systemctl enable docker && sudo systemctl start docker && sudo usermod -aG docker $USER" true
+        elif command -v pacman &>/dev/null; then
+          prompt_install "Docker" "sudo pacman -S --noconfirm docker && sudo systemctl enable docker && sudo systemctl start docker && sudo usermod -aG docker $USER" true
+        else
+          echo "  Install manually: https://docs.docker.com/engine/install/"
+        fi
+        if command -v docker &>/dev/null; then
+          print_info "You may need to log out and back in for the docker group to take effect."
+        fi
       fi
     fi
   fi
