@@ -539,28 +539,56 @@ resolve_and_install_tools() {
     return 0
   }
 
-  # Re-check Qdrant MCP: the resolver always marks it manual (auto_installable: false).
-  # Fix the display based on actual state:
-  #   - Already registered → move to already_installed
-  #   - Not registered but Docker is running → move to auto_install (we'll set it up)
-  #   - Not registered and no Docker → leave as manual
-  if command -v jq &>/dev/null && echo "$resolver_output" | jq -e '.manual_install[] | select(.name == "Qdrant MCP")' >/dev/null 2>&1; then
-    if ([ -f "$HOME/.claude/settings.json" ] && jq -e '.mcpServers.qdrant // .mcpServers["mcp-server-qdrant"] // empty' "$HOME/.claude/settings.json" >/dev/null 2>&1) || \
-       ([ -f "$HOME/.claude.json" ] && jq -e '.mcpServers.qdrant // .mcpServers["mcp-server-qdrant"] // empty' "$HOME/.claude.json" >/dev/null 2>&1); then
-      # Already registered — move to already_installed
-      resolver_output=$(echo "$resolver_output" | jq '
-        (.manual_install[] | select(.name == "Qdrant MCP")) as $qdrant |
-        .already_installed += [{ name: $qdrant.name, version: "configured", category: $qdrant.category }] |
-        .manual_install |= map(select(.name != "Qdrant MCP"))
-      ')
-    elif command -v docker &>/dev/null && docker info &>/dev/null; then
-      # Docker is running — we can auto-install it, move to auto_install
-      resolver_output=$(echo "$resolver_output" | jq '
-        (.manual_install[] | select(.name == "Qdrant MCP")) as $qdrant |
-        .auto_install += [{ name: $qdrant.name, category: $qdrant.category, install_cmd: "echo auto" }] |
-        .manual_install |= map(select(.name != "Qdrant MCP"))
-      ')
+  # Re-check items the resolver misclassifies as manual:
+  if command -v jq &>/dev/null; then
+
+    # Qdrant MCP: resolver always marks manual (auto_installable: false).
+    # Fix based on actual state:
+    if echo "$resolver_output" | jq -e '.manual_install[] | select(.name == "Qdrant MCP")' >/dev/null 2>&1; then
+      local _qd_mcp_registered=false
+      if ([ -f "$HOME/.claude/settings.json" ] && jq -e '.mcpServers.qdrant // .mcpServers["mcp-server-qdrant"] // empty' "$HOME/.claude/settings.json" >/dev/null 2>&1) || \
+         ([ -f "$HOME/.claude.json" ] && jq -e '.mcpServers.qdrant // .mcpServers["mcp-server-qdrant"] // empty' "$HOME/.claude.json" >/dev/null 2>&1); then
+        _qd_mcp_registered=true
+      fi
+
+      if [ "$_qd_mcp_registered" = true ]; then
+        # Fully configured — move to already_installed
+        resolver_output=$(echo "$resolver_output" | jq '
+          (.manual_install[] | select(.name == "Qdrant MCP")) as $q |
+          .already_installed += [{ name: $q.name, version: "configured", category: $q.category }] |
+          .manual_install |= map(select(.name != "Qdrant MCP"))
+        ')
+      elif command -v docker &>/dev/null && docker info &>/dev/null; then
+        # Docker running — check if container exists too
+        local _qd_label="Qdrant MCP (container + MCP registration)"
+        if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^qdrant$"; then
+          _qd_label="Qdrant MCP (MCP registration only — container already running)"
+        fi
+        resolver_output=$(echo "$resolver_output" | jq --arg label "$_qd_label" '
+          .auto_install += [{ name: $label, category: "mcp_server", install_cmd: "echo auto" }] |
+          .manual_install |= map(select(.name != "Qdrant MCP"))
+        ')
+      fi
     fi
+
+    # Claude Dev Framework: resolver marks manual but init.sh handles it automatically
+    # during project creation. Move to auto_install with a clear label.
+    if echo "$resolver_output" | jq -e '.manual_install[] | select(.name == "Claude Dev Framework")' >/dev/null 2>&1; then
+      if [ -d "$HOME/.claude-dev-framework/.git" ] && [ -f "$HOME/.claude-dev-framework/scripts/init.sh" ]; then
+        # Already installed globally — move to already_installed
+        resolver_output=$(echo "$resolver_output" | jq '
+          .already_installed += [{ name: "Claude Dev Framework", version: "installed", category: "dev_framework" }] |
+          .manual_install |= map(select(.name != "Claude Dev Framework"))
+        ')
+      else
+        # Will be cloned and installed during project creation — move to auto_install
+        resolver_output=$(echo "$resolver_output" | jq '
+          .auto_install += [{ name: "Claude Dev Framework (installed during project creation)", category: "dev_framework", install_cmd: "echo auto" }] |
+          .manual_install |= map(select(.name != "Claude Dev Framework"))
+        ')
+      fi
+    fi
+
   fi
 
   # Parse bucket counts
@@ -667,8 +695,13 @@ resolve_and_install_tools() {
       tool_name=$(echo "$resolver_output" | jq -r ".auto_install[$i].name")
       tool_cmd=$(echo "$resolver_output" | jq -r ".auto_install[$i].install_cmd")
 
+      # Claude Dev Framework: skip — handled in create_project()
+      if [[ "$tool_name" == Claude\ Dev\ Framework* ]]; then
+        continue
+      fi
+
       # Qdrant MCP: run the real Docker + MCP setup instead of the placeholder command
-      if [ "$tool_name" = "Qdrant MCP" ]; then
+      if [[ "$tool_name" == Qdrant\ MCP* ]]; then
         print_info "Setting up Qdrant MCP..."
         local _qd_ok=false
         # Start container
