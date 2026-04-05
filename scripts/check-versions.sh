@@ -258,10 +258,10 @@ for i in $(seq 0 $((TOOL_COUNT - 1))); do
     fi
     UPDATES+=("$NAME $INSTALLED → $LATEST")
     UPDATE_CMDS+=("$local_update_cmd")
-    ((PASS_COUNT++))
+    PASS_COUNT=$((PASS_COUNT + 1))
   else
     print_ok "$NAME: ${INSTALLED:-configured}$MIN_DISPLAY$LATEST_DISPLAY"
-    ((PASS_COUNT++))
+    PASS_COUNT=$((PASS_COUNT + 1))
   fi
 done
 

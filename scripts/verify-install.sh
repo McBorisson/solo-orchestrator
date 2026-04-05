@@ -749,10 +749,10 @@ run_remediation() {
     print_info "Fixing: $desc"
     if $fix_func 2>/dev/null; then
       print_ok "Fixed: $desc"
-      ((fixed++))
+      fixed=$((fixed + 1))
     else
       print_fail "Could not fix: $desc"
-      ((failed++))
+      failed=$((failed + 1))
     fi
   done
 

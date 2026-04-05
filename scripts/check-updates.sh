@@ -87,7 +87,7 @@ check_file() {
     added=$(diff "$project_path" "$upstream_path" | grep -c '^>' || true)
     removed=$(diff "$project_path" "$upstream_path" | grep -c '^<' || true)
     echo -e "         (+$added lines in upstream, -$removed lines removed from upstream)"
-    ((changes++))
+    changes=$((changes + 1))
   fi
 }
 
