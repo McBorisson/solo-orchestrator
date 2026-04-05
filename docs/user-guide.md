@@ -39,7 +39,7 @@ For what the framework *is*, how it works at a conceptual level, and what it is 
 
 ### What This Framework Is
 
-A structured methodology for a single experienced technologist to build production-deployable applications using AI as the execution layer. You define intent, constraints, and validation. The AI generates architecture, code, tests, and documentation within those constraints. It is phase-gated, test-driven, and security-scanned at every step. See the [README](../README.md) for the full overview.
+A structured methodology for a single experienced technologist to build MVP-quality applications with a clear path to production, using AI as the execution layer. You define intent, constraints, and validation. The AI generates architecture, code, tests, and documentation within those constraints. It is phase-gated, test-driven, and security-scanned at every step. The output is a functional, tested, security-scanned MVP — production deployment requires additional hardening, operational readiness, and (for organizational projects) governance completion. See the [README](../README.md) for the full overview.
 
 ### What You Should Know Before You Start
 

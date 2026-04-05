@@ -21,9 +21,9 @@
 
 ### What This Is
 
-The Solo Orchestrator Framework is a structured software development methodology that enables a single experienced technologist to build production-deployable applications by using AI Large Language Models as the execution layer. The technologist acts as Product Owner, Lead Architect, and QA Director. The AI proposes architecture, generates logic, and writes code within constraints defined and validated by the human operator.
+The Solo Orchestrator Framework is a structured software development methodology that enables a single experienced technologist to build MVP-quality applications with a clear path to production, using AI Large Language Models as the execution layer. The technologist acts as Product Owner, Lead Architect, and QA Director. The AI proposes architecture, generates logic, and writes code within constraints defined and validated by the human operator. The framework produces functional, tested, security-scanned MVPs — production deployment requires additional hardening, operational readiness, and governance completion.
 
-The framework currently supports **web, desktop, and mobile applications** with production-deployable Platform Modules. The core methodology is platform-agnostic — additional platforms (CLI, embedded) can be added through new Platform Modules as they mature.
+The framework currently supports **web, desktop, and mobile applications** with Platform Modules that guide projects from MVP through production readiness. The core methodology is platform-agnostic — additional platforms (CLI, embedded) can be added through new Platform Modules as they mature.
 
 The framework is a phase-gated process consisting of five stages: Product Discovery (defining requirements), Architecture & Planning (selecting technology), Construction (building features), Validation & Hardening (security and quality assurance), and Release & Maintenance (distribution and ongoing support). Each phase produces documented artifacts that gate entry into the next phase. No code is deployed without passing automated testing, security scanning, and human review.
 
@@ -33,7 +33,7 @@ The framework is **modular** — the core methodology is platform-agnostic, with
 
 Every large organization has a software backlog that will never be built. The projects are too small to justify a full development team, too complex for no-code platforms, and too specific for off-the-shelf SaaS. They age in Jira while business units find workarounds — spreadsheets, manual processes, or unauthorized SaaS purchases that create shadow IT risk.
 
-The Solo Orchestrator model addresses this gap. A single qualified technologist can take a concept from idea to production in weeks at a fraction of the cost of a traditional team. Production-deployable Platform Modules currently support web, desktop, and mobile applications.
+The Solo Orchestrator model addresses this gap. A single qualified technologist can take a concept from idea to validated MVP in weeks at a fraction of the cost of a traditional team, with a structured path to production when the project proves its value. Platform Modules currently support web, desktop, and mobile applications.
 
 ### Current Maturity
 
@@ -296,7 +296,7 @@ Desktop and mobile distribution introduces additional legal requirements not pre
 | **Budget** | <$400/month infrastructure | Full engineering team budget available |
 | **Strategic value** | Tactical tool, prototype, MVP validation | Core revenue product, competitive differentiator |
 | **Maintenance** | 2-4 hours/week acceptable (stabilizing to 1-2) | Dedicated on-call team required |
-| **Platform** | Web, desktop, mobile (production-deployable) | Any |
+| **Platform** | Web, desktop, mobile (MVP through production) | Any |
 
 ### Recommended Use Cases
 

@@ -58,7 +58,7 @@ When the Intake is provided, the Phase 0 and Phase 1 prompts shift from open-end
 
 ## What This Framework Is
 
-The Solo Orchestrator Framework is a structured software development methodology that enables a single experienced technologist to build production-deployable applications by using AI Large Language Models as the execution layer. The technologist acts as Product Owner, Lead Architect, and QA Director. The AI proposes architecture, generates logic, and writes code within constraints defined and validated by the human operator.
+The Solo Orchestrator Framework is a structured software development methodology that enables a single experienced technologist to build MVP-quality applications with a clear path to production, using AI Large Language Models as the execution layer. The technologist acts as Product Owner, Lead Architect, and QA Director. The AI proposes architecture, generates logic, and writes code within constraints defined and validated by the human operator. The framework produces functional, tested, security-scanned MVPs — production deployment requires additional hardening, operational readiness, and (for organizational projects) governance completion.
 
 ### What This Is Not
 
@@ -69,7 +69,7 @@ This framework does not replace engineering teams. It is not appropriate for:
 - **Large-scale distributed systems** requiring microservices, message queues, or multi-region deployments. These require dedicated DevOps capacity.
 - **Enterprise integration projects** (SAP, Salesforce, custom ERP) where the integration complexity exceeds the application logic.
 
-The framework is designed for internal tools, utilities, departmental applications, prototypes, and MVP validation — projects that sit in the backlog because they don't justify a full team. Production-deployable Platform Modules exist for web, desktop, and mobile applications. Additional platform modules (CLI, embedded) can be added as they mature.
+The framework is designed for internal tools, utilities, departmental applications, prototypes, and MVP validation — projects that sit in the backlog because they don't justify a full team. Platform Modules for web, desktop, and mobile guide you from MVP through production readiness. Additional platform modules (CLI, embedded) can be added as they mature.
 
 ### How This Differs From "Vibe Coding"
 

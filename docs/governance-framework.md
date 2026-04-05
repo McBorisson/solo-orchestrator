@@ -15,7 +15,7 @@
 | **Audience** | CIO, VP of Engineering, IT Security, Legal, Risk & Compliance, Internal Audit |
 | **Companion Documents** | SOI-002-BUILD v1.0 — Solo Orchestrator Builder's Guide (technical execution manual) |
 | | SOI-004-INTAKE v1.0 — Project Intake Template (structured input for Phase 0 and Phase 1) |
-| | SOI-PM-* — Platform Modules (Web, Desktop, Mobile — production-deployable) |
+| | SOI-PM-* — Platform Modules (Web, Desktop, Mobile — MVP through production) |
 
 ---
 
@@ -35,7 +35,7 @@ The Builder's Guide tells the Orchestrator **how to build.** This document tells
 
 ### What the Solo Orchestrator Model Is
 
-The Solo Orchestrator Framework is a structured software development methodology that enables a single experienced technologist to build production-deployable applications by using AI Large Language Models as the execution layer. The technologist acts as Product Owner, Lead Architect, and QA Director. The AI proposes architecture, generates logic, and writes code within constraints defined and validated by the human operator.
+The Solo Orchestrator Framework is a structured software development methodology that enables a single experienced technologist to build MVP-quality applications with a clear path to production, using AI Large Language Models as the execution layer. The technologist acts as Product Owner, Lead Architect, and QA Director. The AI proposes architecture, generates logic, and writes code within constraints defined and validated by the human operator. The framework produces functional, tested, security-scanned MVPs — production deployment requires additional hardening, operational readiness, and governance completion.
 
 The framework operates in five phases: Product Discovery, Architecture & Planning, Construction, Validation & Hardening, and Production Release & Maintenance. Each phase produces documented artifacts that gate entry into the next phase. No code is deployed without passing automated testing, security scanning, and human review.
 
@@ -43,7 +43,7 @@ The framework operates in five phases: Product Discovery, Architecture & Plannin
 
 Every large organization has a software backlog that will never be built. The projects are too small to justify a full development team, too complex for no-code platforms, and too specific for off-the-shelf SaaS. They age in Jira while business units find workarounds — spreadsheets, manual processes, or unauthorized SaaS purchases that create shadow IT risk.
 
-The Solo Orchestrator model addresses this gap. A single qualified technologist can take a concept from idea to production in weeks at a fraction of the cost of a traditional team.
+The Solo Orchestrator model addresses this gap. A single qualified technologist can take a concept from idea to validated MVP in weeks at a fraction of the cost of a traditional team, with a structured path to production when the project proves its value.
 
 ### What This Is Not
 
