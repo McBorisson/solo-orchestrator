@@ -261,8 +261,8 @@
       "min_version": null,
       "latest_check": {"method": "npm", "package": "@upstash/context7-mcp"},
       "install": {
-        "npm": "claude mcp add context7 -- npx -y @upstash/context7-mcp@latest",
-        "manual": "Run: claude mcp add context7 -- npx -y @upstash/context7-mcp@latest"
+        "npm": "echo y | claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp@latest",
+        "manual": "Run: echo y | claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp@latest"
       },
       "auto_installable": true,
       "substitutable": false,

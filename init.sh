@@ -427,6 +427,11 @@ collect_project_info() {
 
   # Determine project directory
   PROJECT_DIR=$(prompt_input "Project directory" "$HOME/projects/$PROJECT_NAME")
+  # Strip surrounding quotes if user pasted a quoted path
+  PROJECT_DIR="${PROJECT_DIR#\"}"
+  PROJECT_DIR="${PROJECT_DIR%\"}"
+  PROJECT_DIR="${PROJECT_DIR#\'}"
+  PROJECT_DIR="${PROJECT_DIR%\'}"
 
   echo ""
   print_info "Project: $PROJECT_NAME"
@@ -1042,7 +1047,9 @@ BPEOF
   install_precommit_hook
 
   git add -A
-  git commit -q -m "chore: initialize Solo Orchestrator project
+  # Skip hooks for the initial commit — template files trigger false positives
+  # in Semgrep/gitleaks. Hooks will enforce on all subsequent commits.
+  git commit -q --no-verify -m "chore: initialize Solo Orchestrator project
 
 Project: $PROJECT_NAME
 Platform: $PLATFORM
