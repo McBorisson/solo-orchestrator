@@ -507,10 +507,26 @@ collect_project_info() {
 
   read -rp "$(echo -e "${BOLD}Continue? [Y/n]${NC}: ")" confirm
   if [[ "$confirm" =~ ^[Nn] ]]; then
-    prompt_continue_or_restart "Project info declined. What would you like to do?"
-    # If we get here, user chose "Continue" — re-collect info
-    collect_project_info
-    return
+    echo ""
+    local choice
+    choice=$(prompt_choice "What would you like to do?" \
+      "Re-enter project info" \
+      "Restart from beginning" \
+      "Quit")
+    case "$choice" in
+      "Re-enter"*)
+        collect_project_info
+        return
+        ;;
+      "Restart"*)
+        print_info "Restarting setup..."
+        exec "$0"
+        ;;
+      "Quit")
+        print_info "Setup cancelled."
+        exit 0
+        ;;
+    esac
   fi
 }
 
@@ -667,13 +683,28 @@ resolve_and_install_tools() {
   if [[ "$response" =~ ^[Nn] ]]; then
     echo ""
     local config_choice
-    config_choice=$(prompt_choice "Tool plan declined. What would you like to do?" \
+    config_choice=$(prompt_choice "What would you like to do?" \
       "Guided walkthrough (step through each category)" \
       "Edit .claude/tool-preferences.json manually" \
-      "Restart setup" \
+      "Re-enter project info" \
+      "Restart from beginning" \
       "Quit")
 
     case "$config_choice" in
+      "Re-enter"*)
+        # Go back to project info, then re-run tool resolution
+        collect_project_info
+        resolve_and_install_tools
+        return
+        ;;
+      "Restart"*)
+        print_info "Restarting setup..."
+        exec "$0"
+        ;;
+      "Quit")
+        print_info "Setup cancelled."
+        exit 0
+        ;;
       "Guided walkthrough"*)
         run_tool_walkthrough "$resolver_output" "$dev_os"
         # Re-resolve after walkthrough
