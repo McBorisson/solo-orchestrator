@@ -105,6 +105,27 @@
       "substitution_category": null
     },
     {
+      "category": "containerization",
+      "name": "Colima",
+      "description": "Lightweight Docker runtime for macOS (headless, no license required)",
+      "required": false,
+      "phase": 0,
+      "tracks": ["light", "standard", "full"],
+      "dev_os": ["darwin"],
+      "platforms": ["all"],
+      "languages": ["all"],
+      "check_command": "command -v colima",
+      "version_command": "colima version 2>/dev/null | head -1 | awk '{print $2}' | tr -d 'v'",
+      "min_version": "0.6.0",
+      "latest_check": {"method": "github_release", "package": "abiosoft/colima"},
+      "install": {
+        "darwin_brew": "brew install colima && brew services start colima"
+      },
+      "auto_installable": true,
+      "substitutable": false,
+      "substitution_category": null
+    },
+    {
       "category": "commit_signing",
       "name": "GPG",
       "description": "GNU Privacy Guard (optional — used for commit signing)",
