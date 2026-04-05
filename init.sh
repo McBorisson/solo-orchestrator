@@ -585,30 +585,31 @@ resolve_and_install_tools() {
     echo -e "${BOLD}│${NC}"
   fi
 
-  # Will auto-install
+  # Will auto-install now
   if [ "$auto_count" -gt 0 ]; then
-    echo -e "${BOLD}│${NC}  ${CYAN}⬇ Will auto-install${NC}"
+    echo -e "${BOLD}│${NC}  ${CYAN}⬇ Will install now${NC}"
     echo "$resolver_output" | jq -r '.auto_install[] | "    \(.name) (\(.category))"' | while IFS= read -r line; do
       echo -e "${BOLD}│${NC}$line"
     done
     echo -e "${BOLD}│${NC}"
   fi
 
-  # Manual install required
+  # Will auto-install at later phases
+  if [ "$deferred_count" -gt 0 ]; then
+    echo -e "${BOLD}│${NC}  ${BLUE}⏳ Will auto-install later (at phase transition)${NC}"
+    echo "$resolver_output" | jq -r '.deferred[] | "    Phase \(.phase): \(.name)"' | while IFS= read -r line; do
+      echo -e "${BOLD}│${NC}$line"
+    done
+    echo -e "${BOLD}│${NC}"
+  fi
+
+  # Requires manual setup (only truly manual items)
   if [ "$manual_count" -gt 0 ]; then
     echo -e "${BOLD}│${NC}  ${YELLOW}⚠ Requires manual setup${NC}"
     echo "$resolver_output" | jq -r '.manual_install[] | "    \(.name) — \(.instructions)"' | while IFS= read -r line; do
       echo -e "${BOLD}│${NC}$line"
     done
     echo -e "${BOLD}│${NC}"
-  fi
-
-  # Deferred
-  if [ "$deferred_count" -gt 0 ]; then
-    echo -e "${BOLD}│${NC}  ${BLUE}⏳ Deferred (installed at later phases)${NC}"
-    echo "$resolver_output" | jq -r '.deferred[] | "    Phase \(.phase): \(.name) (\(.category))"' | while IFS= read -r line; do
-      echo -e "${BOLD}│${NC}$line"
-    done
   fi
 
   echo -e "${BOLD}└──────────────────────────────────────────────────────────┘${NC}"
