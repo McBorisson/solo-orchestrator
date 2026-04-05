@@ -850,6 +850,174 @@ create_project() {
   # Remove hook samples so framework doesn't misdetect as existing project
   rm -f .git/hooks/*.sample
 
+  # Generate Claude Code permissions (auto-accept safe operations)
+  # This must be created BEFORE the Claude Dev Framework install, which merges
+  # its hooks into settings.json while preserving existing keys (like permissions).
+  print_info "Generating Claude Code permissions..."
+  mkdir -p .claude
+
+  # Build language-specific allow rules
+  local lang_rules=""
+  case "$LANGUAGE" in
+    typescript|javascript)
+      lang_rules=$(cat <<'LANGEOF'
+      "Bash(npm install *)",
+      "Bash(npm ci)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npm outdated)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(tsc *)",
+      "Bash(eslint *)",
+      "Bash(prettier *)",
+LANGEOF
+) ;;
+    python)
+      lang_rules=$(cat <<'LANGEOF'
+      "Bash(pip install *)",
+      "Bash(pip list *)",
+      "Bash(pip show *)",
+      "Bash(pip freeze *)",
+      "Bash(python -m pip *)",
+      "Bash(python -m pytest *)",
+      "Bash(python -m unittest *)",
+      "Bash(pytest *)",
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(mypy *)",
+      "Bash(ruff *)",
+      "Bash(black *)",
+LANGEOF
+) ;;
+    rust)
+      lang_rules=$(cat <<'LANGEOF'
+      "Bash(cargo build *)",
+      "Bash(cargo test *)",
+      "Bash(cargo run *)",
+      "Bash(cargo check *)",
+      "Bash(cargo clippy *)",
+      "Bash(cargo fmt *)",
+      "Bash(cargo add *)",
+      "Bash(cargo audit *)",
+      "Bash(rustc *)",
+LANGEOF
+) ;;
+    go)
+      lang_rules=$(cat <<'LANGEOF'
+      "Bash(go build *)",
+      "Bash(go test *)",
+      "Bash(go run *)",
+      "Bash(go mod *)",
+      "Bash(go vet *)",
+      "Bash(go fmt *)",
+      "Bash(golangci-lint *)",
+LANGEOF
+) ;;
+    csharp)
+      lang_rules=$(cat <<'LANGEOF'
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(dotnet run *)",
+      "Bash(dotnet restore *)",
+      "Bash(dotnet add *)",
+      "Bash(dotnet format *)",
+LANGEOF
+) ;;
+    kotlin|java)
+      lang_rules=$(cat <<'LANGEOF'
+      "Bash(./gradlew *)",
+      "Bash(gradle *)",
+      "Bash(mvn *)",
+      "Bash(java *)",
+      "Bash(javac *)",
+      "Bash(kotlinc *)",
+LANGEOF
+) ;;
+    dart)
+      lang_rules=$(cat <<'LANGEOF'
+      "Bash(flutter *)",
+      "Bash(dart *)",
+      "Bash(dart pub *)",
+      "Bash(flutter pub *)",
+      "Bash(flutter test *)",
+      "Bash(flutter build *)",
+      "Bash(flutter analyze *)",
+LANGEOF
+) ;;
+    swift)
+      lang_rules=$(cat <<'LANGEOF'
+      "Bash(swift build *)",
+      "Bash(swift test *)",
+      "Bash(swift package *)",
+      "Bash(swiftlint *)",
+      "Bash(xcodebuild *)",
+LANGEOF
+) ;;
+  esac
+
+  cat > .claude/settings.json << PERMEOF
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(git rebase *)",
+      "Bash(git stash *)",
+      "Bash(git tag *)",
+      "Bash(git fetch *)",
+      "Bash(git pull)",
+      "Bash(git remote *)",
+      "Bash(git show *)",
+      "Bash(git rev-parse *)",
+      "Bash(ls *)",
+      "Bash(pwd)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(find *)",
+      "Bash(which *)",
+      "Bash(echo *)",
+      "Bash(make *)",
+      "Bash(semgrep *)",
+      "Bash(gitleaks *)",
+      "Bash(snyk *)",
+      "Bash(jq *)",
+      "Bash(* --version)",
+      "Bash(* --help)",
+      "Bash(bash scripts/*)",
+      "Bash(bash -n *)",
+$lang_rules
+      "WebFetch(domain:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf /*)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | bash)",
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
+  }
+}
+PERMEOF
+  print_ok "Claude Code permissions configured (auto-accept safe operations)"
+
   # Install Claude Dev Framework
   # The framework uses a global clone at ~/.claude-dev-framework shared across
   # all projects. Its own init.sh handles per-project installation (hooks,
