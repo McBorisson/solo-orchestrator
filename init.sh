@@ -177,10 +177,17 @@ check_prerequisites() {
     else
       if command -v node &>/dev/null; then
         print_info "Registering Context7 MCP server..."
-        local _c7_err
-        _c7_err=$(claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp@latest 2>&1)
-        local _c7_rc=$?
-        if [ $_c7_rc -eq 0 ]; then
+        # Pipe 'y' to handle any interactive confirmation prompts.
+        # Use timeout to prevent hanging if npx download stalls (macOS: gtimeout or perl fallback).
+        local _c7_err _c7_timeout_cmd="timeout"
+        command -v timeout &>/dev/null || _c7_timeout_cmd="gtimeout"
+        if command -v $_c7_timeout_cmd &>/dev/null; then
+          _c7_err=$(echo "y" | $_c7_timeout_cmd 30 claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp@latest 2>&1) || true
+        else
+          _c7_err=$(echo "y" | claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp@latest 2>&1) || true
+        fi
+        # Verify by checking settings rather than trusting exit code
+        if jq -e '.mcpServers.context7 // .mcpServers["context7-mcp"] // empty' "$HOME/.claude/settings.json" >/dev/null 2>&1; then
           print_ok "Context7 MCP server registered"
         else
           print_warn "Context7 MCP registration failed: $_c7_err"
