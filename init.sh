@@ -444,9 +444,9 @@ collect_project_info() {
     echo ""
     local gov_mode
     gov_mode=$(prompt_choice "Governance mode:" \
-      "Production Build" \
+      "Private POC" \
       "Sponsored POC" \
-      "Private POC")
+      "Production Build")
     case "$gov_mode" in
       "Production"*) POC_MODE="" ;;
       "Sponsored"*)  POC_MODE="sponsored_poc" ;;
