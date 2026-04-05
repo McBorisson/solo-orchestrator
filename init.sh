@@ -177,14 +177,18 @@ check_prerequisites() {
     else
       if command -v node &>/dev/null; then
         print_info "Registering Context7 MCP server..."
-        if claude mcp add context7 -- npx -y @upstash/context7-mcp@latest 2>/dev/null; then
+        local _c7_err
+        _c7_err=$(claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp@latest 2>&1)
+        local _c7_rc=$?
+        if [ $_c7_rc -eq 0 ]; then
           print_ok "Context7 MCP server registered"
         else
-          print_warn "Context7 MCP registration failed. Register manually: claude mcp add context7 -- npx -y @upstash/context7-mcp@latest"
+          print_warn "Context7 MCP registration failed: $_c7_err"
+          print_warn "Register manually: claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp@latest"
         fi
       else
         print_warn "Context7 MCP not found (recommended — up-to-date library documentation)"
-        echo "  Requires Node.js. Install Node.js first, then: claude mcp add context7 -- npx -y @upstash/context7-mcp@latest"
+        echo "  Requires Node.js. Install Node.js first, then: claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp@latest"
       fi
     fi
   else
@@ -456,6 +460,22 @@ resolve_and_install_tools() {
     print_warn "Tool resolver failed. Falling back to basic tool checks."
     return 0
   }
+
+  # Re-check Qdrant MCP: check_prerequisites may have already configured it,
+  # but the resolver doesn't know — it always marks it manual because
+  # auto_installable is false. If it's now registered in settings.json,
+  # move it from manual_install to already_installed.
+  if [ -f "$HOME/.claude/settings.json" ] && command -v jq &>/dev/null; then
+    if jq -e '.mcpServers.qdrant // .mcpServers["mcp-server-qdrant"] // empty' "$HOME/.claude/settings.json" >/dev/null 2>&1; then
+      if echo "$resolver_output" | jq -e '.manual_install[] | select(.name == "Qdrant MCP")' >/dev/null 2>&1; then
+        resolver_output=$(echo "$resolver_output" | jq '
+          (.manual_install[] | select(.name == "Qdrant MCP")) as $qdrant |
+          .already_installed += [{ name: $qdrant.name, version: "configured", category: $qdrant.category }] |
+          .manual_install |= map(select(.name != "Qdrant MCP"))
+        ')
+      fi
+    fi
+  fi
 
   # Parse bucket counts
   local auto_count manual_count installed_count deferred_count
@@ -1553,7 +1573,7 @@ print_next_steps() {
     if [ "$_c7" = "true" ]; then
       echo "     ✓ Context7 MCP (up-to-date library documentation)"
     else
-      echo "     ✗ Context7 MCP — run: claude mcp add context7 -- npx -y @upstash/context7-mcp@latest"
+      echo "     ✗ Context7 MCP — run: claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp@latest"
     fi
     local _qd
     _qd=$(jq -e '.mcpServers.qdrant // .mcpServers["mcp-server-qdrant"] // empty' "$HOME/.claude/settings.json" >/dev/null 2>&1 && echo "true" || echo "false")

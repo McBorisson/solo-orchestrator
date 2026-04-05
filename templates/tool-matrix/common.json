@@ -283,7 +283,7 @@
       "min_version": null,
       "latest_check": null,
       "install": {
-        "manual": "Requires Docker + uv. See docs/framework/cli-setup-addendum.md for setup steps."
+        "manual": "Requires Docker. Setup: (1) docker run -d --name qdrant -p 6333:6333 -p 6334:6334 -v qdrant_storage:/qdrant/storage --restart unless-stopped qdrant/qdrant:latest (2) claude mcp add -s user -e QDRANT_URL=http://localhost:6333 -e COLLECTION_NAME=claude-memory qdrant -- uvx --python 3.13 mcp-server-qdrant"
       },
       "auto_installable": false,
       "substitutable": false,
