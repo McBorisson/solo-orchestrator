@@ -155,12 +155,16 @@ if [ "$TOOL_COUNT" -eq 0 ]; then
   exit 0
 fi
 
-# Check network availability once
-NETWORK_AVAILABLE=true
-if ! curl -s --max-time 3 "https://registry.npmjs.org" >/dev/null 2>&1; then
-  NETWORK_AVAILABLE=false
-  print_info "Network unavailable — latest version check skipped"
-  echo ""
+# Check network availability once (skip if curl is unavailable or sandboxed)
+NETWORK_AVAILABLE=false
+if command -v curl &>/dev/null; then
+  # Use a subshell to prevent sandbox environments from killing the parent process
+  if (curl -s --max-time 3 "https://registry.npmjs.org" >/dev/null 2>&1); then
+    NETWORK_AVAILABLE=true
+  else
+    print_info "Network unavailable — latest version check skipped"
+    echo ""
+  fi
 fi
 
 for i in $(seq 0 $((TOOL_COUNT - 1))); do
