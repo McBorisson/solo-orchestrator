@@ -539,11 +539,13 @@ resolve_and_install_tools() {
     return 0
   }
 
-  # Re-check items the resolver misclassifies as manual:
+  # Re-check items the resolver misclassifies. Build a separate
+  # "configure_during_creation" list for things that exist but need per-project wiring.
+  local configure_items="[]"
+
   if command -v jq &>/dev/null; then
 
     # Qdrant MCP: resolver always marks manual (auto_installable: false).
-    # Fix based on actual state:
     if echo "$resolver_output" | jq -e '.manual_install[] | select(.name == "Qdrant MCP")' >/dev/null 2>&1; then
       local _qd_mcp_registered=false
       if ([ -f "$HOME/.claude/settings.json" ] && jq -e '.mcpServers.qdrant // .mcpServers["mcp-server-qdrant"] // empty' "$HOME/.claude/settings.json" >/dev/null 2>&1) || \
@@ -554,49 +556,55 @@ resolve_and_install_tools() {
       if [ "$_qd_mcp_registered" = true ]; then
         # Fully configured — move to already_installed
         resolver_output=$(echo "$resolver_output" | jq '
-          (.manual_install[] | select(.name == "Qdrant MCP")) as $q |
-          .already_installed += [{ name: $q.name, version: "configured", category: $q.category }] |
+          .already_installed += [{ name: "Qdrant MCP", version: "configured", category: "mcp_server" }] |
           .manual_install |= map(select(.name != "Qdrant MCP"))
         ')
       elif command -v docker &>/dev/null && docker info &>/dev/null; then
-        # Docker running — check if container exists too
-        local _qd_label="Qdrant MCP (container + MCP registration)"
         if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^qdrant$"; then
-          _qd_label="Qdrant MCP (MCP registration only — container already running)"
+          # Container running, just needs MCP registration → configure during creation
+          resolver_output=$(echo "$resolver_output" | jq '
+            .already_installed += [{ name: "Qdrant", version: "container running", category: "mcp_server" }] |
+            .manual_install |= map(select(.name != "Qdrant MCP"))
+          ')
+          configure_items=$(echo "$configure_items" | jq '. += ["Qdrant MCP registration + project collection"]')
+        else
+          # Docker running but no container — move to auto_install
+          resolver_output=$(echo "$resolver_output" | jq '
+            .auto_install += [{ name: "Qdrant MCP", category: "mcp_server", install_cmd: "echo auto" }] |
+            .manual_install |= map(select(.name != "Qdrant MCP"))
+          ')
         fi
-        resolver_output=$(echo "$resolver_output" | jq --arg label "$_qd_label" '
-          .auto_install += [{ name: $label, category: "mcp_server", install_cmd: "echo auto" }] |
-          .manual_install |= map(select(.name != "Qdrant MCP"))
-        ')
       fi
     fi
 
-    # Claude Dev Framework: resolver marks manual but init.sh handles it automatically
-    # during project creation. Move to auto_install with a clear label.
+    # Claude Dev Framework: resolver marks manual but init.sh handles it.
     if echo "$resolver_output" | jq -e '.manual_install[] | select(.name == "Claude Dev Framework")' >/dev/null 2>&1; then
       if [ -d "$HOME/.claude-dev-framework/.git" ] && [ -f "$HOME/.claude-dev-framework/scripts/init.sh" ]; then
-        # Already installed globally — move to already_installed
+        # Global clone exists — show as installed, hooks configured during creation
         resolver_output=$(echo "$resolver_output" | jq '
           .already_installed += [{ name: "Claude Dev Framework", version: "installed", category: "dev_framework" }] |
           .manual_install |= map(select(.name != "Claude Dev Framework"))
         ')
+        configure_items=$(echo "$configure_items" | jq '. += ["Claude Dev Framework hooks + rules"]')
       else
-        # Will be cloned and installed during project creation — move to auto_install
+        # Will be cloned — move to auto_install
         resolver_output=$(echo "$resolver_output" | jq '
-          .auto_install += [{ name: "Claude Dev Framework (installed during project creation)", category: "dev_framework", install_cmd: "echo auto" }] |
+          .auto_install += [{ name: "Claude Dev Framework", category: "dev_framework", install_cmd: "echo auto" }] |
           .manual_install |= map(select(.name != "Claude Dev Framework"))
         ')
+        configure_items=$(echo "$configure_items" | jq '. += ["Claude Dev Framework hooks + rules"]')
       fi
     fi
 
   fi
 
   # Parse bucket counts
-  local auto_count manual_count installed_count deferred_count
+  local auto_count manual_count installed_count deferred_count configure_count
   auto_count=$(echo "$resolver_output" | jq '.auto_install | length')
   manual_count=$(echo "$resolver_output" | jq '.manual_install | length')
   installed_count=$(echo "$resolver_output" | jq '.already_installed | length')
   deferred_count=$(echo "$resolver_output" | jq '.deferred | length')
+  configure_count=$(echo "$configure_items" | jq 'length')
 
   # Display the installation plan
   echo ""
@@ -617,6 +625,15 @@ resolve_and_install_tools() {
   if [ "$auto_count" -gt 0 ]; then
     echo -e "${BOLD}│${NC}  ${CYAN}⬇ Will install now${NC}"
     echo "$resolver_output" | jq -r '.auto_install[] | "    \(.name) (\(.category))"' | while IFS= read -r line; do
+      echo -e "${BOLD}│${NC}$line"
+    done
+    echo -e "${BOLD}│${NC}"
+  fi
+
+  # Will configure during project creation
+  if [ "$configure_count" -gt 0 ]; then
+    echo -e "${BOLD}│${NC}  ${CYAN}🔧 Will configure during project creation${NC}"
+    echo "$configure_items" | jq -r '.[] | "    \(.)"' | while IFS= read -r line; do
       echo -e "${BOLD}│${NC}$line"
     done
     echo -e "${BOLD}│${NC}"
@@ -1394,15 +1411,30 @@ BPEOF
     print_ok "Tool preferences written to .claude/tool-preferences.json"
   fi
 
-  # Generate per-project Qdrant MCP override (isolates semantic memory per project)
-  # The global Qdrant MCP uses collection "claude-memory" shared across all projects.
-  # This local override uses the project name as the collection for data isolation.
+  # Configure Qdrant MCP with per-project collection (isolates semantic memory)
+  # If Qdrant container is running but MCP isn't registered yet, register it now.
+  # Then write a project-local override using the project name as the collection.
   if command -v jq &>/dev/null; then
     local _qd_global=false
     if ([ -f "$HOME/.claude/settings.json" ] && jq -e '.mcpServers.qdrant // .mcpServers["mcp-server-qdrant"] // empty' "$HOME/.claude/settings.json" >/dev/null 2>&1) || \
        ([ -f "$HOME/.claude.json" ] && jq -e '.mcpServers.qdrant // .mcpServers["mcp-server-qdrant"] // empty' "$HOME/.claude.json" >/dev/null 2>&1); then
       _qd_global=true
     fi
+
+    # If not registered but container is running, register now
+    if [ "$_qd_global" = false ] && command -v docker &>/dev/null && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^qdrant$"; then
+      if command -v uvx &>/dev/null; then
+        print_info "Registering Qdrant MCP server..."
+        if echo "y" | claude mcp add -s user \
+          -e QDRANT_URL=http://localhost:6333 \
+          -e COLLECTION_NAME=claude-memory \
+          qdrant -- uvx --python 3.13 mcp-server-qdrant 2>/dev/null; then
+          print_ok "Qdrant MCP registered"
+          _qd_global=true
+        fi
+      fi
+    fi
+
     if [ "$_qd_global" = true ]; then
       cat > .claude/settings.local.json << QDEOF
 {
