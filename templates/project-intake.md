@@ -11,7 +11,7 @@
 | **Document ID** | SOI-004-INTAKE |
 | **Version** | 1.0 |
 | **Classification** | Project Initialization Template |
-| **Date** | 2026-04-02 |
+| **Date** | __DATE__ |
 | **Companion Documents** | SOI-002-BUILD v1.0 (Builder's Guide), SOI-003-GOV v1.0 (Enterprise Governance Framework) |
 
 ---

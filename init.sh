@@ -1442,6 +1442,7 @@ PERMEOF
     -e "s~| \*\*Platform type\*\* | Web / Desktop / Mobile / CLI / Other: .*~| **Platform type** | $PLATFORM |~" \
     -e "s~| \*\*Platform Module\*\* | SOI-PM-WEB / SOI-PM-DESKTOP / SOI-PM-MOBILE / None .*~| **Platform Module** | $platform_module |~" \
     -e "s~| \*\*Is this a personal project or organizational deployment?\*\* | Personal / Organizational |~| **Is this a personal project or organizational deployment?** | $deployment_display |~" \
+    -e "s~__DATE__~$(date +%Y-%m-%d)~g" \
     PROJECT_INTAKE.md
   rm -f PROJECT_INTAKE.md.bak
   print_ok "Intake Section 1 pre-filled with project info"
