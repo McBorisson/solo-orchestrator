@@ -98,6 +98,17 @@ if [ "$current_phase" -ge 4 ]; then
   fi
 fi
 
+# POC mode check (Phase 3→4) — block production release if in POC mode
+if [ "$current_phase" = "3" ]; then
+  poc_mode=$(jq -r '.poc_mode // empty' .claude/phase-state.json 2>/dev/null)
+  if [ -n "$poc_mode" ] && [ "$poc_mode" != "null" ]; then
+    echo "::error::Phase 4 (production release) is BLOCKED — project is in ${poc_mode//_/ } mode."
+    echo "  POC projects complete at Phase 3 (ready to deploy)."
+    echo "  To unlock Phase 4: bash scripts/upgrade-project.sh --to-production"
+    issues=$((issues + 1))
+  fi
+fi
+
 # Release pipeline configuration check (Phase 3→4)
 if [ "$current_phase" = "3" ]; then
   if [ -f ".github/workflows/release.yml" ]; then

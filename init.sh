@@ -327,9 +327,65 @@ collect_project_info() {
 
   PLATFORM=$(prompt_choice "Platform type:" "${available_platforms[@]}")
 
+  echo ""
+  echo -e "  ${BOLD}Project Tracks:${NC}"
+  echo "    Light    — Internal tools, prototypes, POCs. <10 users. Minimal governance."
+  echo "    Standard — External users, moderate complexity. Market audit, user testing."
+  echo "    Full     — Enterprise buyers, sensitive data. Pen testing, legal review mandatory."
+  echo ""
   TRACK=$(prompt_choice "Project track:" "light" "standard" "full")
 
+  echo ""
+  echo -e "  ${BOLD}Deployment Context:${NC}"
+  echo "    Personal       — Your own projects. No organizational governance required."
+  echo "    Organizational — Company/team projects. Governance pre-flight required."
+  echo ""
   DEPLOYMENT=$(prompt_choice "Personal or organizational?" "personal" "organizational")
+
+  # Warn on unusual combinations
+  if [ "$TRACK" = "full" ] && [ "$DEPLOYMENT" = "personal" ]; then
+    echo ""
+    print_warn "Full track is designed for organizational projects with enterprise compliance."
+    print_warn "For personal projects, Standard track provides external-user readiness without"
+    print_warn "enterprise overhead (pen testing, legal review). You can upgrade later."
+    local confirm_full
+    read -rp "$(echo -e "  ${BOLD}Continue with Full track? [y/N]${NC}: ")" confirm_full
+    if [[ ! "$confirm_full" =~ ^[Yy] ]]; then
+      TRACK=$(prompt_choice "Project track:" "light" "standard" "full")
+    fi
+  fi
+
+  # For organizational deployments, ask about governance mode (POC vs production)
+  POC_MODE=""
+  if [ "$DEPLOYMENT" = "organizational" ]; then
+    echo ""
+    echo -e "  ${BOLD}Governance Mode:${NC}"
+    echo "    Production Build — All governance approvals required before starting."
+    echo "    Sponsored POC    — Organization-approved pilot. Technical approvals now,"
+    echo "                       non-technical (insurance, ITSM, etc.) deferred."
+    echo "    Private POC      — Personal exploration. All governance deferred."
+    echo ""
+    echo -e "  ${BOLD}POC constraints:${NC} No production deployment, no real user data, no external"
+    echo "  users. All technical work is production-grade and carries forward unchanged."
+    echo "  Phases 0-3 run identically. Phase 4 (production release) is blocked until upgrade."
+    echo ""
+    local gov_mode
+    gov_mode=$(prompt_choice "Governance mode:" \
+      "Production Build" \
+      "Sponsored POC" \
+      "Private POC")
+    case "$gov_mode" in
+      "Production"*) POC_MODE="" ;;
+      "Sponsored"*)  POC_MODE="sponsored_poc" ;;
+      "Private"*)    POC_MODE="private_poc" ;;
+    esac
+    if [ -n "$POC_MODE" ]; then
+      echo ""
+      print_warn "POC MODE: ${POC_MODE//_/ }"
+      print_warn "Phase 4 (production release) is blocked until you upgrade."
+      print_warn "Upgrade later: bash scripts/upgrade-project.sh --to-production"
+    fi
+  fi
 
   # Auto-discover available languages from CI pipeline templates
   local available_languages=()
@@ -885,11 +941,16 @@ create_project() {
   # Generate phase state tracking
   print_info "Generating phase state..."
   mkdir -p .claude
+  local poc_json="null"
+  [ -n "$POC_MODE" ] && poc_json="\"$POC_MODE\""
   cat > .claude/phase-state.json << PHEOF
 {
   "project": "$PROJECT_NAME",
   "framework_version": "1.0",
   "current_phase": 0,
+  "track": "$TRACK",
+  "deployment": "$DEPLOYMENT",
+  "poc_mode": $poc_json,
   "gates": {
     "phase_0_to_1": null,
     "phase_1_to_2": null,
@@ -1437,14 +1498,29 @@ print_next_steps() {
   echo ""
 
   if [ "$DEPLOYMENT" = "organizational" ]; then
-    echo "  3. GOVERNANCE PRE-FLIGHT (organizational deployment):"
-    echo "     Complete Section 8 of the Intake before starting."
-    echo "     Required: project sponsor, backup maintainer, insurance"
-    echo "     confirmation, AI deployment path approval, ITSM registration."
-    echo "     Record all pre-condition approvals in APPROVAL_LOG.md."
-    echo "     See docs/framework/governance-framework.md for details."
-    echo ""
-    echo "  4. START BUILDING:"
+    if [ -n "$POC_MODE" ]; then
+      echo "  3. GOVERNANCE — ${POC_MODE//_/ } mode:"
+      if [ "$POC_MODE" = "sponsored_poc" ]; then
+        echo "     Required now: AI deployment path, project sponsor, time allocation."
+        echo "     Deferred: insurance, liability entity, ITSM, exit criteria, backup maintainer."
+      else
+        echo "     All governance pre-conditions deferred (personal exploration)."
+      fi
+      echo "     Constraints: no production deployment, no real user data, no external users."
+      echo "     Phases 0-3 run normally. Phase 4 is blocked until you upgrade."
+      echo "     Upgrade: bash scripts/upgrade-project.sh --to-production"
+      echo ""
+      echo "  4. START BUILDING:"
+    else
+      echo "  3. GOVERNANCE PRE-FLIGHT (production build):"
+      echo "     Complete Section 8 of the Intake before starting."
+      echo "     Required: project sponsor, backup maintainer, insurance"
+      echo "     confirmation, AI deployment path approval, ITSM registration."
+      echo "     Record all pre-condition approvals in APPROVAL_LOG.md."
+      echo "     See docs/framework/governance-framework.md for details."
+      echo ""
+      echo "  4. START BUILDING:"
+    fi
   else
     echo "  3. START BUILDING:"
   fi
@@ -1522,11 +1598,18 @@ print_next_steps() {
   echo "     docs/framework/cli-setup-addendum.md   — Claude Code configuration"
   echo "     docs/platform-modules/                — Platform-specific guidance"
   echo ""
-  if [ "$TRACK" = "light" ] || [ "$DEPLOYMENT" = "personal" ]; then
-  echo "  UPGRADE (if this is a POC or light track project):"
-  echo "     bash scripts/upgrade-project.sh --help     — see all upgrade options"
-  echo "     bash scripts/upgrade-project.sh --to-production  — upgrade to production"
-  echo ""
+  if [ "$TRACK" = "light" ] || [ "$DEPLOYMENT" = "personal" ] || [ -n "$POC_MODE" ]; then
+    echo "  UPGRADE (when ready to move beyond current scope):"
+    echo "     bash scripts/upgrade-project.sh --help          — see all upgrade options"
+    if [ -n "$POC_MODE" ]; then
+      echo "     bash scripts/upgrade-project.sh --to-production — complete deferred governance and unlock Phase 4"
+    elif [ "$TRACK" = "light" ]; then
+      echo "     bash scripts/upgrade-project.sh --to-standard   — add external-user readiness"
+      echo "     bash scripts/upgrade-project.sh --to-production — upgrade to production"
+    else
+      echo "     bash scripts/upgrade-project.sh --to-production — upgrade to production"
+    fi
+    echo ""
   fi
 }
 
@@ -1652,6 +1735,7 @@ main() {
   log_line "Language: $LANGUAGE"
   log_line "Track: $TRACK"
   log_line "Deployment: $DEPLOYMENT"
+  log_line "POC Mode: ${POC_MODE:-none}"
 
   if [ "$DRY_RUN" = true ]; then
     dry_run_summary
