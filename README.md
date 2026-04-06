@@ -323,13 +323,14 @@ The init script auto-discovers available languages from `templates/pipelines/ci/
 | **Python** | `pip install` / `pytest` | `ruff check` | `pip-audit` | `pip-licenses` |
 | **Rust** | `cargo build` / `cargo test` | `cargo clippy`, `cargo fmt` | `cargo audit` | `cargo license` |
 | **C#** | `dotnet build` / `dotnet test` | (built into build) | `dotnet list package --vulnerable` | `dotnet-project-licenses` |
-| **JVM** (Kotlin, Java) | `./gradlew build` / `./gradlew test` | `detekt` (plugin) | `dependencyCheckAnalyze` (plugin) | `checkLicense` (plugin) |
+| **Kotlin** | `./gradlew build` / `./gradlew test` | `detekt` (plugin) | `dependencyCheckAnalyze` (plugin) | `checkLicense` (plugin) |
+| **Java** | `./gradlew build` / `./gradlew test` | `detekt` (plugin) | `dependencyCheckAnalyze` (plugin) | `checkLicense` (plugin) |
 | **Go** | `go build` / `go test -race` | `golangci-lint` | `govulncheck` | `go-licenses` |
 | **Dart** (Flutter) | `flutter pub get` / `flutter test` | `flutter analyze` | `osv-scanner` (GitHub Action) | `dart_license_checker` |
 | **Swift** (iOS native) | `swift build` / `swift test` | SwiftLint | `osv-scanner` (Package.resolved) | `swift-license` |
 | **Other** | TODO skeleton | TODO | TODO | TODO |
 
-All CI templates include Semgrep SAST scanning. Languages that require external tools (Rust, Python, Dart) install them explicitly in the pipeline. JVM templates include Gradle plugin setup instructions for tools that require project configuration.
+All CI templates include Semgrep SAST scanning. Languages that require external tools (Rust, Python, Dart) install them explicitly in the pipeline. Kotlin and Java templates include Gradle plugin setup instructions for tools that require project configuration.
 
 The release pipeline is driven by your **platform** selection, not language — the init script injects your language's build commands into the platform template via placeholder substitution.
 

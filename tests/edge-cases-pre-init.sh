@@ -60,7 +60,7 @@ trap cleanup EXIT
 # Platform choices:  desktop(1) mobile(2) web(3) other(4)
 # Track choices:     light(1) standard(2) full(3)
 # Deploy choices:    personal(1) organizational(2)
-# Language choices:  csharp(1) dart(2) go(3) jvm(4) other(5) python(6) rust(7) typescript(8)
+# Language choices:  csharp(1) dart(2) go(3) java(4) kotlin(5) other(6) python(7) rust(8) swift(9) typescript(10)
 # ================================================================
 build_init_input() {
   local project_name="$1"

@@ -382,18 +382,73 @@ collect_project_info() {
   fi
 
   # Auto-discover available languages from CI pipeline templates
+  # Filter by platform: only show languages whose CI template lists the selected platform
   local available_languages=()
   for f in "$SCRIPT_DIR/templates/pipelines/ci/"*.yml; do
     [ -f "$f" ] || continue
     local lname
     lname=$(basename "$f" .yml)
     [ "$lname" = "other" ] && continue  # add "other" last as fallback
-    available_languages+=("$lname")
+    # Read platforms marker from first line (format: # solo-orchestrator: platforms=web,desktop,mobile)
+    local marker
+    marker=$(head -1 "$f")
+    local platforms_csv=""
+    case "$marker" in
+      *"# solo-orchestrator: platforms="*)
+        platforms_csv="${marker#*platforms=}"
+        ;;
+    esac
+    # If no marker, include the language but warn (backwards compatibility)
+    if [ -z "$platforms_csv" ]; then
+      print_warn "$lname.yml has no platforms marker — it won't be filtered by platform."
+      available_languages+=("$lname")
+    else
+      # Check if selected platform appears in the comma-separated list
+      case ",$platforms_csv," in
+        *",$PLATFORM,"*)
+          available_languages+=("$lname")
+          ;;
+      esac
+    fi
   done
   available_languages+=("other")
 
   LANGUAGE=$(prompt_choice "Primary language:" "${available_languages[@]}")
   LANGUAGE="${LANGUAGE#"${LANGUAGE%%[![:space:]]*}"}"
+
+  # OS-language compatibility check — block impossible combinations
+  while true; do
+    local os_block_reason=""
+    case "$OS_TYPE" in
+      Linux)
+        case "$LANGUAGE" in
+          swift)
+            os_block_reason="Swift/iOS development requires macOS — Xcode and Apple's build toolchain are not available on Linux."
+            ;;
+        esac
+        ;;
+    esac
+    if [ -n "$os_block_reason" ]; then
+      echo ""
+      print_fail "Incompatible OS/language combination: $LANGUAGE on $OS_TYPE"
+      print_warn "$os_block_reason"
+      echo ""
+      print_info "Valid languages for $PLATFORM on $OS_TYPE:"
+      for lang in "${available_languages[@]}"; do
+        case "$OS_TYPE" in
+          Linux)
+            [ "$lang" = "swift" ] && continue
+            ;;
+        esac
+        echo "  - $lang"
+      done
+      echo ""
+      LANGUAGE=$(prompt_choice "Select a different language:" "${available_languages[@]}")
+      LANGUAGE="${LANGUAGE#"${LANGUAGE%%[![:space:]]*}"}"
+    else
+      break
+    fi
+  done
 
   if [ "$LANGUAGE" = "other" ]; then
     print_warn "The 'other' language template includes placeholder CI steps that intentionally"
@@ -996,7 +1051,8 @@ create_project() {
   cp "$SCRIPT_DIR/scripts/verify-install.sh" scripts/
   cp "$SCRIPT_DIR/scripts/test-gate.sh" scripts/
   cp "$SCRIPT_DIR/scripts/check-versions.sh" scripts/
-  chmod +x scripts/validate.sh scripts/check-phase-gate.sh scripts/check-updates.sh scripts/resume.sh scripts/intake-wizard.sh scripts/resolve-tools.sh scripts/upgrade-project.sh scripts/reconfigure-project.sh scripts/verify-install.sh scripts/test-gate.sh scripts/check-versions.sh
+  cp "$SCRIPT_DIR/scripts/session-version-check.sh" scripts/
+  chmod +x scripts/validate.sh scripts/check-phase-gate.sh scripts/check-updates.sh scripts/resume.sh scripts/intake-wizard.sh scripts/resolve-tools.sh scripts/upgrade-project.sh scripts/reconfigure-project.sh scripts/verify-install.sh scripts/test-gate.sh scripts/check-versions.sh scripts/session-version-check.sh
 
   # Copy intake suggestion files
   mkdir -p templates/intake-suggestions
@@ -1166,11 +1222,18 @@ PERMEOF
 
   print_info "Installing Development Guardrails for Claude Code..."
   if command -v git &>/dev/null; then
-    # Step 1: Check if framework is already installed with a valid manifest
+    # Step 1: Check if framework is already installed; if so, pull latest
     local framework_valid=false
     if [ -d "$FRAMEWORK_CLONE/.git" ] && [ -f "$FRAMEWORK_CLONE/scripts/init.sh" ]; then
+      print_ok "Development Guardrails for Claude Code found at $FRAMEWORK_CLONE"
+      # Pull latest to ensure we have the newest version
+      print_info "Checking for updates..."
+      if git -C "$FRAMEWORK_CLONE" pull --quiet 2>/dev/null; then
+        print_ok "Development Guardrails up to date"
+      else
+        print_warn "Could not pull latest updates (network issue?) — using existing version"
+      fi
       framework_valid=true
-      print_ok "Development Guardrails for Claude Code already installed at $FRAMEWORK_CLONE"
     fi
 
     # Step 2: If not installed, clone with retry
@@ -1248,17 +1311,16 @@ PERMEOF
         web)     fw_profile="web-app" ;;
         desktop) fw_profile="desktop-app" ;;
         mobile)  fw_profile="mobile-app" ;;
-        *)       fw_profile="cli-tool" ;;
+        *)       fw_profile="web-api" ;;
       esac
 
       # Run the framework's init with:
+      #   --profile: select profile non-interactively (v4.1.0+)
       #   --prepopulate: skip interactive discovery interview (v4.0.0+)
       #   --skip-plugin-check: Superpowers/Context7 already checked above
-      # Pipe the profile name for profile detection. The CDF handles non-terminal
-      # stdin gracefully: auto-proceeds on "Proceed?", skips optional installs.
       print_info "Running Development Guardrails init..."
-      (cd "$PROJECT_DIR" && echo "$fw_profile" | bash "$FRAMEWORK_CLONE/scripts/init.sh" \
-        --prepopulate "$discovery_tmp" --skip-plugin-check 2>&1) || {
+      (cd "$PROJECT_DIR" && bash "$FRAMEWORK_CLONE/scripts/init.sh" \
+        --profile "$fw_profile" --prepopulate "$discovery_tmp" --skip-plugin-check 2>&1) || {
         print_warn "Development Guardrails init encountered an issue."
         print_warn "You can run it manually later: bash ~/.claude-dev-framework/scripts/init.sh"
       }
@@ -1270,6 +1332,23 @@ PERMEOF
       else
         print_warn "Development Guardrails init did not produce .claude/manifest.json"
         print_warn "Run manually: bash ~/.claude-dev-framework/scripts/init.sh"
+      fi
+
+      # Add version check hook to SessionStart (after CDF hooks are in place)
+      if [ -f ".claude/settings.json" ] && command -v jq &>/dev/null; then
+        local version_hook='bash "$CLAUDE_PROJECT_DIR"/scripts/check-versions.sh'
+        # Check if SessionStart exists and doesn't already have our hook
+        if jq -e '.hooks.SessionStart' .claude/settings.json >/dev/null 2>&1; then
+          if ! jq -e '.hooks.SessionStart[0].hooks[] | select(.command | contains("check-versions.sh"))' .claude/settings.json >/dev/null 2>&1; then
+            jq '.hooks.SessionStart[0].hooks += [{"type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/session-version-check.sh"}]' .claude/settings.json > .claude/settings.json.tmp \
+              && mv .claude/settings.json.tmp .claude/settings.json
+          fi
+        else
+          # No SessionStart hook at all — add one
+          jq '.hooks.SessionStart = [{"hooks": [{"type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/check-versions.sh"}]}]' .claude/settings.json > .claude/settings.json.tmp \
+            && mv .claude/settings.json.tmp .claude/settings.json
+        fi
+        print_ok "Session-start version check hook installed"
       fi
     fi
   fi
@@ -1823,7 +1902,8 @@ generate_ci() {
     python)                ci_template="python.yml" ;;
     rust)                  ci_template="rust.yml" ;;
     csharp)                ci_template="csharp.yml" ;;
-    kotlin|java)           ci_template="jvm.yml" ;;
+    kotlin)                ci_template="kotlin.yml" ;;
+    java)                  ci_template="java.yml" ;;
     go)                    ci_template="go.yml" ;;
     dart)                  ci_template="dart.yml" ;;
     swift)                 ci_template="swift.yml" ;;

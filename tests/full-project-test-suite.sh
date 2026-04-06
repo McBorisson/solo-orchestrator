@@ -61,7 +61,7 @@ section() {
 section "TEST 1: Resolver Matrix — All Platform × Language × Track Combinations"
 
 PLATFORMS=(web mobile desktop)
-LANGUAGES=(typescript python rust go csharp dart jvm swift)
+LANGUAGES=(typescript python rust go csharp dart kotlin java swift)
 TRACKS=(light standard full)
 DEV_OS="darwin"  # Current machine
 RESOLVER="$SCRIPT_DIR/scripts/resolve-tools.sh"
@@ -372,7 +372,8 @@ for run in "${TEST_RUNS[@]}"; do
   # Determine CI template
   case "$t_language" in
     typescript|javascript) ci_tpl="typescript.yml" ;;
-    kotlin|java) ci_tpl="jvm.yml" ;;
+    kotlin) ci_tpl="kotlin.yml" ;;
+    java) ci_tpl="java.yml" ;;
     *) ci_tpl="${t_language}.yml" ;;
   esac
   [ -f "$SCRIPT_DIR/templates/pipelines/ci/$ci_tpl" ] && cp "$SCRIPT_DIR/templates/pipelines/ci/$ci_tpl" "$project_dir/.github/workflows/ci.yml"

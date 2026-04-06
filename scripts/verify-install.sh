@@ -558,7 +558,8 @@ fix_ci_pipeline() {
   local ci_template
   case "$LANGUAGE" in
     typescript|javascript) ci_template="typescript.yml" ;;
-    kotlin|java) ci_template="jvm.yml" ;;
+    kotlin) ci_template="kotlin.yml" ;;
+    java) ci_template="java.yml" ;;
     *) ci_template="${LANGUAGE}.yml" ;;
   esac
   if [ -f "$SOURCE_DIR/templates/pipelines/ci/$ci_template" ]; then
