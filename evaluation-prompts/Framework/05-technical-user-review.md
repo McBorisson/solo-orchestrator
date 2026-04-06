@@ -2,7 +2,7 @@
 
 ## Usage
 
-Run from the root of the claude-dev-framework project directory:
+Run from the root of the Development Guardrails for Claude Code project directory:
 
 ```bash
 claude -p "$(cat /path/to/05-technical-user-review.md)"

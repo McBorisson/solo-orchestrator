@@ -241,7 +241,7 @@ For each phase:
 - [ ] `tests/uat/` directory structure created
 - [ ] Pre-commit hook installed and functional (test with a staged secret)
 - [ ] Git repo initialized with initial commit
-- [ ] Claude Dev Framework installation attempted (record result — may fail if repo unavailable)
+- [ ] Development Guardrails for Claude Code installation attempted (record result — may fail if repo unavailable)
 
 ---
 
@@ -423,7 +423,7 @@ Execute these edge cases **after** each phase. Record the exact behavior — cra
 | E3 | Run `init.sh` in a directory that already contains a `.git` directory | Should warn or handle gracefully | |
 | E4 | Run `init.sh` twice in the same target directory | Should warn about existing project or handle idempotently | |
 | E5 | Run `init.sh`, select "other" for both platform and language | Should generate valid project with other.yml CI template and no platform module | |
-| E6 | Run `init.sh` with no internet connectivity (after prerequisite check) | Should fail gracefully when cloning Claude Dev Framework, continue with fallback | |
+| E6 | Run `init.sh` with no internet connectivity (after prerequisite check) | Should fail gracefully when cloning Development Guardrails, continue with fallback | |
 | E7 | Kill `init.sh` with Ctrl+C midway through tool installation | Should not leave partial state that breaks re-run | |
 | E8 | Run `init.sh` from a read-only directory | Should fail with clear error message | |
 | E9 | Run `init.sh` with `HOME` set to a non-existent directory | Should fail gracefully | |

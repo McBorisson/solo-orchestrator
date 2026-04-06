@@ -71,7 +71,7 @@
     {
       "category": "json_processor",
       "name": "jq",
-      "description": "Command-line JSON processor (required by Claude Dev Framework)",
+      "description": "Command-line JSON processor (required by Development Guardrails for Claude Code)",
       "required": true,
       "phase": 0,
       "tracks": ["light", "standard", "full"],

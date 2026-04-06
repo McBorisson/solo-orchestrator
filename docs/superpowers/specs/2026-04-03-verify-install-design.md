@@ -141,7 +141,7 @@ Re-display summary with updated counts after remediation. Exit 0 if everything p
 | Pre-commit hook installed and executable | Re-install (re-generate from init.sh logic) |
 | At least one commit exists | Manual — needs review |
 
-### 3.4 Claude Dev Framework
+### 3.4 Development Guardrails for Claude Code
 
 | Check | Auto-Fix Action |
 |---|---|

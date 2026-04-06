@@ -4,7 +4,7 @@
 
 ## Problem
 
-The Solo Orchestrator has no mechanism to check whether external tools, plugins, and MCP servers are up to date at the start of a development session. `check-updates.sh` only compares framework documents against upstream and must be run manually. A developer could spend hours building with an outdated Semgrep that misses known vulnerabilities, an old Snyk that has stale CVE data, or a Claude Dev Framework version missing critical hooks.
+The Solo Orchestrator has no mechanism to check whether external tools, plugins, and MCP servers are up to date at the start of a development session. `check-updates.sh` only compares framework documents against upstream and must be run manually. A developer could spend hours building with an outdated Semgrep that misses known vulnerabilities, an old Snyk that has stale CVE data, or a Development Guardrails version missing critical hooks.
 
 ## Solution
 
@@ -60,7 +60,7 @@ Solo Orchestrator — Version Check
   [OK] Qdrant MCP: configured
 
 ── Framework ──
-  [OK] Claude Dev Framework: 4.0.0 (min: 4.0.0) — up to date
+  [OK] Development Guardrails: 4.0.0 (min: 4.0.0) — up to date
 
 ── Summary ──
   ✓ 9 up to date
@@ -121,7 +121,7 @@ Two new fields added to each tool entry in `templates/tool-matrix/*.json`:
 | `github_release` | `curl -s https://api.github.com/repos/<package>/releases/latest` (parse `tag_name`) | gitleaks |
 | `pip` | `pip3 install <package>== 2>&1` (parse available versions) or PyPI JSON API | Semgrep |
 | `brew` | `brew info --json=v2 <package> 2>/dev/null` (parse `versions.stable`) | jq, GPG |
-| `git_tag` | `git ls-remote --tags <package> 2>/dev/null` (parse latest tag) | Claude Dev Framework |
+| `git_tag` | `git ls-remote --tags <package> 2>/dev/null` (parse latest tag) | Development Guardrails |
 | `none` | No lookup — just check installed/configured | Superpowers, Qdrant MCP, language runtimes |
 
 ---

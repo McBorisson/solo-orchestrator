@@ -306,14 +306,14 @@ fi
 
 # ================================================================
 # E6: No internet connectivity (simulated)
-# Expected: fail gracefully when cloning Claude Dev Framework
+# Expected: fail gracefully when cloning Development Guardrails
 # ================================================================
 section "E6: No Internet Connectivity (Simulated)"
 
 echo ""
 echo "  Note: True network disconnection cannot be reliably automated in"
 echo "  a portable test. Instead, we test the fallback path by simulating"
-echo "  a missing Claude Dev Framework clone."
+echo "  a missing Development Guardrails clone."
 
 # We test that init.sh starts correctly with an alternate HOME (no framework).
 # Uses --dry-run to avoid stdin consumption issues.
@@ -443,7 +443,7 @@ echo "  HOME=$E9_FAKE_HOME (does not exist)"
 # init.sh references HOME in:
 # - Check for ~/.claude/settings.json (Superpowers/Context7/Qdrant checks)
 # - Default project dir suggestion: $HOME/projects/$PROJECT_NAME
-# - Claude Dev Framework clone: $HOME/.claude-dev-framework
+# - Development Guardrails clone: $HOME/.claude-dev-framework
 
 e9_input=$(build_init_input "e9-badhome" "Bad home test" 3 1 1 8 "$E9_DIR" "Y")
 e9_exit=0

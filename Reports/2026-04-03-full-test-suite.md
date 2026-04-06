@@ -20,11 +20,11 @@
 
 ### Run 1: Personal / Web / TypeScript / Light
 
-**init.sh:** Completed successfully. All security tools detected. Lighthouse installed (web-only). Claude Dev Framework clone failed (repo unavailable) — fallback pre-commit hook installed correctly.
+**init.sh:** Completed successfully. All security tools detected. Lighthouse installed (web-only). Development Guardrails for Claude Code clone failed (repo unavailable) — fallback pre-commit hook installed correctly.
 
 **Generated files:** 24 files across expected directories. CI pipeline (TypeScript), release pipeline (web), web platform module, all suggestion files, all scripts present.
 
-**validate.sh:** 2 warnings (Claude Dev Framework not installed, blank Intake fields), 0 errors. All framework files, Git, hooks, CI, security tools validated.
+**validate.sh:** 2 warnings (Development Guardrails not installed, blank Intake fields), 0 errors. All framework files, Git, hooks, CI, security tools validated.
 
 **resume.sh:** Runs. Phase shows "unknown" (bug — see findings below). Git log shows init commit correctly.
 
@@ -142,7 +142,7 @@
 
 **BUG-9: `init.sh` — `git clone` failure kills script under `set -e`** (FIXED)
 - **Location:** `init.sh` line 474
-- **Issue:** `git clone` of Claude Dev Framework repo fails and `set -e` aborts before reaching the fallback handler.
+- **Issue:** `git clone` of Development Guardrails repo fails and `set -e` aborts before reaching the fallback handler.
 - **Fix applied:** Added `|| true` to the git clone command.
 
 ---

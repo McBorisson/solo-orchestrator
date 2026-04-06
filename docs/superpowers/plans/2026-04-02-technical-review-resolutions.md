@@ -127,7 +127,7 @@ dry_run_summary() {
   echo "  .github/workflows/ci.yml            — CI pipeline ($LANGUAGE)"
   echo "  .github/workflows/release.yml       — Release pipeline ($PLATFORM)"
   echo "  .gitignore                          — Language + platform ignores"
-  echo "  .claude/framework/                  — Claude Dev Framework (git hooks)"
+  echo "  .claude/framework/                  — Development Guardrails (git hooks)"
   echo "  .claude/phase-state.json            — Phase tracking"
   echo "  docs/framework/builders-guide.md    — Builder's Guide"
   echo "  docs/framework/governance-framework.md"

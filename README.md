@@ -72,7 +72,7 @@ See the [User Guide](docs/user-guide.md) for detailed walkthrough of each step.
 | **Git** | Yes | Init script offers to install automatically (brew/apt/dnf). Or install manually: [git-scm.com](https://git-scm.com/downloads) |
 | **Node.js 18+** | Yes | Init script offers to install automatically. Required as infrastructure tooling (Snyk CLI, license-checker) regardless of your project language. Also the runtime for JS/TS projects. |
 | **Language runtime** | Yes | Python, Rust/Cargo, .NET SDK, JDK, Go, or Flutter (if not using Node.js/TypeScript). Init script offers to install your selected runtime automatically. |
-| **jq** | Yes | Init script offers to install automatically (brew/apt/dnf). Required by the Claude Dev Framework for JSON operations. |
+| **jq** | Yes | Init script offers to install automatically (brew/apt/dnf). Required by the Development Guardrails for Claude Code for JSON operations. |
 | **Docker** | Recommended | Init script offers to install automatically. macOS: choice of Colima (recommended — headless, no license required, auto-starts on boot) or Docker Desktop. Linux: system package with systemd auto-start. Used by Qdrant (persistent semantic memory) and OWASP ZAP (DAST scanning). |
 | **Claude Code** | Recommended | Installed by init script. Framework is optimized for Claude Code; other AI coding agents can use the methodology but the CLI Setup Addendum and Phase 2 workflow accelerators are Claude Code-specific. |
 
@@ -120,7 +120,7 @@ your-project/
 ├── .git/hooks/
 │   └── pre-commit                        # Secret detection + SAST quick scan
 ├── .claude/
-│   ├── framework/                        # Claude Dev Framework (Git hook guardrails)
+│   ├── framework/                        # Development Guardrails for Claude Code (Git hook guardrails)
 │   ├── framework-config.yml              # Active profile configuration
 │   ├── framework-version.txt             # Pinned framework commit SHA
 │   └── phase-state.json                  # Current phase tracking
@@ -197,7 +197,7 @@ All framework documents are copied into the project. Each project is self-contai
 | **Builder's Guide** | The complete methodology. Phases 0-4, prompts, quality gates, remediation tables, glossary. Reference material — the User Guide tells you when to consult it. | Solo Orchestrator |
 | **Project Intake Template** | Structured input. Every decision the AI needs to work autonomously. Fill out using the [Intake Wizard](docs/user-guide.md#using-the-intake-wizard) or directly before Phase 0. | Solo Orchestrator |
 | **Platform Modules** | Platform-specific architecture, tooling, testing, distribution. Referenced from the Builder's Guide at integration points. | Solo Orchestrator |
-| **CLI Setup Addendum** | Claude Code configuration: Superpowers, Claude Dev Framework (Git hook guardrails), MCP servers (Context7, Qdrant), CLAUDE.md. | Solo Orchestrator |
+| **CLI Setup Addendum** | Claude Code configuration: Superpowers, Development Guardrails for Claude Code (Git hook guardrails), MCP servers (Context7, Qdrant), CLAUDE.md. | Solo Orchestrator |
 | **Security Scan Guide** | Plain-language explanations of the most common Semgrep and Snyk findings. How to determine if a finding is real or a false positive. | Solo Orchestrator |
 | **Evaluation Prompts** | 6 adversarial reviewer perspectives (senior engineer, CIO, security, legal, technical user, red team) for project validation. | Solo Orchestrator, Reviewers |
 | **Enterprise Governance Framework** | Approval authorities, compliance, risk, portfolio governance. Required for organizational deployments. | CIO, IT Security, Legal |
@@ -446,7 +446,7 @@ The methodology, intake template, platform modules, and CI pipeline templates ar
 
 ## Known Limitations
 
-- **Enforcement has two mechanical layers but gaps remain.** The CI pipeline (SAST, dependency audit, license checking, tests) blocks merges on failure. The Claude Dev Framework pre-commit hooks (gitleaks, Semgrep) catch issues at commit time locally. Together these provide mechanical enforcement for security, testing, and code quality. However, phase gates, TDD ordering, scope control, and documentation updates currently rely on the AI agent following CLAUDE.md instructions and the human reviewing at decision gates. These are Tier 3 (guided) controls with no automated backstop yet.
+- **Enforcement has two mechanical layers but gaps remain.** The CI pipeline (SAST, dependency audit, license checking, tests) blocks merges on failure. The Development Guardrails for Claude Code pre-commit hooks (gitleaks, Semgrep) catch issues at commit time locally. Together these provide mechanical enforcement for security, testing, and code quality. However, phase gates, TDD ordering, scope control, and documentation updates currently rely on the AI agent following CLAUDE.md instructions and the human reviewing at decision gates. These are Tier 3 (guided) controls with no automated backstop yet.
 - **Release pipelines require configuration.** CI pipelines work immediately on first push. Release pipelines are templates with TODOs for code signing, deployment secrets, and store credentials that must be configured before first release.
 - **Docker is local only.** OWASP ZAP and Qdrant run as local Docker containers (via Colima or Docker Desktop on macOS, system Docker on Linux). Remote Docker hosts and network-accessible containers are not yet supported.
 - **Linux package manager support covers apt, dnf, and pacman.** Alpine (apk) and other distributions require manual tool installation. The init script auto-detects brew (macOS), apt (Debian/Ubuntu), dnf (Fedora/RHEL), and pacman (Arch/Manjaro).

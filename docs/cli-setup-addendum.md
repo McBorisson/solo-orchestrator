@@ -29,7 +29,7 @@ The Builder's Guide (SOI-002-BUILD) defines the methodology. This addendum confi
 |---|---|---|
 | **Superpowers** | Agentic skills framework providing TDD enforcement, subagent-driven development, systematic debugging, code review, and git worktree management | The Builder's Guide defines the Build Loop (test → implement → audit → document); Superpowers provides the execution engine that makes the agent enforce TDD, spawn focused subagents per task, and self-review before presenting to the Orchestrator |
 | **Auto Mode** | Reduces permission interruptions so the agent can work through multi-step tasks without stopping | The Builder's Guide assumes the agent can execute Build Loop cycles without pausing for permission on every file write and command |
-| **Claude Dev Framework** | Encourages coding standards, security scanning, and documentation through Git hooks and pre-commit checks | The Builder's Guide defines what should happen (TDD, security audits, documentation); the framework provides automated workflow guardrails that catch common drift |
+| **Development Guardrails for Claude Code** | Encourages coding standards, security scanning, and documentation through Git hooks and pre-commit checks | The Builder's Guide defines what should happen (TDD, security audits, documentation); the framework provides automated workflow guardrails that catch common drift |
 | **Context7 MCP** | Provides the agent with up-to-date library documentation during architecture selection and construction | The Builder's Guide mentions Context7 in Phase 1 but doesn't fully configure it for CLI use |
 | **Qdrant MCP** | Gives the agent persistent semantic memory across sessions — stores and retrieves project decisions, patterns, and context | The Builder's Guide's Context Health Check (every 3-4 features) relies on the agent maintaining awareness of prior decisions; Qdrant makes this durable across session boundaries |
 | **CLAUDE.md** | Provides the agent with project-specific instructions loaded automatically at every session start | The Builder's Guide says "provide the Project Bible at session start" but doesn't specify the mechanism; CLAUDE.md is that mechanism |
@@ -201,11 +201,11 @@ Place this in `.claude/settings.json` (project-level, shared with team) or `.cla
 
 ---
 
-## 3. Claude Dev Framework (Compliance Enforcement)
+## 3. Development Guardrails for Claude Code (Compliance Enforcement)
 
 ### What It Is
 
-The Claude Dev Framework (github.com/kraulerson/claude-dev-framework) is a hook-based system that provides automated workflow guardrails for coding standards, security scanning, and documentation requirements through Git hooks. It uses a layered defense model within its hook system — multiple hook-based checks (pre-commit, pre-push, post-merge) cover different failure modes, so no single check needs to catch everything. The combination of checks across Git hook stages provides broader coverage than any individual hook.
+The Development Guardrails for Claude Code (github.com/kraulerson/claude-dev-framework) is a hook-based system that provides automated workflow guardrails for coding standards, security scanning, and documentation requirements through Git hooks. It uses a layered defense model within its hook system — multiple hook-based checks (pre-commit, pre-push, post-merge) cover different failure modes, so no single check needs to catch everything. The combination of checks across Git hook stages provides broader coverage than any individual hook.
 
 The framework uses:
 - **Profiles** — Configuration sets that define rules for different project types (`mobile-app.yml`, `web-api.yml`, `cli-tool.yml`), inheriting from a `_base.yml` with shared standards.
@@ -214,9 +214,9 @@ The framework uses:
 
 ### How It Applies to the Builder's Guide
 
-The Builder's Guide defines quality controls at each phase. The Claude Dev Framework automates checks for them:
+The Builder's Guide defines quality controls at each phase. The Development Guardrails for Claude Code automates checks for them:
 
-| Builder's Guide Requirement | Claude Dev Framework Enforcement |
+| Builder's Guide Requirement | Development Guardrails Enforcement |
 |---|---|
 | TDD — tests before implementation (Phase 2, Step 2.2) | Pre-commit hook validates test file exists for changed source files |
 | Secret detection (Phase 2, Step 2.4) | Pre-commit hook runs gitleaks on staged files; CI pipeline runs gitleaks-action as backstop |
@@ -498,7 +498,7 @@ Store and retrieve project context using the Qdrant MCP tools.
 - Debugging: "prior issues similar to [SYMPTOM]"
 - Context Health Checks: "features completed for [PROJECT NAME]"
 
-### Claude Dev Framework (Compliance Hooks)
+### Development Guardrails for Claude Code (Compliance Hooks)
 Git hooks enforce standards automatically. Do not attempt to
 bypass hooks. If a hook blocks a commit:
 1. Read the hook's error message
@@ -562,7 +562,7 @@ Never use --no-verify to skip hooks.
 Keep it focused. Based on current best practices:
 
 - **Don't stuff everything in.** Every instruction competes for the agent's attention. Include only what would cause mistakes if missing. If it's in the CONTRIBUTING.md or Project Bible and `@`-included, don't duplicate it.
-- **Don't include coding style guidelines.** That's the linter's and formatter's job. The Claude Dev Framework hooks enforce this mechanically. Spending context tokens on "use camelCase" is waste.
+- **Don't include coding style guidelines.** That's the linter's and formatter's job. The Development Guardrails hooks enforce this mechanically. Spending context tokens on "use camelCase" is waste.
 - **Don't include standard library knowledge.** The agent already knows how `Array.map()` works. Include only project-specific patterns and constraints.
 - **Do include commands.** Exact build, test, lint, and deploy commands the agent should use. Don't make it guess.
 - **Do include "never do this" rules.** These are the highest-signal content — they prevent mistakes the agent would otherwise make.
@@ -580,7 +580,7 @@ Run this once per development machine:
 - [ ] Context7 MCP added (`claude mcp add context7 --scope user -- npx -y @upstash/context7-mcp`)
 - [ ] Qdrant running in Docker (`docker run -d --name qdrant -p 6333:6333 -v qdrant_data:/qdrant/storage qdrant/qdrant:latest`)
 - [ ] Qdrant MCP added (`claude mcp add qdrant --scope user -- uvx mcp-server-qdrant --qdrant-url http://localhost:6333 --collection-name solo-orchestrator`)
-- [ ] Claude Dev Framework cloned and available for project setup
+- [ ] Development Guardrails for Claude Code cloned and available for project setup
 - [ ] Verify all MCP servers connected (`claude /mcp`)
 - [ ] Verify Superpowers active (start a session, ask to plan a feature — brainstorming skill should trigger)
 
@@ -588,7 +588,7 @@ Run this once per project (during Phase 2 Project Initialization):
 
 - [ ] Copy CLAUDE.md template to project root
 - [ ] Customize CLAUDE.md with project identity, track, and Superpowers constraints
-- [ ] Install Claude Dev Framework hooks for this project
+- [ ] Install Development Guardrails hooks for this project
 - [ ] Configure project-specific Qdrant collection (if isolating from other projects)
 - [ ] Add `@` includes to CLAUDE.md for project documents as they're created
 - [ ] Verify hooks fire on test commit

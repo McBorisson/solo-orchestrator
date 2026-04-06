@@ -389,24 +389,24 @@ check_git() {
 }
 
 check_framework() {
-  print_step "Checking Claude Dev Framework..."
+  print_step "Checking Development Guardrails for Claude Code..."
 
   local FRAMEWORK_CLONE="$HOME/.claude-dev-framework"
 
   # Global clone
   if [ -d "$FRAMEWORK_CLONE/.git" ]; then
-    register_pass "Claude Dev Framework global clone exists"
+    register_pass "Development Guardrails global clone exists"
   else
-    register_fixable "Claude Dev Framework not cloned" "fix_framework_clone"
+    register_fixable "Development Guardrails not cloned" "fix_framework_clone"
   fi
 
   # Per-project manifest
   if [ -f ".claude/manifest.json" ]; then
-    register_pass "Claude Dev Framework manifest exists"
+    register_pass "Development Guardrails manifest exists"
   elif [ -d "$FRAMEWORK_CLONE/.git" ] && [ -f "$FRAMEWORK_CLONE/scripts/init.sh" ]; then
-    register_fixable "Claude Dev Framework manifest missing" "fix_framework_manifest"
+    register_fixable "Development Guardrails manifest missing" "fix_framework_manifest"
   else
-    register_manual "Claude Dev Framework manifest missing" "Clone framework first: git clone https://github.com/kraulerson/claude-dev-framework.git ~/.claude-dev-framework && bash ~/.claude-dev-framework/scripts/init.sh"
+    register_manual "Development Guardrails manifest missing" "Clone framework first: git clone https://github.com/kraulerson/claude-dev-framework.git ~/.claude-dev-framework && bash ~/.claude-dev-framework/scripts/init.sh"
   fi
 }
 ```
@@ -1219,7 +1219,7 @@ Run same setup as Step 2 but with `--auto-fix` instead of `--check-only`. Verify
 |---|---|
 | 1 | Script framework: args, colors, registration, context loader |
 | 2 | Check: project structure (files, docs, pipelines, matrix) |
-| 3 | Check: scripts, git, Claude Dev Framework |
+| 3 | Check: scripts, git, Development Guardrails |
 | 4 | Check: tools (via resolver), plugins, MCP servers |
 | 5 | Fix functions for all remediable issues |
 | 6 | Main flow: detect → report → remediate → final status |

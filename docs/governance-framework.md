@@ -531,7 +531,7 @@ The framework is built on and tested with Claude Code (Anthropic). This is not a
 - Periodically verify that `PROJECT_BIBLE.md` produces coherent output on a secondary model (e.g., GPT, Gemini, or open-source). If the Bible is well-written, the project is recoverable regardless of which agent built it.
 - Maintain all documentation in model-agnostic formats (Markdown, not Claude-specific notation).
 - Do not embed Claude-specific prompt engineering into the Project Bible itself — it should be a technical specification, not a prompt.
-- The Claude Dev Framework (Git hooks) is not Claude-specific — it works with any development workflow.
+- The Development Guardrails for Claude Code (Git hooks) are not Claude-specific — they work with any development workflow.
 - Budget for annual requalification: test the full workflow on an alternative agent to verify the exit path remains viable.
 
 **Annual cross-model validation (required for organizational deployments):**

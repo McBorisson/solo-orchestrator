@@ -247,7 +247,7 @@ The script prompts for 7 inputs:
 | `.github/workflows/ci.yml` | CI pipeline — language-specific (test, lint, SAST, audit) |
 | `.github/workflows/release.yml` | Release pipeline — platform-specific (build, sign, distribute) |
 | `.gitignore` | Language + platform appropriate ignores |
-| `.claude/framework/` | Claude Dev Framework (Git hook guardrails) |
+| `.claude/framework/` | Development Guardrails for Claude Code (Git hook guardrails) |
 | `docs/framework/` | Builder's Guide, Governance Framework, Executive Review, CLI Setup Addendum |
 | `docs/platform-modules/` | Platform-specific guidance for your selected platform |
 | `docs/test-results/` | Empty — populated during Phase 3 |
@@ -307,7 +307,7 @@ After init, you can configure additional tooling. These are not required for you
 | **Context7 MCP** | Gives the AI up-to-date library documentation instead of relying on training data | **Before Phase 1** — helps the AI make accurate architecture and implementation decisions | One command, no prerequisites |
 | **Superpowers** | Agentic skills plugin — strict TDD, subagent-driven development, systematic debugging, git worktrees | **Before Phase 2** — accelerates the Build Loop significantly | One command, no prerequisites |
 | **Qdrant MCP** | Persistent semantic memory across sessions — the AI remembers project decisions and patterns | **Phase 1** — offered automatically when Docker is available. Each project gets an isolated collection. | Requires Docker (Colima or Docker Desktop) |
-| **Claude Dev Framework** | Git hook-based guardrails for coding standards, security scanning, documentation | Auto-installed by init.sh | Already done |
+| **Development Guardrails for Claude Code** | Git hook-based guardrails for coding standards, security scanning, documentation | Auto-installed by init.sh | Already done |
 
 See the [CLI Setup Addendum](cli-setup-addendum.md) for detailed instructions, or use the [Quick Setup](cli-setup-addendum.md#quick-setup--all-recommended-enhancements) to configure all three at once.
 

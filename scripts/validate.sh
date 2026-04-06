@@ -75,7 +75,7 @@ print_section "Git & Hooks"
 [ -x ".git/hooks/pre-commit" ]    && print_ok "Pre-commit hook" || warn "Pre-commit hook missing or not executable"
 [ -x "scripts/validate.sh" ]      && print_ok "Validation script" || warn "scripts/validate.sh missing"
 [ -x "scripts/check-phase-gate.sh" ] && print_ok "Phase gate check script" || warn "scripts/check-phase-gate.sh missing"
-[ -d ".claude/framework" ]        && print_ok "Claude Dev Framework" || warn "Claude Dev Framework not installed"
+[ -d ".claude/framework" ]        && print_ok "Development Guardrails for Claude Code" || warn "Development Guardrails for Claude Code not installed"
 
 if [ -f ".claude/framework-version.txt" ]; then
   local_sha=$(cat .claude/framework-version.txt)

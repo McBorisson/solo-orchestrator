@@ -335,7 +335,7 @@ After walkthrough, re-resolve and re-display for final confirmation.
 
 ### Superpowers Plugin
 
-Promoted from "warn if missing" to the `auto_install` bucket in `common.json`. Install command: `claude plugins add superpowers`. Offered every time if not detected, same as Claude Dev Framework.
+Promoted from "warn if missing" to the `auto_install` bucket in `common.json`. Install command: `claude plugins add superpowers`. Offered every time if not detected, same as Development Guardrails.
 
 ---
 
@@ -421,7 +421,7 @@ Claude reads this during Phase 1 to understand the available tooling without par
 ## 8. What Does NOT Change
 
 - **Phase 1 prerequisites check** — Git, Node.js, jq, Docker, GPG checks remain as-is (these are universal dev machine prerequisites, not project-specific tools)
-- **Claude Dev Framework installation** — stays in `create_project()`, separate from the tool matrix
+- **Development Guardrails installation** — stays in `create_project()`, separate from the tool matrix
 - **Project creation flow** — copy docs, generate CLAUDE.md, generate pipelines, etc. are unchanged
 - **Intake suggestion files** — `templates/intake-suggestions/*.json` are unrelated and unchanged
 
