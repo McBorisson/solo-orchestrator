@@ -299,6 +299,7 @@ collect_project_info() {
   available_platforms+=("other")
 
   PLATFORM=$(prompt_choice "Platform type:" "${available_platforms[@]}")
+  PLATFORM="${PLATFORM#"${PLATFORM%%[![:space:]]*}"}"
 
   echo ""
   echo -e "  ${BOLD}Project Tracks:${NC}"
@@ -307,6 +308,7 @@ collect_project_info() {
   echo "    Full     — Enterprise buyers, sensitive data. Pen testing, legal review mandatory."
   echo ""
   TRACK=$(prompt_choice "Project track:" "light" "standard" "full")
+  TRACK="${TRACK#"${TRACK%%[![:space:]]*}"}"
 
   echo ""
   echo -e "  ${BOLD}Deployment Context:${NC}"
@@ -325,6 +327,7 @@ collect_project_info() {
     read -rp "$(echo -e "  ${BOLD}Continue with Full track? [y/N]${NC}: ")" confirm_full
     if [[ ! "$confirm_full" =~ ^[Yy] ]]; then
       TRACK=$(prompt_choice "Project track:" "light" "standard" "full")
+      TRACK="${TRACK#"${TRACK%%[![:space:]]*}"}"
     fi
   fi
 
@@ -366,6 +369,7 @@ collect_project_info() {
       fi
       echo ""
       TRACK=$(prompt_choice "Select a track:" "standard" "full")
+      TRACK="${TRACK#"${TRACK%%[![:space:]]*}"}"
       print_ok "Track upgraded to $TRACK"
     fi
 
@@ -389,6 +393,7 @@ collect_project_info() {
   available_languages+=("other")
 
   LANGUAGE=$(prompt_choice "Primary language:" "${available_languages[@]}")
+  LANGUAGE="${LANGUAGE#"${LANGUAGE%%[![:space:]]*}"}"
 
   if [ "$LANGUAGE" = "other" ]; then
     print_warn "The 'other' language template includes placeholder CI steps that intentionally"
@@ -1249,11 +1254,11 @@ PERMEOF
       # Run the framework's init with:
       #   --prepopulate: skip interactive discovery interview (v4.0.0+)
       #   --skip-plugin-check: Superpowers/Context7 already checked above
-      # Use /dev/tty for stdin so interactive prompts (Proceed?, profile detection)
-      # are visible and responsive. Piping stdin makes read -rp prompts invisible.
+      # Pipe the profile name for profile detection. The CDF handles non-terminal
+      # stdin gracefully: auto-proceeds on "Proceed?", skips optional installs.
       print_info "Running Development Guardrails init..."
-      (cd "$PROJECT_DIR" && bash "$FRAMEWORK_CLONE/scripts/init.sh" \
-        --prepopulate "$discovery_tmp" --skip-plugin-check < /dev/tty 2>&1) || {
+      (cd "$PROJECT_DIR" && echo "$fw_profile" | bash "$FRAMEWORK_CLONE/scripts/init.sh" \
+        --prepopulate "$discovery_tmp" --skip-plugin-check 2>&1) || {
         print_warn "Development Guardrails init encountered an issue."
         print_warn "You can run it manually later: bash ~/.claude-dev-framework/scripts/init.sh"
       }

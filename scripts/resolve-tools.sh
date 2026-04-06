@@ -186,14 +186,18 @@ while IFS=$'\t' read -r TOOL_NAME TOOL_CATEGORY TOOL_PHASE TOOL_REQUIRED TOOL_CH
   fi
 
   # Check if already installed
+  # Temporarily disable set -u: tool check_commands may reference env vars
+  # (e.g., $ANDROID_HOME) that are legitimately unset on this system.
   INSTALLED=false
   VERSION=""
+  set +u
   if eval "$TOOL_CHECK" &>/dev/null 2>&1; then
     INSTALLED=true
     if [ -n "$TOOL_VERSION_CMD" ]; then
       VERSION=$(eval "$TOOL_VERSION_CMD" 2>/dev/null || echo "")
     fi
   fi
+  set -u
 
   if [ "$INSTALLED" = true ]; then
     ALREADY_INSTALLED=$(echo "$ALREADY_INSTALLED" | jq \
@@ -258,13 +262,16 @@ for i in $(seq 0 $((ADDITION_COUNT - 1))); do
   ADD_CHECK=$(echo "$ADD_JSON" | jq -r '.check_command // ""')
   ADD_DESC=$(echo "$ADD_JSON" | jq -r '.description // ""')
 
+  set +u
   if [ -n "$ADD_CHECK" ] && eval "$ADD_CHECK" &>/dev/null 2>&1; then
+    set -u
     ALREADY_INSTALLED=$(echo "$ALREADY_INSTALLED" | jq \
       --arg name "$ADD_NAME" \
       --arg category "$ADD_CATEGORY" \
       --arg version "custom" \
       '. + [{name: $name, category: $category, version: $version}]')
   else
+    set -u
     MANUAL_INSTALL=$(echo "$MANUAL_INSTALL" | jq \
       --arg name "$ADD_NAME" \
       --arg category "$ADD_CATEGORY" \

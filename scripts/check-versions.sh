@@ -195,10 +195,15 @@ for i in $(seq 0 $((TOOL_COUNT - 1))); do
   fi
 
   # Check if installed
+  # Disable set -u: check_commands may reference env vars (e.g., $ANDROID_HOME)
+  # that are legitimately unset on this system.
+  set +u
   if ! eval "$CHECK_CMD" &>/dev/null 2>&1; then
+    set -u
     print_warn "$NAME: not installed"
     continue
   fi
+  set -u
 
   # Get installed version
   INSTALLED=""
