@@ -1958,11 +1958,22 @@ print_next_steps() {
   echo "     └─────────────────────────────────────────────────────────────────┘"
   echo ""
 
-  # Show dependency status and remaining optional enhancements
-  # Collect status for each dependency
+  # Show full dependency status
   local _installed=() _failed=() _later=()
 
-  # Development Guardrails for Claude Code
+  # Core tools — check each directly
+  command -v git &>/dev/null && _installed+=("Git $(git --version | awk '{print $3}')") || _failed+=("Git — not found")
+  command -v jq &>/dev/null && _installed+=("jq $(jq --version 2>/dev/null)") || _failed+=("jq — not found")
+  command -v node &>/dev/null && _installed+=("Node.js $(node --version 2>/dev/null)") || _failed+=("Node.js — not found")
+  command -v docker &>/dev/null && _installed+=("Docker $(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',')") || true
+
+  # Security tools
+  command -v semgrep &>/dev/null && _installed+=("Semgrep (SAST)") || _failed+=("Semgrep — run: brew install semgrep")
+  command -v gitleaks &>/dev/null && _installed+=("gitleaks (secret detection)") || _failed+=("gitleaks — run: brew install gitleaks")
+  command -v snyk &>/dev/null && _installed+=("Snyk CLI (dependency scanning)") || _failed+=("Snyk CLI — run: npm install -g snyk && snyk auth")
+  command -v lighthouse &>/dev/null && _installed+=("Lighthouse (performance auditing)") || true
+
+  # Development Guardrails
   if [ -f "$PROJECT_DIR/.claude/manifest.json" ]; then
     _installed+=("Development Guardrails for Claude Code (Git hook guardrails)")
   elif [ -d "$HOME/.claude-dev-framework/.git" ]; then
@@ -2001,12 +2012,12 @@ print_next_steps() {
   # Per-project Qdrant collection override
   if [ -f "$PROJECT_DIR/.claude/settings.local.json" ]; then
     _installed+=("Qdrant project collection ($PROJECT_NAME)")
-  elif [ "$_qd_mcp" = true ]; then
+  elif is_qdrant_mcp_registered; then
     _later+=("Qdrant project collection — will be configured on next init or manually")
   fi
 
   # Display sections
-  echo "  INSTALLED DEPENDENCIES:"
+  echo "  INSTALLED DEPENDENCIES (${#_installed[@]} tools):"
   if [ ${#_installed[@]} -gt 0 ]; then
     for item in "${_installed[@]}"; do
       echo "     ✓ $item"
