@@ -462,11 +462,38 @@ The agent works autonomously between decision gates. It reads your Intake, follo
 
 **When the agent proposes something outside the Intake:** Push back. The Intake is the governing constraint. If the agent suggests a feature not in the MVP Cutline, a technology you excluded, or an architecture that contradicts your hard constraints, tell it to stop and reference the specific Intake section. The agent should not override your decisions without your explicit consent.
 
+### Session-Start Version Check
+
+Every session begins with a tooling health check. The agent runs `scripts/check-versions.sh`, which reads the tool matrix and checks every installed tool against its minimum version and the latest available version. This catches drift that accumulates between sessions — especially if weeks or months pass between work.
+
+The version checker handles different tool types automatically via data-driven `update_check` strategies in the tool matrix:
+
+| Strategy | Tools | What It Does |
+|---|---|---|
+| Standard version comparison | Git, Node, Semgrep, gitleaks, Snyk, Claude Code, jq, Colima | Compares installed version to minimum and latest available |
+| `git_repo` | Development Guardrails for Claude Code | Fetches the remote and reports how many commits you are behind |
+| `ephemeral` | Context7 MCP, Qdrant MCP | Reports "auto-updates" — these tools run via `npx`/`uvx` which always fetches the latest |
+| `claude_plugin` | Superpowers | Reports "managed by Claude Code" — Claude handles plugin updates internally |
+| `docker_image` | (Future: Qdrant container) | Compares running container image digest to the latest available |
+
+If tools are out of date, the script offers interactive update options:
+- **Update all** — runs update commands for every outdated tool
+- **Select which to update** — choose specific tools by number
+- **Skip** — prints the manual update commands for later
+
+**Critical rule:** The agent will not proceed with Phase 2+ work if any required security tool (Semgrep, gitleaks, Snyk) is below its minimum version. This prevents building against outdated security scanning.
+
+#### Extending the Version Check
+
+The version check is data-driven through the tool matrix (`templates/tool-matrix/common.json` and platform-specific files). If you swap a tool (e.g., replace Qdrant with Supabase), update the tool matrix entry — `check-versions.sh` reads the `update_check` method and handles it automatically. No script changes required.
+
+To add a new `update_check` type, add a handler case in the `check_for_update()` function in `scripts/check-versions.sh`.
+
 ### Session Management
 
 AI coding agents have context limits. For long-running projects:
 
-- **Start each session** by pointing the agent to `CLAUDE.md` (read automatically), then provide the `PROJECT_BIBLE.md` and relevant source files for context.
+- **Start each session** by pointing the agent to `CLAUDE.md` (read automatically), then provide the `PROJECT_BIBLE.md` and relevant source files for context. The agent runs `scripts/check-versions.sh` automatically and reports any outdated tools before proceeding.
 - **End each session** by confirming what was completed and what remains. The agent should update the Bible and CHANGELOG.md before you close.
 - **Between sessions**, the agent does not retain state unless you have configured Qdrant MCP for persistent semantic memory. Without it, every session starts fresh with the Bible as context.
 - **If a session goes poorly** (low-quality output, hallucinations, context drift), end it and start fresh. Do not try to steer a confused agent back on track — it is faster to restart.
@@ -1032,6 +1059,7 @@ After launch, you are the operations team. Schedule these activities.
 - Review error dashboard — are there recurring errors?
 - Check monitoring alerts — any unresolved notifications?
 - Quick application health check — does the core flow still work?
+- When starting a development session: the agent runs `scripts/check-versions.sh` automatically — review the results and update any flagged tools before proceeding
 - When starting a development session: run `bash scripts/resume.sh` to generate a context-aware resume prompt from your project's current state
 
 ### Monthly (1-2 hours)
@@ -1056,6 +1084,7 @@ After launch, you are the operations team. Schedule these activities.
 - Re-run Phase 3 security and performance audit
 - Verify AI provider terms have not changed in ways that affect compliance
 - Review platform requirements (SDK versions, OS support, app store policies)
+- Update the solo-orchestrator clone (`cd ~/solo-orchestrator && git pull`) and run `bash scripts/check-updates.sh` from your project to see if framework documents have changed upstream
 - **(Organizational)** Insurance/AI terms verification with broker and legal
 
 Expect 2-4 hours/week for the first 3 months post-launch. It stabilizes to 1-2 hours/week (50-80 hours/year per application). Maintenance is bursty — a security advisory can consume a full day, and then nothing happens for two weeks.

@@ -150,7 +150,8 @@ reconfigure() {
         python)                ci_template="python.yml" ;;
         rust)                  ci_template="rust.yml" ;;
         csharp)                ci_template="csharp.yml" ;;
-        kotlin|java)           ci_template="jvm.yml" ;;
+        kotlin)                ci_template="kotlin.yml" ;;
+        java)                  ci_template="java.yml" ;;
         go)                    ci_template="go.yml" ;;
         dart)                  ci_template="dart.yml" ;;
         swift)                 ci_template="swift.yml" ;;

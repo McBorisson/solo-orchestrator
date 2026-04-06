@@ -1,3 +1,4 @@
+# solo-orchestrator: platforms=web,desktop
 name: CI
 
 on:
