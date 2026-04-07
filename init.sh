@@ -1052,7 +1052,8 @@ create_project() {
   cp "$SCRIPT_DIR/scripts/test-gate.sh" scripts/
   cp "$SCRIPT_DIR/scripts/check-versions.sh" scripts/
   cp "$SCRIPT_DIR/scripts/session-version-check.sh" scripts/
-  chmod +x scripts/validate.sh scripts/check-phase-gate.sh scripts/check-updates.sh scripts/resume.sh scripts/intake-wizard.sh scripts/resolve-tools.sh scripts/upgrade-project.sh scripts/reconfigure-project.sh scripts/verify-install.sh scripts/test-gate.sh scripts/check-versions.sh scripts/session-version-check.sh
+  cp "$SCRIPT_DIR/scripts/session-test-gate-check.sh" scripts/
+  chmod +x scripts/validate.sh scripts/check-phase-gate.sh scripts/check-updates.sh scripts/resume.sh scripts/intake-wizard.sh scripts/resolve-tools.sh scripts/upgrade-project.sh scripts/reconfigure-project.sh scripts/verify-install.sh scripts/test-gate.sh scripts/check-versions.sh scripts/session-version-check.sh scripts/session-test-gate-check.sh
 
   # Copy intake suggestion files
   mkdir -p templates/intake-suggestions
@@ -1334,21 +1335,30 @@ PERMEOF
         print_warn "Run manually: bash ~/.claude-dev-framework/scripts/init.sh"
       fi
 
-      # Add version check hook to SessionStart (after CDF hooks are in place)
+      # Add orchestrator hooks to SessionStart (after CDF hooks are in place)
       if [ -f ".claude/settings.json" ] && command -v jq &>/dev/null; then
-        local version_hook='bash "$CLAUDE_PROJECT_DIR"/scripts/check-versions.sh'
-        # Check if SessionStart exists and doesn't already have our hook
+        local hooks_added=false
+        # Add version check hook
         if jq -e '.hooks.SessionStart' .claude/settings.json >/dev/null 2>&1; then
-          if ! jq -e '.hooks.SessionStart[0].hooks[] | select(.command | contains("check-versions.sh"))' .claude/settings.json >/dev/null 2>&1; then
+          if ! jq -e '.hooks.SessionStart[0].hooks[] | select(.command | contains("session-version-check.sh"))' .claude/settings.json >/dev/null 2>&1; then
             jq '.hooks.SessionStart[0].hooks += [{"type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/session-version-check.sh"}]' .claude/settings.json > .claude/settings.json.tmp \
               && mv .claude/settings.json.tmp .claude/settings.json
+            hooks_added=true
           fi
         else
-          # No SessionStart hook at all — add one
-          jq '.hooks.SessionStart = [{"hooks": [{"type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/check-versions.sh"}]}]' .claude/settings.json > .claude/settings.json.tmp \
+          jq '.hooks.SessionStart = [{"hooks": [{"type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/session-version-check.sh"}]}]' .claude/settings.json > .claude/settings.json.tmp \
             && mv .claude/settings.json.tmp .claude/settings.json
+          hooks_added=true
         fi
-        print_ok "Session-start version check hook installed"
+        # Add test gate check hook
+        if ! jq -e '.hooks.SessionStart[0].hooks[] | select(.command | contains("session-test-gate-check.sh"))' .claude/settings.json >/dev/null 2>&1; then
+          jq '.hooks.SessionStart[0].hooks += [{"type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/session-test-gate-check.sh"}]' .claude/settings.json > .claude/settings.json.tmp \
+            && mv .claude/settings.json.tmp .claude/settings.json
+          hooks_added=true
+        fi
+        if [ "$hooks_added" = true ]; then
+          print_ok "Session-start hooks installed (version check, test gate)"
+        fi
       fi
     fi
   fi
