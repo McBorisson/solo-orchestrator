@@ -9,6 +9,14 @@ set -euo pipefail
 #   scripts/check-versions.sh       # Full check + update prompt
 #   scripts/check-versions.sh --help
 
+# Prefer brew-installed tools over system defaults (e.g., macOS ships
+# outdated Python, Git, Ruby at /usr/bin). This ensures version checks
+# find the user-installed version, not the Xcode/system stub.
+BREW_PREFIX="$(brew --prefix 2>/dev/null || true)"
+if [ -n "$BREW_PREFIX" ] && [ -d "$BREW_PREFIX/bin" ]; then
+  export PATH="$BREW_PREFIX/bin:$PATH"
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$SCRIPT_DIR/lib/helpers.sh" ]; then
   source "$SCRIPT_DIR/lib/helpers.sh"
@@ -244,6 +252,14 @@ if [ -n "$LANGUAGE" ]; then
     .languages == null or
     (.languages | index("all")) != null or
     (.languages | index($lang)) != null
+  )]')
+fi
+
+# Filter by track (skip tools that require a higher track)
+if [ -n "$TRACK" ]; then
+  ALL_TOOLS=$(echo "$ALL_TOOLS" | jq --arg track "$TRACK" '[.[] | select(
+    .tracks == null or
+    (.tracks | index($track)) != null
   )]')
 fi
 
