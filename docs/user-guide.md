@@ -116,6 +116,25 @@ The framework has three tiers of control, plus an intermediate tier for CI-based
 | `SOIF_STRICT_CHANGELOG=true` | Changelog check blocks CI |
 | `SOIF_STRICT_SESSION=true` | Session freshness check blocks CI |
 
+### Process Enforcement (Tier 2)
+
+The framework mechanically enforces sequential process compliance through a state machine and commit gating system. Four processes are gated:
+
+1. **Build Loop** (Phase 2) — tests → verify failing → implement → security audit → documentation → record feature. Each step must be completed in order. Source commits are blocked until all steps pass.
+2. **UAT Session** (Phase 2) — 9-step testing flow from dispatching test agents through gate passage. Bug fix commits are blocked until the full session checklist is complete.
+3. **Phase 3 Validation** — all 6 validation types (integration, security, chaos, accessibility, performance, contract) must be completed and results archived.
+4. **Phase 4 Release** — rollback must be tested before go-live verification. All 5 release steps required.
+
+The agent calls `scripts/process-checklist.sh --complete-step PROCESS:STEP` to advance through each process. A PreToolUse hook on `git commit` and `gh pr create` blocks when required steps are incomplete.
+
+**What the Orchestrator sees:** When the agent attempts a commit with incomplete steps, Claude Code displays the block reason — for example: "Build Loop step 'security_audit' not completed. Run: scripts/process-checklist.sh --complete-step build_loop:security_audit". The agent must complete the missing step before the commit will be allowed.
+
+**Tool usage tracking:** During Phase 2, the framework tracks whether the agent consulted Context7 (library documentation) and Qdrant (persistent memory). Warnings appear at commit time if Context7 hasn't been used in 2+ commits, and at session end if Qdrant was never used despite source commits being made. These are warnings, not blocks.
+
+**Emergency escape:** If the enforcement system blocks a legitimate action due to a bug or edge case, the Orchestrator (not the agent) can run `scripts/process-checklist.sh --reset PROCESS` to clear the state for one process, or `--reset-all` to clear everything. Resets are logged.
+
+**Check current state:** Run `scripts/process-checklist.sh --status` to see where each process stands — which steps are completed and which remain.
+
 ### Time Commitment
 
 From the Builder's Guide:

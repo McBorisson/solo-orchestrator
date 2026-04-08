@@ -4,6 +4,22 @@
 # Only outputs when something needs attention.
 set -euo pipefail
 
+# Reset tool usage tracking for new session
+TOOL_USAGE=".claude/tool-usage.json"
+if command -v jq &>/dev/null; then
+  SESSION_ID=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  mkdir -p .claude
+  cat > "$TOOL_USAGE" << TUEOF
+{
+  "session_id": "$SESSION_ID",
+  "calls": [],
+  "commits_since_last_context7": 0,
+  "qdrant_find_called": false,
+  "qdrant_store_called": false
+}
+TUEOF
+fi
+
 PHASE_STATE=".claude/phase-state.json"
 BUILD_PROGRESS=".claude/build-progress.json"
 
