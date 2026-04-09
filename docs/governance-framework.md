@@ -166,6 +166,7 @@ The Orchestrator cannot approve their own work at every gate. The following appr
 | **Pre-Phase 0** | IT Security | AI deployment path (commercial terms, data handling) | Written approval (email, ticket, or signed document) |
 | **Phase 0 → Phase 1** | Project Sponsor (business owner) | Business justification, resource allocation, opportunity cost acceptance, compliance screening | Signed-off Phase 0 artifacts + compliance screening matrix |
 | **Phase 1 → Phase 2** | Senior Technical Authority (architect, engineering lead, or IT security) | Architecture selection, security posture, data classification | Written approval of Project Bible |
+| **Phase 2 → Phase 3** | Orchestrator (personal) / Senior Technical Authority (organizational) | All MVP features built, test suite passing, no open SEV-1/2 bugs, documentation current | Bug gate report, FEATURES.md vs MVP Cutline reconciliation, CI green |
 | **Phase 3 → Phase 4** | Application Owner + IT Security | Go-live readiness, risk acceptance, insurance confirmation | Security scan results, pen test (if required), go-live checklist |
 
 **Audit evidence:** Phase gate approvals must be recorded as signed-off evidence — an email approval, a ticket state change, or a document approval with date and approver identity. The existence of an artifact alone is not sufficient evidence of approval. An internal auditor or board inquiry must be able to trace who approved what, when.

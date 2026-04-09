@@ -25,6 +25,7 @@ PROCESS_STATE=".claude/process-state.json"
 PHASE_STATE=".claude/phase-state.json"
 
 # --- Step sequences ---
+PHASE1_STEPS=(architecture_selected threat_model_complete data_model_defined ui_scaffolding_done bible_synthesized)
 BUILD_LOOP_STEPS=(tests_written tests_verified_failing implemented security_audit documentation_updated feature_recorded)
 UAT_STEPS=(agents_dispatched template_generated orchestrator_notified results_received completeness_verified bugs_consolidated triage_complete remediation_complete gate_passed)
 PHASE3_STEPS=(integration_testing security_hardening chaos_testing accessibility_audit performance_audit contract_testing results_archived pre_launch_preparation legal_review)
@@ -40,6 +41,7 @@ while [ $# -gt 0 ]; do
     --start-feature)    ACTION="start-feature";    ARG_VALUE="$2"; shift 2 ;;
     --complete-step)    ACTION="complete-step";     ARG_VALUE="$2"; shift 2 ;;
     --start-uat)        ACTION="start-uat";         ARG_VALUE="$2"; shift 2 ;;
+    --start-phase1)     ACTION="start-phase1";      shift ;;
     --start-phase3)     ACTION="start-phase3";      shift ;;
     --start-phase4)     ACTION="start-phase4";      shift ;;
     --verify-init)      ACTION="verify-init";       shift ;;
@@ -99,6 +101,7 @@ EOF
 get_steps_for_process() {
   local process="$1"
   case "$process" in
+    phase1_architecture) echo "${PHASE1_STEPS[@]}" ;;
     build_loop)         echo "${BUILD_LOOP_STEPS[@]}" ;;
     uat_session)        echo "${UAT_STEPS[@]}" ;;
     phase3_validation)  echo "${PHASE3_STEPS[@]}" ;;
@@ -120,6 +123,22 @@ step_is_completed() {
 }
 
 # --- Actions ---
+
+start_phase1() {
+  ensure_state_file
+  local now
+  now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  # Add phase1_architecture to process state if not present
+  if ! jq -e '.phase1_architecture' "$PROCESS_STATE" >/dev/null 2>&1; then
+    jq --arg now "$now" '.phase1_architecture = {"steps_completed": [], "started_at": $now}' "$PROCESS_STATE" > "$PROCESS_STATE.tmp" && mv "$PROCESS_STATE.tmp" "$PROCESS_STATE"
+  else
+    jq --arg now "$now" '.phase1_architecture.steps_completed = [] | .phase1_architecture.started_at = $now' "$PROCESS_STATE" > "$PROCESS_STATE.tmp" && mv "$PROCESS_STATE.tmp" "$PROCESS_STATE"
+  fi
+
+  print_ok "Phase 1 architecture planning started"
+  print_info "Next step: scripts/process-checklist.sh --complete-step phase1_architecture:architecture_selected"
+}
 
 start_feature() {
   ensure_state_file
@@ -273,11 +292,83 @@ complete_step() {
         artifact_check_failed=true
       fi
       ;;
+    phase4_release:monitoring_configured)
+      # P4-001: Monitoring must be verified (trigger test error)
+      if [ -f "HANDOFF.md" ]; then
+        if ! grep -qi "monitoring\|error tracking\|sentry\|crashlytics\|uptimerobot" HANDOFF.md 2>/dev/null; then
+          print_warn "HANDOFF.md does not document monitoring configuration."
+          echo "  Document monitoring tool, dashboard URL, and alert channel in HANDOFF.md Section 8." >&2
+          artifact_check_failed=true
+        fi
+      else
+        print_warn "HANDOFF.md not found — monitoring configuration should be documented there."
+        artifact_check_failed=true
+      fi
+      ;;
+    phase4_release:handoff_tested)
+      # P4-002: Handoff test must produce results
+      if ! ls docs/test-results/*handoff* 2>/dev/null | head -1 >/dev/null 2>&1; then
+        print_warn "No handoff test results found in docs/test-results/."
+        echo "  Have a backup maintainer test the handoff procedure." >&2
+        echo "  Save results: docs/test-results/YYYY-MM-DD_handoff-test.md" >&2
+        artifact_check_failed=true
+      fi
+      ;;
+    phase3_validation:legal_review)
+      # P3-002: Attorney review must have evidence
+      local has_legal_evidence=false
+      # Check for attorney review entry in APPROVAL_LOG.md
+      if [ -f "APPROVAL_LOG.md" ] && grep -qi "attorney\|legal review" APPROVAL_LOG.md 2>/dev/null; then
+        has_legal_evidence=true
+      fi
+      # Check for Privacy Policy or Terms of Service
+      if [ -f "PRIVACY_POLICY.md" ] || [ -f "TERMS_OF_SERVICE.md" ] || [ -f "privacy-policy.md" ]; then
+        has_legal_evidence=true
+      fi
+      # If the project has no data collection, legal review may be N/A
+      if [ "$has_legal_evidence" = false ]; then
+        print_warn "No evidence of legal review found (APPROVAL_LOG.md attorney entry or legal documents)."
+        echo "  If attorney review is required: record in APPROVAL_LOG.md (Attorney / Legal Review section)." >&2
+        echo "  If not applicable (no data collection): use SOIF_FORCE_STEP=true with documented rationale." >&2
+        artifact_check_failed=true
+      fi
+      ;;
+    phase3_validation:integration_testing)
+      # P3-008: Integration test results should exist
+      if ! ls tests/ docs/test-results/*integration* docs/test-results/*e2e* 2>/dev/null | head -1 >/dev/null 2>&1; then
+        print_warn "No integration/E2E test results found."
+        artifact_check_failed=true
+      fi
+      ;;
+    phase3_validation:accessibility_audit)
+      # P3-008: Accessibility audit results should exist
+      if ! ls docs/test-results/*accessibility* docs/test-results/*lighthouse* 2>/dev/null | head -1 >/dev/null 2>&1; then
+        print_warn "No accessibility audit results found in docs/test-results/."
+        artifact_check_failed=true
+      fi
+      ;;
+    phase3_validation:performance_audit)
+      # P3-008: Performance audit results should exist
+      if ! ls docs/test-results/*performance* docs/test-results/*lighthouse* 2>/dev/null | head -1 >/dev/null 2>&1; then
+        print_warn "No performance audit results found in docs/test-results/."
+        artifact_check_failed=true
+      fi
+      ;;
   esac
 
   if [ "$artifact_check_failed" = true ]; then
     if [ "${SOIF_FORCE_STEP:-}" = "true" ]; then
-      # Force override — log to audit trail
+      # Force override requires interactive terminal (blocks agent bypass)
+      if [ ! -t 0 ]; then
+        print_fail "SOIF_FORCE_STEP requires interactive terminal. The Orchestrator must run this directly."
+        echo "  Run in your terminal: SOIF_FORCE_STEP=true scripts/process-checklist.sh --complete-step ${process}:${step_id}" >&2
+        exit 1
+      fi
+      read -rp "Force-complete '${step_id}' without artifact? This is logged. [y/N]: " force_confirm
+      if [[ ! "$force_confirm" =~ ^[Yy]$ ]]; then
+        print_info "Force cancelled."
+        exit 0
+      fi
       local now_force
       now_force=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
       mkdir -p .claude
@@ -285,7 +376,8 @@ complete_step() {
       print_warn "Step forced without artifact — logged to .claude/process-audit.log"
     else
       print_fail "Artifact check failed. Produce the required artifact first."
-      echo "  To force-override (logged): SOIF_FORCE_STEP=true scripts/process-checklist.sh --complete-step ${process}:${step_id}" >&2
+      echo "  To force-override (Orchestrator only, logged):" >&2
+      echo "  SOIF_FORCE_STEP=true scripts/process-checklist.sh --complete-step ${process}:${step_id}" >&2
       exit 1
     fi
   fi
@@ -473,7 +565,7 @@ verify_init() {
   if [ "$prereq_done" -ge "$prereq_total" ]; then
     # All prerequisites met — auto-complete initialization_verified
     if ! step_is_completed "phase2_init" "initialization_verified"; then
-      add_step "phase2_init" "initialization_verified"
+      jq '.phase2_init.steps_completed += ["initialization_verified"] | .phase2_init.step = 7' "$PROCESS_STATE" > "$PROCESS_STATE.tmp" && mv "$PROCESS_STATE.tmp" "$PROCESS_STATE"
       auto_marked=$((auto_marked + 1))
       print_ok "initialization_verified — all prerequisite steps passed"
     fi
@@ -845,6 +937,7 @@ case "$ACTION" in
   start-feature)      start_feature "$ARG_VALUE" ;;
   complete-step)      complete_step "$ARG_VALUE" ;;
   start-uat)          start_uat "$ARG_VALUE" ;;
+  start-phase1)       start_phase1 ;;
   start-phase3)       start_phase3 ;;
   start-phase4)       start_phase4 ;;
   verify-init)        verify_init ;;

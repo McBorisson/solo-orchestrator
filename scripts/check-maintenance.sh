@@ -82,6 +82,27 @@ if [ -d "docs/test-results" ]; then
   fi
 fi
 
+# --- Biannual check: full security re-audit ---
+# Look for Phase 3-style security scan results within 185 days
+if [ -d "docs/test-results" ]; then
+  latest_security=$(ls -t docs/test-results/*semgrep* docs/test-results/*sast* 2>/dev/null | head -1 || echo "")
+  if [ -n "$latest_security" ]; then
+    scan_date=$(echo "$latest_security" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1 || echo "")
+    if [ -n "$scan_date" ]; then
+      last_epoch=$(date -j -f "%Y-%m-%d" "$scan_date" +%s 2>/dev/null || date -d "$scan_date" +%s 2>/dev/null || echo "0")
+      if [ "$last_epoch" -gt 0 ]; then
+        days_since=$(( (now_epoch - last_epoch) / 86400 ))
+        if [ "$days_since" -gt 185 ]; then
+          print_warn "Biannual security re-audit overdue: last full scan $days_since days ago (threshold: 185 days)"
+          overdue=$((overdue + 1))
+        else
+          print_ok "Security scan $days_since days ago (biannual cadence: current)"
+        fi
+      fi
+    fi
+  fi
+fi
+
 echo ""
 if [ "$overdue" -gt 0 ]; then
   echo -e "${YELLOW}${BOLD}$overdue maintenance cadence(s) overdue.${NC}"

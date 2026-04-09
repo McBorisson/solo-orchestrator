@@ -192,7 +192,7 @@ if [ "$deployment" = "organizational" ] && [ "$current_phase" -ge 0 ]; then
     # Full organizational — all 6 pre-conditions required
     if grep -q "Pre-Phase 0" "$APPROVAL_LOG" 2>/dev/null; then
       local_precond_count=$(grep -A 30 "Pre-Phase 0" "$APPROVAL_LOG" 2>/dev/null | grep -cE "[0-9]{4}-[0-9]{2}-[0-9]{2}" || echo "0")
-      if [ "$local_precond_count" -lt 3 ]; then
+      if [ "$local_precond_count" -lt 6 ]; then
         echo -e "${YELLOW}[WARN]${NC} Pre-Phase 0: Organizational deployment — only $local_precond_count pre-condition date(s) recorded (6 required)"
         issues=$((issues + 1))
       else
@@ -281,8 +281,8 @@ if [ "$current_phase" -ge 2 ]; then
     fi
     # Check key sections exist (numbered 1-16 per template)
     bible_sections=$(grep -cE "^## [0-9]+\." PROJECT_BIBLE.md 2>/dev/null || echo "0")
-    if [ "$bible_sections" -lt 10 ]; then
-      echo -e "${YELLOW}[WARN]${NC} PROJECT_BIBLE.md has only $bible_sections numbered sections (template specifies 16)"
+    if [ "$bible_sections" -lt 14 ]; then
+      echo -e "${YELLOW}[WARN]${NC} PROJECT_BIBLE.md has only $bible_sections numbered sections (template specifies 16, minimum 14)"
       issues=$((issues + 1))
     fi
   else
@@ -385,18 +385,50 @@ if [ "$current_phase" -ge 3 ]; then
     fi
   done
 
-  # Check docs/test-results/ is non-empty
+  # Check docs/test-results/ is non-empty (elevated to FAIL for Phase 3→4)
   if [ -d "docs/test-results" ]; then
     result_count=$(find docs/test-results -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')
     if [ "$result_count" -eq 0 ]; then
-      echo -e "${YELLOW}[WARN]${NC} Phase 3→4: docs/test-results/ is empty — archive Phase 3 scan results before proceeding"
+      echo -e "${RED}[FAIL]${NC} Phase 3→4: docs/test-results/ is empty — archive Phase 3 scan results before proceeding"
       issues=$((issues + 1))
     else
       echo -e "${GREEN}  [OK]${NC} docs/test-results/ has $result_count file(s)"
     fi
   else
-    echo -e "${YELLOW}[WARN]${NC} Phase 3→4: docs/test-results/ directory not found"
+    echo -e "${RED}[FAIL]${NC} Phase 3→4: docs/test-results/ directory not found"
     issues=$((issues + 1))
+  fi
+
+  # P4-013: SECURITY.md check (web/desktop/mobile with external users)
+  if [ -f "SECURITY.md" ]; then
+    echo -e "${GREEN}  [OK]${NC} SECURITY.md exists"
+  else
+    echo -e "${YELLOW}[WARN]${NC} Phase 3→4: SECURITY.md not found — required for production web/desktop/mobile apps"
+    issues=$((issues + 1))
+  fi
+
+  # P3-004: Penetration test check for Standard+ track
+  if [ "$track" = "standard" ] || [ "$track" = "full" ]; then
+    if ls docs/test-results/*pen-test* docs/test-results/*pentest* docs/test-results/*penetration* 2>/dev/null | head -1 >/dev/null 2>&1; then
+      echo -e "${GREEN}  [OK]${NC} Penetration test results found in docs/test-results/"
+    elif grep -qi "penetration.*exempted\|pen.*test.*exempted" APPROVAL_LOG.md 2>/dev/null; then
+      echo -e "${GREEN}  [OK]${NC} Penetration test exempted (recorded in APPROVAL_LOG.md)"
+    else
+      echo -e "${YELLOW}[WARN]${NC} Phase 3→4: No penetration test results or exemption found ($track track requires pen test)"
+      issues=$((issues + 1))
+    fi
+  fi
+
+  # P3-007: Cross-reference process-state.json for Phase 3 completion
+  if [ -f ".claude/process-state.json" ] && command -v jq &>/dev/null; then
+    local p3_steps_done
+    p3_steps_done=$(jq '.phase3_validation.steps_completed | length' .claude/process-state.json 2>/dev/null || echo "0")
+    if [ "$p3_steps_done" -ge 9 ]; then
+      echo -e "${GREEN}  [OK]${NC} Phase 3 process checklist: $p3_steps_done steps completed"
+    elif [ "$p3_steps_done" -gt 0 ]; then
+      echo -e "${YELLOW}[WARN]${NC} Phase 3 process checklist incomplete: $p3_steps_done/9 steps"
+      issues=$((issues + 1))
+    fi
   fi
 fi
 

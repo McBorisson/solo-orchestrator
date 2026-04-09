@@ -23,6 +23,22 @@ if [ -z "$COMMAND" ]; then
   exit 0
 fi
 
+# Block agent-initiated SOIF_FORCE_STEP bypass
+if echo "$COMMAND" | grep -qE 'SOIF_FORCE_STEP'; then
+  cat << HOOKEOF
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "SOIF_FORCE_STEP bypasses artifact checks and requires Orchestrator authorization. The Orchestrator must run this command directly in their terminal."}}
+HOOKEOF
+  exit 0
+fi
+
+# Block agent-initiated SOIF_PHASE_GATES=warn bypass
+if echo "$COMMAND" | grep -qE 'SOIF_PHASE_GATES'; then
+  cat << HOOKEOF
+{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "SOIF_PHASE_GATES modifies enforcement level and requires Orchestrator authorization. The Orchestrator must set this in their environment directly."}}
+HOOKEOF
+  exit 0
+fi
+
 # Block agent-initiated process resets
 if echo "$COMMAND" | grep -qE 'process-checklist\.sh.*--reset'; then
   cat << HOOKEOF
