@@ -263,7 +263,7 @@ complete_step() {
       ;;
     phase3_validation:security_hardening)
       # P3-008: Security hardening must produce scan results
-      if [ ! -d "docs/test-results" ] || ! ls docs/test-results/*semgrep* docs/test-results/*sast* 2>/dev/null | head -1 >/dev/null 2>&1; then
+      if [ ! -d "docs/test-results" ] || ! { ls docs/test-results/*semgrep* 2>/dev/null || ls docs/test-results/*sast* 2>/dev/null; } | head -1 >/dev/null 2>&1; then
         print_warn "No SAST scan results found in docs/test-results/."
         echo "  Run Semgrep and save results: docs/test-results/YYYY-MM-DD_semgrep_pass.json" >&2
         artifact_check_failed=true
@@ -347,21 +347,21 @@ complete_step() {
       ;;
     phase3_validation:integration_testing)
       # P3-008: Integration test results should exist
-      if ! ls tests/ docs/test-results/*integration* docs/test-results/*e2e* 2>/dev/null | head -1 >/dev/null 2>&1; then
+      if ! { ls tests/ 2>/dev/null || ls docs/test-results/*integration* 2>/dev/null || ls docs/test-results/*e2e* 2>/dev/null; } | head -1 >/dev/null 2>&1; then
         print_warn "No integration/E2E test results found."
         artifact_check_failed=true
       fi
       ;;
     phase3_validation:accessibility_audit)
       # P3-008: Accessibility audit results should exist
-      if ! ls docs/test-results/*accessibility* docs/test-results/*lighthouse* 2>/dev/null | head -1 >/dev/null 2>&1; then
+      if ! { ls docs/test-results/*accessibility* 2>/dev/null || ls docs/test-results/*lighthouse* 2>/dev/null; } | head -1 >/dev/null 2>&1; then
         print_warn "No accessibility audit results found in docs/test-results/."
         artifact_check_failed=true
       fi
       ;;
     phase3_validation:performance_audit)
       # P3-008: Performance audit results should exist
-      if ! ls docs/test-results/*performance* docs/test-results/*lighthouse* 2>/dev/null | head -1 >/dev/null 2>&1; then
+      if ! { ls docs/test-results/*performance* 2>/dev/null || ls docs/test-results/*lighthouse* 2>/dev/null; } | head -1 >/dev/null 2>&1; then
         print_warn "No performance audit results found in docs/test-results/."
         artifact_check_failed=true
       fi
@@ -402,6 +402,12 @@ complete_step() {
   " "$PROCESS_STATE" > "$PROCESS_STATE.tmp" && mv "$PROCESS_STATE.tmp" "$PROCESS_STATE"
 
   print_ok "Step '$step_id' completed for $process ($new_step_num/${#steps[@]})"
+
+  # Auto-set phase2_init.verified when all steps completed via --complete-step
+  if [ "$process" = "phase2_init" ] && [ "$new_step_num" -eq "${#steps[@]}" ]; then
+    jq '.phase2_init.verified = true' "$PROCESS_STATE" > "$PROCESS_STATE.tmp" && mv "$PROCESS_STATE.tmp" "$PROCESS_STATE"
+    print_ok "Phase 2 initialization auto-verified (all ${#steps[@]} steps complete)"
+  fi
 
   # Show next step if any
   local next_index=$((target_index + 1))
@@ -470,6 +476,19 @@ start_phase3() {
 
 start_phase4() {
   ensure_state_file
+
+  # Check POC mode — Phase 4 is blocked for POC projects
+  if [ -f "$PHASE_STATE" ]; then
+    local poc_mode
+    poc_mode=$(grep -o '"poc_mode"[[:space:]]*:[[:space:]]*"[^"]*"' "$PHASE_STATE" 2>/dev/null | sed 's/.*: *"//' | sed 's/"//' || echo "")
+    if [ -n "$poc_mode" ] && [ "$poc_mode" != "null" ]; then
+      print_fail "Phase 4 (production release) is blocked — project is in ${poc_mode//_/ } mode."
+      echo "  POC projects complete at Phase 3. To unlock Phase 4:" >&2
+      echo "  bash scripts/upgrade-project.sh --to-production" >&2
+      exit 1
+    fi
+  fi
+
   local now
   now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -521,7 +540,7 @@ verify_init() {
   fi
 
   # project_scaffolded: any common lockfile exists
-  local lockfiles=(package-lock.json Pipfile.lock poetry.lock Cargo.lock go.sum pubspec.lock Package.resolved)
+  local lockfiles=(package-lock.json yarn.lock pnpm-lock.yaml Pipfile.lock poetry.lock Cargo.lock go.sum pubspec.lock Package.resolved gradle.lockfile packages.lock.json)
   local found_lockfile=false
   for lf in "${lockfiles[@]}"; do
     if [ -f "$lf" ]; then

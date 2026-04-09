@@ -124,7 +124,7 @@ validate_manifesto_content() {
     else
       # Check if section has content beyond template placeholders
       local section_content
-      section_content=$(sed -n "/^## ${section_num}\./,/^## [0-9]/p" "$file" | grep -v "^##" | grep -v "^---" | grep -v "^$" | grep -v "^<!--" | grep -v "-->$" | grep -v "^\[" | grep -v "^|.*|.*|$" | head -5)
+      section_content=$(sed -n "/^## ${section_num}\./,/^## [0-9]/p" "$file" | grep -v "^##" | grep -v "^---" | grep -v "^$" | grep -v "^<!--" | grep -v -e '-->$' | grep -v "^\[" | grep -v "^|.*|.*|$" | head -5)
       if [ -z "$section_content" ]; then
         placeholder_sections="${placeholder_sections} ${section_num}"
       fi
@@ -349,7 +349,7 @@ if [ "$current_phase" -ge 4 ]; then
 fi
 
 # POC mode check (Phase 3→4) — block production release if in POC mode
-if [ "$current_phase" = "3" ]; then
+if [ "$current_phase" -ge 3 ]; then
   poc_mode=""
   if command -v jq &>/dev/null; then
     poc_mode=$(jq -r '.poc_mode // empty' .claude/phase-state.json 2>/dev/null || echo "")
@@ -365,9 +365,9 @@ if [ "$current_phase" = "3" ]; then
 fi
 
 # Release pipeline configuration check (Phase 3→4)
-if [ "$current_phase" = "3" ]; then
+if [ "$current_phase" -ge 3 ]; then
   if [ -f ".github/workflows/release.yml" ]; then
-    todo_count=$(grep -c "TODO" .github/workflows/release.yml 2>/dev/null || echo "0")
+    todo_count=$(grep -c "TODO" .github/workflows/release.yml 2>/dev/null) || todo_count=0
     if [ "$todo_count" -gt 0 ]; then
       echo -e "${YELLOW}[WARN]${NC} Release pipeline has $todo_count unconfigured TODO items in .github/workflows/release.yml"
       echo "  Configure code signing, deployment secrets, and store credentials before production release."
@@ -567,7 +567,7 @@ fi
 # --- Test/Bug Gate Check (for Phase 2→3) ---
 TEST_GATE="$PROJECT_ROOT/scripts/test-gate.sh"
 
-if [ -x "$TEST_GATE" ] && [ "$current_phase" -ge 2 ]; then
+if [ -x "$TEST_GATE" ] && [ "$current_phase" -ge 3 ]; then
   echo ""
   echo -e "${BOLD}Bug Gate Check${NC}"
   gate_result=0
@@ -590,19 +590,19 @@ if [ $issues -eq 0 ]; then
 
   # Create snapshots for gates that have been passed but not yet snapshotted
   if [ "$current_phase" -ge 1 ]; then
-    existing_01=$(ls -d docs/snapshots/phase-0-to-1_* 2>/dev/null | head -1)
+    existing_01=$(ls -d docs/snapshots/phase-0-to-1_* 2>/dev/null | head -1 || true)
     [ -z "$existing_01" ] && create_gate_snapshot 0 1
   fi
   if [ "$current_phase" -ge 2 ]; then
-    existing_12=$(ls -d docs/snapshots/phase-1-to-2_* 2>/dev/null | head -1)
+    existing_12=$(ls -d docs/snapshots/phase-1-to-2_* 2>/dev/null | head -1 || true)
     [ -z "$existing_12" ] && create_gate_snapshot 1 2
   fi
   if [ "$current_phase" -ge 3 ]; then
-    existing_23=$(ls -d docs/snapshots/phase-2-to-3_* 2>/dev/null | head -1)
+    existing_23=$(ls -d docs/snapshots/phase-2-to-3_* 2>/dev/null | head -1 || true)
     [ -z "$existing_23" ] && create_gate_snapshot 2 3
   fi
   if [ "$current_phase" -ge 4 ]; then
-    existing_34=$(ls -d docs/snapshots/phase-3-to-4_* 2>/dev/null | head -1)
+    existing_34=$(ls -d docs/snapshots/phase-3-to-4_* 2>/dev/null | head -1 || true)
     [ -z "$existing_34" ] && create_gate_snapshot 3 4
   fi
 

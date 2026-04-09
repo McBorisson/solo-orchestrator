@@ -121,7 +121,7 @@ phase=0
 phase_source="artifact inference"
 
 if [ -f ".claude/phase-state.json" ]; then
-  state_phase=$(grep -o '"current_phase"[[:space:]]*:[[:space:]]*[0-9]' .claude/phase-state.json | grep -o '[0-9]$' || echo "")
+  state_phase=$(grep -o '"current_phase"[[:space:]]*:[[:space:]]*"*[0-9][0-9]*"*' .claude/phase-state.json | grep -o '[0-9][0-9]*' || echo "")
   if [ -n "$state_phase" ]; then
     phase=$state_phase
     phase_source="phase-state.json"
