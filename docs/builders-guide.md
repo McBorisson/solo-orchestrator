@@ -84,9 +84,13 @@ The AI writes code. The human makes every decision, validates every output, and 
 
 ### Enforcement Model
 
-The framework's controls operate at three tiers. The **CI pipeline** (SAST, dependency audit, license check, secret detection, build, tests) provides mechanical enforcement — it blocks merges when checks fail. **Pre-commit hooks** (secret detection, SAST quick scan, test co-location) provide early warning on commit. **LLM instructions** (CLAUDE.md, this guide, the Project Bible) provide comprehensive guidance that the agent follows between decision gates, with the human as the review layer.
+The framework's controls operate at three tiers. The **CI pipeline** (SAST, dependency audit, license check, secret detection, build, tests, phase gate consistency, approval log integrity) provides mechanical enforcement — it blocks merges when checks fail. **Pre-commit hooks** (secret detection, SAST quick scan, test co-location) provide early warning on commit. **LLM instructions** (CLAUDE.md, this guide, the Project Bible) provide comprehensive guidance that the agent follows between decision gates, with the human as the review layer.
 
-Only the CI pipeline is a hard enforcement boundary. The hooks catch common mistakes. Everything else depends on the agent following instructions and the Orchestrator reviewing at decision gates. See the User Guide's "What Is Enforced vs. What Is Guided" section for the complete breakdown.
+**Process enforcement.** In addition to CI and pre-commit checks, a process checklist state machine (`scripts/process-checklist.sh`) mechanically enforces sequential step completion for the Build Loop, UAT sessions, and Phase 3/4 validation. The PreToolUse hook (`scripts/pre-commit-gate.sh`) blocks commits when checklist steps are incomplete. It also blocks `--no-verify` (security hook bypass), `--force` push (history overwrite), and unauthorized process resets. Reset operations require the Orchestrator to run the command directly in a terminal — the agent cannot invoke them. See the User Guide, Section "Process Enforcement," for the complete checklist sequences and enforcement points.
+
+**TDD enforcement timing.** The Build Loop enforces test-first ordering at commit time, not at file-write time. This is intentional: file-write gating would add latency to every Write/Edit operation and create false positives for utility files, configuration, and documentation. Commit-time enforcement ensures that when code reaches the repository, it has passed through the full Build Loop sequence — tests written, tests verified failing, implementation complete, security audit, documentation updated.
+
+Only the CI pipeline is a hard enforcement boundary. The process checklist and hooks provide strong mechanical enforcement within Claude Code sessions. Everything else depends on the agent following instructions and the Orchestrator reviewing at decision gates. See the User Guide's "What Is Enforced vs. What Is Guided" section for the complete breakdown.
 
 ---
 

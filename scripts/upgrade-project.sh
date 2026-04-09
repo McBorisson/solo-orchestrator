@@ -1241,4 +1241,16 @@ if [ -x "scripts/verify-install.sh" ]; then
   bash scripts/verify-install.sh || true
 fi
 
+# Run full project validation to surface new track requirements
+if [ -x "scripts/validate.sh" ]; then
+  echo ""
+  print_step "Running post-upgrade validation..."
+  if ! bash scripts/validate.sh; then
+    echo ""
+    print_warn "Post-upgrade validation found issues."
+    print_info "Review the output above and address any errors before continuing."
+    print_info "The upgrade itself completed successfully — validation checks new track requirements."
+  fi
+fi
+
 print_ok "Upgrade complete."

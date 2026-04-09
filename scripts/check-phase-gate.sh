@@ -248,6 +248,24 @@ if [ "$current_phase" -ge 3 ]; then
   fi
 fi
 
+# Review manifest check (Phase 3+)
+if [ "$current_phase" -ge 3 ]; then
+  MANIFEST="docs/eval-results/review-manifest.json"
+  if [ -f "$MANIFEST" ]; then
+    if command -v jq &>/dev/null; then
+      review_count=$(jq '.reviews | length' "$MANIFEST" 2>/dev/null || echo "0")
+      review_commit=$(jq -r '.commit // "unknown"' "$MANIFEST" 2>/dev/null)
+      echo -e "${GREEN}  [OK]${NC} Review manifest: $review_count review(s) recorded (commit: ${review_commit:0:8})"
+    else
+      echo -e "${GREEN}  [OK]${NC} Review manifest exists (install jq for details)"
+    fi
+  else
+    echo -e "${YELLOW}[WARN]${NC} No review manifest found (docs/eval-results/review-manifest.json)"
+    echo "  Run evaluation prompts before Phase 4: evaluation-prompts/Projects/run-reviews.sh"
+    issues=$((issues + 1))
+  fi
+fi
+
 # Check for reverse inconsistency: approval log has dates but phase state doesn't reflect them
 if [ "$current_phase" -lt 1 ] && [ -n "$gate_0_to_1" ]; then
   echo -e "${YELLOW}[WARN]${NC} Phase 0→1 gate has date $gate_0_to_1 but current_phase is still $current_phase"

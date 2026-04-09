@@ -130,6 +130,11 @@ echo "║     Project: ${PROJECT_DIR:0:34}$(printf '%*s' $((1)) '')║"
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
 
+# Capture provenance for review traceability
+COMMIT_HASH=$(cd "$PROJECT_DIR" && git rev-parse HEAD 2>/dev/null || echo "no-git")
+COMMIT_SHORT=$(cd "$PROJECT_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "no-git")
+REVIEW_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
 for num in "${TARGETS[@]}"; do
     if [[ ! -v "REVIEWERS[$num]" ]]; then
         echo "WARNING: Review $num does not exist. Valid: 1-6"
@@ -149,7 +154,22 @@ for num in "${TARGETS[@]}"; do
     # Compose the prompt
     "${REVIEW_DIR}/compose.sh" "$reviewer" "$MODULE" "$prompt_file"
 
+    # Append provenance instruction so the reviewer includes it in output
+    cat >> "$prompt_file" << PROVEOF
+
+---
+## Review Provenance (include this header verbatim in your output)
+
+| Field | Value |
+|---|---|
+| **Reviewed commit** | ${COMMIT_HASH} |
+| **Review timestamp** | ${REVIEW_TIMESTAMP} |
+| **Module** | ${MODULE} |
+| **Reviewer** | ${description} |
+PROVEOF
+
     echo "  Directory: $PROJECT_DIR"
+    echo "  Commit: $COMMIT_SHORT"
     echo "  Started: $(date)"
     echo "----------------------------------------------"
 
@@ -162,7 +182,49 @@ for num in "${TARGETS[@]}"; do
     echo ""
 done
 
+# --- Generate review manifest ---
+MANIFEST_DIR="$PROJECT_DIR/docs/eval-results"
+MANIFEST_FILE="$MANIFEST_DIR/review-manifest.json"
+mkdir -p "$MANIFEST_DIR"
+
+echo "Generating review manifest..."
+
+# Build manifest entries
+MANIFEST_ENTRIES=""
+for num in "${TARGETS[@]}"; do
+    if [[ ! -v "REVIEWERS[$num]" ]]; then
+        continue
+    fi
+
+    entry="${REVIEWERS[$num]}"
+    reviewer="${entry%%|*}"
+    description="${entry##*|}"
+
+    # Find the review output file
+    REVIEW_FILE="$PROJECT_DIR/${reviewer}-review-v1.md"
+    if [ -f "$REVIEW_FILE" ]; then
+        FILE_SHA=$(shasum -a 256 "$REVIEW_FILE" | cut -d' ' -f1)
+        MANIFEST_ENTRIES="${MANIFEST_ENTRIES}    {\"reviewer\": \"${description}\", \"file\": \"${reviewer}-review-v1.md\", \"sha256\": \"${FILE_SHA}\", \"commit\": \"${COMMIT_HASH}\", \"timestamp\": \"${REVIEW_TIMESTAMP}\"},"$'\n'
+    fi
+done
+
+# Write manifest (remove trailing comma)
+cat > "$MANIFEST_FILE" << MANEOF
+{
+  "framework_version": "1.0",
+  "module": "$MODULE",
+  "project_dir": "$PROJECT_DIR",
+  "generated_at": "$REVIEW_TIMESTAMP",
+  "commit": "$COMMIT_HASH",
+  "reviews": [
+$(echo "$MANIFEST_ENTRIES" | sed '$ s/,$//')
+  ]
+}
+MANEOF
+
 echo ""
 echo "All requested reviews complete."
 echo "Output files in: $PROJECT_DIR/"
 ls -la "$PROJECT_DIR"/*-review-v1.md 2>/dev/null || echo "(No review files found — check for errors above)"
+echo ""
+echo "Review manifest: $MANIFEST_FILE"

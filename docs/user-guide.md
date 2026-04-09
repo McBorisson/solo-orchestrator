@@ -1230,6 +1230,34 @@ The red team review is the most likely to find issues that automated scanners (S
 
 ---
 
+## Quick Reference — Scripts
+
+All scripts live in `scripts/` and can be run with `bash scripts/<name>.sh`. Scripts marked "Automatic" are registered as Claude Code hooks and run without manual invocation.
+
+| Script | Purpose | Invocation | Phase |
+|---|---|---|---|
+| `validate.sh` | Full project compliance validation | `bash scripts/validate.sh` | Any |
+| `verify-install.sh` | Installation health check + auto-fix | `bash scripts/verify-install.sh` | Any |
+| `check-phase-gate.sh` | Phase transition consistency + artifact checks | `bash scripts/check-phase-gate.sh` (also CI) | Any |
+| `process-checklist.sh` | Sequential step enforcement (Build Loop, UAT, Phase 3/4) | `bash scripts/process-checklist.sh --help` | 2+ |
+| `test-gate.sh` | Test interval enforcement + bug gate for phase transitions | `bash scripts/test-gate.sh --help` | 2+ |
+| `pre-commit-gate.sh` | Blocks commits when process steps incomplete | Automatic (PreToolUse hook) | 2+ |
+| `track-tool-usage.sh` | Logs Context7/Qdrant tool calls per session | Automatic (PostToolUse hook) | 2+ |
+| `session-version-check.sh` | Tool version check at session start | Automatic (SessionStart hook) | Any |
+| `session-test-gate-check.sh` | Test gate status + tool usage reset at session start | Automatic (SessionStart hook) | 2+ |
+| `session-end-qdrant-reminder.sh` | Qdrant storage reminder + tool usage summary | Automatic (Stop hook) | 2+ |
+| `check-changelog.sh` | CHANGELOG.md currency check | Automatic (CI) | 2+ |
+| `check-session-state.sh` | Session state freshness check | Automatic (CI) | 2+ |
+| `check-versions.sh` | Tool version comparison against minimums | `bash scripts/check-versions.sh` | Any |
+| `check-updates.sh` | Framework update availability check | `bash scripts/check-updates.sh` | Any |
+| `intake-wizard.sh` | Interactive project intake questionnaire | `bash scripts/intake-wizard.sh` | Pre-0 |
+| `upgrade-project.sh` | Track/deployment upgrade (Light→Standard, personal→org) | `bash scripts/upgrade-project.sh --help` | Any |
+| `reconfigure-project.sh` | Regenerate CLAUDE.md, Approval Log, .gitignore, CI | `bash scripts/reconfigure-project.sh --help` | Any |
+| `resolve-tools.sh` | Tool matrix resolution by platform/language/track/phase | `bash scripts/resolve-tools.sh --help` | Any |
+| `resume.sh` | Generate session resume context for copy/paste | `bash scripts/resume.sh` | Any |
+
+---
+
 ## Quick Reference — Common Issues
 
 | Issue | Detection Signal | Response |

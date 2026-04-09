@@ -277,6 +277,60 @@ check_git() {
   fi
 }
 
+check_hooks() {
+  print_step "Checking Claude Code hook registration..."
+
+  if [ ! -f ".claude/settings.json" ]; then
+    register_manual "Claude Code settings.json missing" "Run init.sh to generate settings"
+    return
+  fi
+
+  if ! command -v jq &>/dev/null; then
+    register_manual "Hook check skipped — jq not available" "Install jq for hook verification"
+    return
+  fi
+
+  # PreToolUse hook: pre-commit-gate.sh
+  if jq -e '.hooks.PreToolUse[]? | .hooks[]? | select(.command | contains("pre-commit-gate.sh"))' .claude/settings.json >/dev/null 2>&1; then
+    # Verify matcher is Bash
+    local matcher
+    matcher=$(jq -r '[.hooks.PreToolUse[]? | select(.hooks[]? | .command | contains("pre-commit-gate.sh")) | .matcher // "none"] | first' .claude/settings.json 2>/dev/null || echo "unknown")
+    if [ "$matcher" = "Bash" ]; then
+      register_pass "PreToolUse hook: pre-commit-gate.sh (matcher: Bash)"
+    else
+      register_manual "PreToolUse hook matcher is '$matcher' (expected 'Bash')" \
+        "Edit .claude/settings.json: set PreToolUse matcher to 'Bash' for the pre-commit-gate.sh entry"
+    fi
+  else
+    register_manual "PreToolUse hook: pre-commit-gate.sh not registered" \
+      "Add pre-commit-gate.sh to .hooks.PreToolUse in .claude/settings.json (see init.sh for format)"
+  fi
+
+  # PostToolUse hook: track-tool-usage.sh
+  if jq -e '.hooks.PostToolUse[]? | .hooks[]? | select(.command | contains("track-tool-usage.sh"))' .claude/settings.json >/dev/null 2>&1; then
+    register_pass "PostToolUse hook: track-tool-usage.sh"
+  else
+    register_manual "PostToolUse hook: track-tool-usage.sh not registered" \
+      "Add track-tool-usage.sh to .hooks.PostToolUse in .claude/settings.json"
+  fi
+
+  # SessionStart hooks
+  if jq -e '.hooks.SessionStart[]? | .hooks[]? | select(.command | contains("session-version-check.sh") or contains("session-test-gate-check.sh"))' .claude/settings.json >/dev/null 2>&1; then
+    register_pass "SessionStart hooks: version check + test gate"
+  else
+    register_manual "SessionStart hooks incomplete" \
+      "Add session-version-check.sh and session-test-gate-check.sh to .hooks.SessionStart in .claude/settings.json"
+  fi
+
+  # Stop hook: session-end-qdrant-reminder.sh
+  if jq -e '.hooks.Stop[]? | .hooks[]? | select(.command | contains("session-end-qdrant-reminder.sh"))' .claude/settings.json >/dev/null 2>&1; then
+    register_pass "Stop hook: session-end-qdrant-reminder.sh"
+  else
+    register_manual "Stop hook: session-end-qdrant-reminder.sh not registered" \
+      "Add session-end-qdrant-reminder.sh to .hooks.Stop in .claude/settings.json"
+  fi
+}
+
 check_framework() {
   print_step "Checking Development Guardrails for Claude Code..."
 
@@ -795,6 +849,7 @@ main() {
   check_project_structure
   check_scripts
   check_git
+  check_hooks
   check_framework
   check_tools
   check_plugins_mcp
