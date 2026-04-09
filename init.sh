@@ -1020,7 +1020,7 @@ create_project() {
 
   # Copy framework documents
   print_info "Copying framework documents..."
-  mkdir -p docs/reference docs/platform-modules docs/test-results "docs/ADR documentation" "docs/api and interfaces" docs/snapshots
+  mkdir -p docs/reference docs/platform-modules docs/test-results "docs/ADR documentation" "docs/api and interfaces" docs/snapshots docs/phase-0 docs/security-audits
 
   cp "$SCRIPT_DIR/docs/builders-guide.md" docs/reference/
   cp "$SCRIPT_DIR/docs/governance-framework.md" docs/reference/
@@ -1393,11 +1393,19 @@ PERMEOF
           hooks_added=true
         fi
 
-        # Add pre-commit gate to PreToolUse hook
+        # Add pre-commit gate to PreToolUse hook (must target Bash matcher group)
         if jq -e '.hooks.PreToolUse' .claude/settings.json >/dev/null 2>&1; then
-          if ! jq -e '.hooks.PreToolUse[0].hooks[] | select(.command | contains("pre-commit-gate.sh"))' .claude/settings.json >/dev/null 2>&1; then
-            jq '.hooks.PreToolUse[0].hooks += [{"type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/pre-commit-gate.sh"}]' .claude/settings.json > .claude/settings.json.tmp \
-              && mv .claude/settings.json.tmp .claude/settings.json
+          if ! jq -e '.hooks.PreToolUse[]? | .hooks[]? | select(.command | contains("pre-commit-gate.sh"))' .claude/settings.json >/dev/null 2>&1; then
+            # Find the Bash matcher group index, or create a new one
+            BASH_INDEX=$(jq '[.hooks.PreToolUse[] | .matcher // "none"] | to_entries[] | select(.value == "Bash") | .key' .claude/settings.json 2>/dev/null | head -1 || echo "")
+            if [ -n "$BASH_INDEX" ]; then
+              jq ".hooks.PreToolUse[$BASH_INDEX].hooks += [{\"type\": \"command\", \"command\": \"bash \\\"\$CLAUDE_PROJECT_DIR\\\"/scripts/pre-commit-gate.sh\"}]" .claude/settings.json > .claude/settings.json.tmp \
+                && mv .claude/settings.json.tmp .claude/settings.json
+            else
+              # No Bash matcher group exists — create one
+              jq '.hooks.PreToolUse += [{"matcher": "Bash", "hooks": [{"type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/pre-commit-gate.sh"}]}]' .claude/settings.json > .claude/settings.json.tmp \
+                && mv .claude/settings.json.tmp .claude/settings.json
+            fi
             hooks_added=true
           fi
         else

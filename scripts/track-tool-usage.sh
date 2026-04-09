@@ -3,7 +3,10 @@
 # Logs Context7 and Qdrant tool calls to .claude/tool-usage.json.
 # Fires after every tool call — must be fast for non-MCP tools.
 
-# Don't use set -e — we never want this hook to block anything
+# Don't use set -e — this is an advisory PostToolUse hook that must NEVER block
+# the agent's work. If tool-usage.json is corrupted or jq fails, the agent
+# continues working and tool tracking silently degrades. This is intentional:
+# a tracking failure should not interrupt a build loop or any other operation.
 set +e
 
 TOOL_USAGE=".claude/tool-usage.json"

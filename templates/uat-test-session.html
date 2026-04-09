@@ -233,7 +233,7 @@ function exportResults() {
     var r = results[s.id] || 'not tested';
     var icon = r === 'pass' ? 'PASS' : r === 'fail' ? 'FAIL' : r === 'skip' ? 'SKIP' : '-';
     var el = document.getElementById('notes-' + s.id);
-    var notes = el ? el.value.replace(/\|/g, '/').replace(/\n/g, ' ') : '';
+    var notes = el ? el.value.replace(/\|/g, '/').replace(/\n/g, ' ').replace(/`/g, "'").replace(/\[/g, '(').replace(/\]/g, ')').replace(/\*/g, '-') : '';
     md += '| ' + s.id + ' | ' + s.title + ' | ' + icon + ' | ' + notes + ' |\n';
   });
 

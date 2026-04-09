@@ -118,12 +118,13 @@ The framework has three tiers of control, plus an intermediate tier for CI-based
 
 ### Process Enforcement (Tier 2)
 
-The framework mechanically enforces sequential process compliance through a state machine and commit gating system. Four processes are gated:
+The framework mechanically enforces sequential process compliance through a state machine and commit gating system. Five processes are gated:
 
-1. **Build Loop** (Phase 2) — tests → verify failing → implement → security audit → documentation → record feature. Each step must be completed in order. Source commits are blocked until all steps pass.
-2. **UAT Session** (Phase 2) — 9-step testing flow from dispatching test agents through gate passage. Bug fix commits are blocked until the full session checklist is complete.
-3. **Phase 3 Validation** — all 6 validation types (integration, security, chaos, accessibility, performance, contract) must be completed and results archived.
-4. **Phase 4 Release** — rollback must be tested before go-live verification. All 5 release steps required.
+1. **Phase 1 Architecture** — architecture selected → threat model complete → data model defined → UI scaffolding done → bible synthesized. Prevents skipping the threat model or other critical planning steps.
+2. **Build Loop** (Phase 2) — tests → verify failing → implement → security audit → documentation → record feature. Each step must be completed in order. Source commits are blocked until all steps pass.
+3. **UAT Session** (Phase 2) — 9-step testing flow from dispatching test agents through gate passage. Bug fix commits are blocked until the full session checklist is complete.
+4. **Phase 3 Validation** — 9 steps: integration testing, security hardening, chaos testing, accessibility audit, performance audit, contract testing, results archived, pre-launch preparation, legal review. Artifact existence checks verify scan results are archived before steps can be marked complete.
+5. **Phase 4 Release** — 6 steps: production build, rollback tested, go-live verified, monitoring configured, handoff written, handoff tested. Artifact checks require rollback test evidence, HANDOFF.md, monitoring documentation, and handoff test results.
 
 The agent calls `scripts/process-checklist.sh --complete-step PROCESS:STEP` to advance through each process. A PreToolUse hook on `git commit` and `gh pr create` blocks when required steps are incomplete.
 
@@ -1227,6 +1228,34 @@ Findings flagged by multiple reviewers are confirmed issues — prioritize these
 Running the same prompt across different AI models (Claude, Gemini, ChatGPT) increases coverage. Each model has different training data and reasoning patterns, so they catch different issues. This is particularly valuable for the legal and security reviews.
 
 The red team review is the most likely to find issues that automated scanners (SAST, DAST, SCA) miss, because it constructs multi-step attack chains and tests business logic flaws that pattern-matching tools cannot detect.
+
+---
+
+## Quick Reference — Scripts
+
+All scripts live in `scripts/` and can be run with `bash scripts/<name>.sh`. Scripts marked "Automatic" are registered as Claude Code hooks and run without manual invocation.
+
+| Script | Purpose | Invocation | Phase |
+|---|---|---|---|
+| `validate.sh` | Full project compliance validation | `bash scripts/validate.sh` | Any |
+| `verify-install.sh` | Installation health check + auto-fix | `bash scripts/verify-install.sh` | Any |
+| `check-phase-gate.sh` | Phase transition consistency + artifact checks | `bash scripts/check-phase-gate.sh` (also CI) | Any |
+| `process-checklist.sh` | Sequential step enforcement (Build Loop, UAT, Phase 3/4) | `bash scripts/process-checklist.sh --help` | 2+ |
+| `test-gate.sh` | Test interval enforcement + bug gate for phase transitions | `bash scripts/test-gate.sh --help` | 2+ |
+| `pre-commit-gate.sh` | Blocks commits when process steps incomplete | Automatic (PreToolUse hook) | 2+ |
+| `track-tool-usage.sh` | Logs Context7/Qdrant tool calls per session | Automatic (PostToolUse hook) | 2+ |
+| `session-version-check.sh` | Tool version check at session start | Automatic (SessionStart hook) | Any |
+| `session-test-gate-check.sh` | Test gate status + tool usage reset at session start | Automatic (SessionStart hook) | 2+ |
+| `session-end-qdrant-reminder.sh` | Qdrant storage reminder + tool usage summary | Automatic (Stop hook) | 2+ |
+| `check-changelog.sh` | CHANGELOG.md currency check | Automatic (CI) | 2+ |
+| `check-session-state.sh` | Session state freshness check | Automatic (CI) | 2+ |
+| `check-versions.sh` | Tool version comparison against minimums | `bash scripts/check-versions.sh` | Any |
+| `check-updates.sh` | Framework update availability check | `bash scripts/check-updates.sh` | Any |
+| `intake-wizard.sh` | Interactive project intake questionnaire | `bash scripts/intake-wizard.sh` | Pre-0 |
+| `upgrade-project.sh` | Track/deployment upgrade (Light→Standard, personal→org) | `bash scripts/upgrade-project.sh --help` | Any |
+| `reconfigure-project.sh` | Regenerate CLAUDE.md, Approval Log, .gitignore, CI | `bash scripts/reconfigure-project.sh --help` | Any |
+| `resolve-tools.sh` | Tool matrix resolution by platform/language/track/phase | `bash scripts/resolve-tools.sh --help` | Any |
+| `resume.sh` | Generate session resume context for copy/paste | `bash scripts/resume.sh` | Any |
 
 ---
 

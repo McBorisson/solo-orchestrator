@@ -166,6 +166,7 @@ The Orchestrator cannot approve their own work at every gate. The following appr
 | **Pre-Phase 0** | IT Security | AI deployment path (commercial terms, data handling) | Written approval (email, ticket, or signed document) |
 | **Phase 0 → Phase 1** | Project Sponsor (business owner) | Business justification, resource allocation, opportunity cost acceptance, compliance screening | Signed-off Phase 0 artifacts + compliance screening matrix |
 | **Phase 1 → Phase 2** | Senior Technical Authority (architect, engineering lead, or IT security) | Architecture selection, security posture, data classification | Written approval of Project Bible |
+| **Phase 2 → Phase 3** | Orchestrator (personal) / Senior Technical Authority (organizational) | All MVP features built, test suite passing, no open SEV-1/2 bugs, documentation current | Bug gate report, FEATURES.md vs MVP Cutline reconciliation, CI green |
 | **Phase 3 → Phase 4** | Application Owner + IT Security | Go-live readiness, risk acceptance, insurance confirmation | Security scan results, pen test (if required), go-live checklist |
 
 **Audit evidence:** Phase gate approvals must be recorded as signed-off evidence — an email approval, a ticket state change, or a document approval with date and approver identity. The existence of an artifact alone is not sufficient evidence of approval. An internal auditor or board inquiry must be able to trace who approved what, when.
@@ -179,7 +180,19 @@ To prevent self-approval or post-hoc fabrication of approval entries:
 1. **Commit-based evidence.** Each approval entry MUST be committed to `APPROVAL_LOG.md` by the *approver*, not the Orchestrator. The git author on the commit serves as the verification record.
 2. **Out-of-band confirmation.** For organizational deployments, the approver MUST send written confirmation (email, Slack message, or ticket comment) to a monitored channel. Reference the confirmation ID in the `Evidence` field.
 3. **No self-approval.** The Orchestrator MUST NOT author git commits that add their own name as approver. CI or code-review tooling SHOULD enforce this where feasible.
-4. **Audit review.** During quarterly portfolio reviews, the Senior Technical Authority MUST verify that git commit authors on `APPROVAL_LOG.md` entries match the listed approvers.
+4. **Audit review.** During quarterly portfolio reviews, the Senior Technical Authority MUST verify that git commit authors on `APPROVAL_LOG.md` entries match the listed approvers. CI provides continuous verification via the approval integrity check — the quarterly review supplements this with deeper reconciliation of out-of-band confirmations and evidence references.
+
+### Gate Denial Procedure
+
+When a phase gate reviewer denies approval:
+
+1. **Written findings required.** The reviewer MUST provide specific, actionable findings explaining why approval is denied. Record the denial in `APPROVAL_LOG.md` as a "Denied" entry with the findings in the Evidence field.
+2. **Rework scope defined.** The Orchestrator addresses the specific findings. Only the cited deficiencies need rework — the Orchestrator does not redo the entire phase.
+3. **Re-submission.** After addressing findings, the Orchestrator re-submits for review. The reviewer verifies each cited deficiency is resolved.
+4. **Maximum rework cycles: 2.** If the gate is denied a third time, escalate to the Project Sponsor for resolution. The Sponsor may: (a) accept with documented conditions, (b) redirect the project, or (c) terminate the project.
+5. **Audit trail.** Every denial and re-submission is recorded in `APPROVAL_LOG.md`. The final "Approved" entry references prior denial(s) if any occurred.
+
+For personal projects, gate denial is a self-assessment finding. Record the finding and resolution in `APPROVAL_LOG.md` for audit trail purposes, even without an external reviewer.
 
 ### In-Phase Decision Log
 

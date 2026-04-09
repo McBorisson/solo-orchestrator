@@ -172,7 +172,10 @@ DEFERRED="[]"
 # --- Check each tool and categorize ---
 # Extract all fields per tool in a single jq call (tab-separated) to avoid N*8 subprocess forks.
 # Fields: name, category, phase, required, check_command, auto_installable, version_command, description, install_json
-while IFS=$'\t' read -r TOOL_NAME TOOL_CATEGORY TOOL_PHASE TOOL_REQUIRED TOOL_CHECK TOOL_AUTO TOOL_VERSION_CMD TOOL_DESCRIPTION TOOL_INSTALL_JSON; do
+while IFS=$'\t' read -r TOOL_NAME TOOL_CATEGORY TOOL_PHASE TOOL_REQUIRED TOOL_CHECK TOOL_AUTO TOOL_VERSION_CMD TOOL_DESCRIPTION TOOL_INSTALL_B64; do
+
+  # Decode base64-encoded install JSON (avoids @tsv double-escaping embedded quotes)
+  TOOL_INSTALL_JSON=$(echo "$TOOL_INSTALL_B64" | base64 -d 2>/dev/null || echo "{}")
 
   # Phase filter: defer tools for future phases
   if [ "$TOOL_PHASE" -gt "$PHASE" ]; then
@@ -249,7 +252,7 @@ done < <(echo "$FILTERED_TOOLS" | jq -r '.[] | [
   (.auto_installable | tostring),
   (.version_command // ""),
   .description,
-  (.install | tostring)
+  (.install | tojson | @base64)
 ] | @tsv')
 
 # --- Add user freeform additions ---

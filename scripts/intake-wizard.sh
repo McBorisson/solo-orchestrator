@@ -1401,7 +1401,7 @@ with open(sys.argv[1], 'w') as f:
     language=$(jq -r '.context.language' ".claude/tool-preferences.json")
     track=$(jq -r '.context.track' ".claude/tool-preferences.json")
     local current_phase
-    current_phase=$(grep -o '"current_phase"[[:space:]]*:[[:space:]]*[0-9]' ".claude/phase-state.json" | grep -o '[0-9]$' || echo "2")
+    current_phase=$(grep -o '"current_phase"[[:space:]]*:[[:space:]]*"*[0-9][0-9]*"*' ".claude/phase-state.json" | grep -o '[0-9][0-9]*' || echo "2")
 
     local tool_output
     tool_output=$(bash scripts/resolve-tools.sh \

@@ -1,0 +1,39 @@
+# False Positive Log
+
+<!--
+  Phase 3 Step 3.2 output. Records all security scan findings that were
+  determined to be false positives and suppressed.
+
+  Save as: docs/test-results/YYYY-MM-DD_false-positive-log.md
+
+  Each suppression must be documented here with the rule ID, rationale,
+  and approval (High/Critical suppressions require IT Security or peer
+  reviewer approval for organizational deployments).
+
+  Biannual re-validation: code changes may make previously-false positives
+  genuine. Review all entries during biannual maintenance.
+-->
+
+**Date:** YYYY-MM-DD
+**Reviewed By:** [Security reviewer name]
+
+---
+
+## Suppressed Findings
+
+| # | Rule ID | Tool | File:Line | Finding Description | Why False Positive | Approved By | Date |
+|---|---------|------|-----------|--------------------|--------------------|-------------|------|
+| 1 | [e.g., semgrep:python.lang.security.audit.exec-detected] | [Semgrep / Snyk / gitleaks] | [file:line] | [What the tool reported] | [Why this is not a genuine vulnerability] | [Name — required for High/Critical] | [YYYY-MM-DD] |
+
+---
+
+## Summary
+
+| Severity | Suppressed Count |
+|----------|-----------------|
+| Critical | N |
+| High | N |
+| Medium | N |
+| Low | N |
+
+**Next re-validation due:** [Date — 6 months from approval]

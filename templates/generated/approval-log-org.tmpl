@@ -70,6 +70,27 @@ These pre-conditions must be completed before Phase 0 begins. See Governance Fra
 
 ---
 
+## Phase Gate: Phase 2 → Phase 3
+
+**Gate requirement:** All MVP features built, test suite passing, no open SEV-1/2 bugs, documentation current.
+**Evidence required:** Bug gate report (`test-gate.sh --check-phase-gate`), FEATURES.md vs MVP Cutline reconciliation, CI green.
+**Reference:** Governance Framework Section V; Builder's Guide Phase 2 Completion Checkpoint.
+
+| Field | Value |
+|---|---|
+| **Gate** | Phase 2 → Phase 3 |
+| **Reviewer** | |
+| **Role** | Orchestrator (personal) / Senior Technical Authority (organizational) |
+| **Date** | |
+| **Method** | Self-review / Document review / Demo |
+| **Reference** | |
+| **Artifacts reviewed** | FEATURES.md, BUGS.md, CI status, PROJECT_BIBLE.md currency |
+| **Decision** | Approved / Approved with conditions / Rejected |
+| **Conditions (if any)** | |
+| **Notes** | |
+
+---
+
 ## Phase Gate: Phase 3 → Phase 4
 
 **Gate requirement:** Application Owner and IT Security approve go-live readiness.
@@ -104,6 +125,52 @@ These pre-conditions must be completed before Phase 0 begins. See Governance Fra
 | **Artifacts reviewed** | SAST/DAST results, dependency scan, SBOM, penetration test (if applicable) |
 | **Decision** | Approved / Approved with conditions / Rejected |
 | **Conditions (if any)** | |
+| **Notes** | |
+
+---
+
+## Phase 4 Completion
+
+_Record after all Phase 4 deliverables are complete and the application is live._
+
+| Field | Value |
+|---|---|
+| **Deployment Date** | |
+| **Deployed By** | |
+| **Go-Live Verified By** | |
+| **Rollback Tested** | Yes / No — results at: docs/test-results/ |
+| **Monitoring Verified** | Yes / No — test error triggered and alert received |
+| **Handoff Document** | HANDOFF.md — tested by: [backup maintainer name] |
+| **ITSM Ticket** | [Ticket ID — closed] |
+| **Notes** | |
+
+---
+
+## Attorney / Legal Review (if applicable)
+
+_Required when Privacy Policy or Terms of Service are generated. Standard+ Track with data collection._
+
+| Field | Value |
+|---|---|
+| **Reviewer** | [Attorney / firm name] |
+| **Date** | |
+| **Documents Reviewed** | Privacy Policy / Terms of Service / Both |
+| **Decision** | Approved / Approved with changes / Rejected |
+| **Notes** | |
+
+---
+
+## Penetration Test (if applicable)
+
+_Required for Standard Track (with IT Security exemption path) and Full Track (no exemption)._
+
+| Field | Value |
+|---|---|
+| **Test Performed** | Yes / No / Exempted |
+| **Tester** | [External tester or firm name] |
+| **Date** | |
+| **Report Location** | docs/test-results/ |
+| **Exemption Approver** | [IT Security name, if exempted] |
 | **Notes** | |
 
 ---

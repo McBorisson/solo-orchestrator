@@ -468,18 +468,26 @@ print_step "Updating .claude/phase-state.json"
 
 # phase-state.json doesn't have a track field by default, but we add one
 # for upgrade tracking. We also preserve existing gates.
-python3 << 'PYEOF' - "$PHASE_STATE" "$TARGET_TRACK"
+python3 << 'PYEOF' - "$PHASE_STATE" "$TARGET_TRACK" "$POC_REMOVED" "$POC_TO_SPONSORED"
 import json, sys
 from datetime import date
 
 phase_state_path = sys.argv[1]
 new_track = sys.argv[2]
+poc_removed = sys.argv[3] == "true"
+poc_to_sponsored = sys.argv[4] == "true"
 
 with open(phase_state_path) as f:
     data = json.load(f)
 
 data["track"] = new_track
 data["last_upgrade"] = str(date.today())
+
+if poc_removed:
+    if "poc_mode" in data:
+        del data["poc_mode"]
+elif poc_to_sponsored:
+    data["poc_mode"] = "sponsored_poc"
 
 with open(phase_state_path, 'w') as f:
     json.dump(data, f, indent=2)
@@ -528,7 +536,7 @@ fi
 if [ -f "$CLAUDE_MD" ]; then
   print_step "Updating CLAUDE.md"
 
-  python3 << 'PYEOF' - "$CLAUDE_MD" "$TARGET_TRACK" "$TARGET_DEPLOYMENT" "$CURRENT_TRACK" "$CURRENT_DEPLOYMENT" "$POC_REMOVED" "$DEPLOYMENT_CHANGES"
+  python3 << 'PYEOF' - "$CLAUDE_MD" "$TARGET_TRACK" "$TARGET_DEPLOYMENT" "$CURRENT_TRACK" "$CURRENT_DEPLOYMENT" "$POC_REMOVED" "$DEPLOYMENT_CHANGES" "$POC_TO_SPONSORED"
 import re, sys
 
 claude_md_path = sys.argv[1]
@@ -538,6 +546,7 @@ old_track = sys.argv[4]
 old_deployment = sys.argv[5]
 poc_removed = sys.argv[6] == "true"
 deployment_changes = sys.argv[7] == "true"
+poc_to_sponsored = sys.argv[8] == "true"
 
 with open(claude_md_path) as f:
     content = f.read()
@@ -574,6 +583,20 @@ if poc_removed:
             continue
         filtered.append(line)
     content = '\n'.join(filtered)
+
+# Update POC watermarks for sponsored POC upgrade
+if poc_to_sponsored:
+    content = re.sub(r'Private POC', 'Sponsored POC', content)
+    content = re.sub(r'private_poc', 'sponsored_poc', content)
+    content = re.sub(r'private poc', 'Sponsored POC', content, flags=re.IGNORECASE)
+
+# Update Deployment field if deployment changed
+if deployment_changes:
+    content = re.sub(
+        r'(\*\*Deployment:\*\*\s*).*',
+        r'\g<1>' + new_deployment.capitalize(),
+        content
+    )
 
 # Add governance instructions if moving to organizational
 if deployment_changes and new_deployment == "organizational":
@@ -1057,6 +1080,54 @@ PYEOF
 fi
 
 # ================================================================
+# 6b. Append upgrade audit entry when no deployment change but POC/track changed
+# ================================================================
+if [ "$DEPLOYMENT_CHANGES" = false ] && { [ "$POC_REMOVED" = true ] || [ "$POC_TO_SPONSORED" = true ] || [ "$TRACK_CHANGES" = true ]; }; then
+  if [ -f "$APPROVAL_LOG" ]; then
+    print_step "Appending upgrade audit entry to APPROVAL_LOG.md"
+
+    python3 << 'PYEOF' - "$APPROVAL_LOG" "$POC_REMOVED" "$POC_TO_SPONSORED" "$TRACK_CHANGES" "$CURRENT_TRACK" "$TARGET_TRACK"
+import sys
+from datetime import date
+
+log_path = sys.argv[1]
+poc_removed = sys.argv[2] == "true"
+poc_to_sponsored = sys.argv[3] == "true"
+track_changes = sys.argv[4] == "true"
+old_track = sys.argv[5]
+new_track = sys.argv[6]
+today = str(date.today())
+
+with open(log_path) as f:
+    content = f.read()
+
+changes = []
+if poc_removed:
+    changes.append("POC mode removed (production-ready)")
+if poc_to_sponsored:
+    changes.append("upgraded from Private POC to Sponsored POC")
+if track_changes:
+    changes.append(f"track upgraded from {old_track} to {new_track}")
+
+audit_entry = f"\n| {today} | Upgrade | scripts/upgrade-project.sh | System | Applied | {', '.join(changes)} |\n"
+
+# Append to Approval History table if it exists
+if "## Approval History" in content:
+    # Insert before the last empty row in the table
+    content = content.rstrip()
+    content += audit_entry
+else:
+    content += f"\n---\n\n## Upgrade Log\n\n| Date | Event | Tool | Actor | Status | Details |\n|---|---|---|---|---|---|\n{audit_entry}"
+
+with open(log_path, 'w') as f:
+    f.write(content)
+PYEOF
+
+    print_ok "Appended upgrade audit entry to APPROVAL_LOG.md"
+  fi
+fi
+
+# ================================================================
 # 7. Call resolve-tools.sh (if available and state is sufficient)
 # ================================================================
 RESOLVER="$ORCHESTRATOR_ROOT/scripts/resolve-tools.sh"
@@ -1239,6 +1310,18 @@ if [ -x "scripts/verify-install.sh" ]; then
   echo ""
   print_step "Running post-upgrade verification..."
   bash scripts/verify-install.sh || true
+fi
+
+# Run full project validation to surface new track requirements
+if [ -x "scripts/validate.sh" ]; then
+  echo ""
+  print_step "Running post-upgrade validation..."
+  if ! bash scripts/validate.sh; then
+    echo ""
+    print_warn "Post-upgrade validation found issues."
+    print_info "Review the output above and address any errors before continuing."
+    print_info "The upgrade itself completed successfully — validation checks new track requirements."
+  fi
 fi
 
 print_ok "Upgrade complete."

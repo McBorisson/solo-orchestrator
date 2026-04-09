@@ -1,0 +1,68 @@
+# Data Migration Plan — [Project Name]
+
+<!--
+  Phase 1 Step 1.4.5 output. Required when replacing an existing system
+  with legacy data that must be migrated.
+
+  Save as: included in PROJECT_BIBLE.md Section 6, or as a standalone
+  document at docs/migration-plan.md for complex migrations.
+
+  If no legacy data: record "No legacy data — migration not applicable"
+  in Project Bible Section 6.
+-->
+
+**Date:** YYYY-MM-DD
+**Status:** Draft | Tested | Approved
+
+---
+
+## 1. Source Inventory
+
+| # | Source System | Data Type | Volume (rows/size) | Access Method | Owner |
+|---|-------------|-----------|-------------------|---------------|-------|
+| 1 | [System name] | [Tables/files/APIs] | [Approximate size] | [DB connection / API / File export] | [Who controls access] |
+
+---
+
+## 2. Field Mapping
+
+| # | Source Field | Source Type | Target Field | Target Type | Transformation | Notes |
+|---|------------|------------|-------------|------------|----------------|-------|
+| 1 | [source.table.field] | [varchar(255)] | [target.table.field] | [text] | [Trim + lowercase] | [Any special handling] |
+
+---
+
+## 3. Transformation Rules
+
+| # | Rule | Input | Output | Error Handling |
+|---|------|-------|--------|----------------|
+| 1 | [Rule description] | [Input format/condition] | [Expected output] | [What happens on bad data] |
+
+---
+
+## 4. Import Script
+
+**Location:** [path to migration script]
+**Requirements:** [runtime, dependencies, access credentials]
+**Execution:** [exact command to run]
+**Idempotent:** Yes / No — [if no, describe prerequisites for re-run]
+
+---
+
+## 5. Validation Criteria
+
+| # | Check | Method | Expected Result | Actual Result |
+|---|-------|--------|----------------|---------------|
+| 1 | Record count matches source | `SELECT COUNT(*)` on both | Source N = Target N | |
+| 2 | Spot check: specific records | Compare 10 random records | Fields match after transformation | |
+| 3 | Referential integrity | FK constraint check | No orphaned records | |
+| 4 | Data type correctness | Schema validation | All fields match target types | |
+
+---
+
+## 6. Rollback Procedure
+
+**Method:** [Drop and recreate / Restore from backup / Reverse migration script]
+**Tested:** Yes / No
+**Time to rollback:** [Estimated minutes]
+**Data loss on rollback:** [None / Describe what is lost]
