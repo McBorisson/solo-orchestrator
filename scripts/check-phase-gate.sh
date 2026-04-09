@@ -34,6 +34,13 @@ create_gate_snapshot() {
       for f in PRODUCT_MANIFESTO.md APPROVAL_LOG.md PROJECT_INTAKE.md; do
         [ -f "$f" ] && cp "$f" "$snapshot_dir/"
       done
+      # Include Phase 0 intermediate outputs if they exist
+      if [ -d "docs/phase-0" ]; then
+        mkdir -p "$snapshot_dir/phase-0"
+        for f in docs/phase-0/*.md; do
+          [ -f "$f" ] && cp "$f" "$snapshot_dir/phase-0/"
+        done
+      fi
       ;;
     1-2)
       for f in PROJECT_BIBLE.md PRODUCT_MANIFESTO.md APPROVAL_LOG.md; do
@@ -91,11 +98,89 @@ gate_1_to_2=$(get_gate_date "phase_1_to_2")
 gate_2_to_3=$(get_gate_date "phase_2_to_3")
 gate_3_to_4=$(get_gate_date "phase_3_to_4")
 
+# Extract deployment type and track for conditional checks
+deployment=$(grep -o '"deployment"[[:space:]]*:[[:space:]]*"[^"]*"' "$PHASE_STATE" 2>/dev/null | sed 's/.*: *"//' | sed 's/"//' || echo "personal")
+track=$(grep -o '"track"[[:space:]]*:[[:space:]]*"[^"]*"' "$PHASE_STATE" 2>/dev/null | sed 's/.*: *"//' | sed 's/"//' || echo "light")
+
 issues=0
 
 echo -e "${BOLD}Phase Gate Consistency Check${NC}"
 echo "Current phase: $current_phase"
 echo ""
+
+# --- Manifesto Content Validation (P0-003) ---
+# Verify the Manifesto has substantive content, not just template defaults
+validate_manifesto_content() {
+  local file="PRODUCT_MANIFESTO.md"
+  [ -f "$file" ] || return 0  # Existence checked separately
+
+  local missing_sections=""
+  local placeholder_sections=""
+
+  # Check all 8 required sections
+  for section_num in 1 2 3 4 5 6 7 8; do
+    if ! grep -qE "^## ${section_num}\." "$file"; then
+      missing_sections="${missing_sections} ${section_num}"
+    else
+      # Check if section has content beyond template placeholders
+      local section_content
+      section_content=$(sed -n "/^## ${section_num}\./,/^## [0-9]/p" "$file" | grep -v "^##" | grep -v "^---" | grep -v "^$" | grep -v "^<!--" | grep -v "-->$" | grep -v "^\[" | grep -v "^|.*|.*|$" | head -5)
+      if [ -z "$section_content" ]; then
+        placeholder_sections="${placeholder_sections} ${section_num}"
+      fi
+    fi
+  done
+
+  if [ -n "$missing_sections" ]; then
+    echo -e "${RED}[FAIL]${NC} PRODUCT_MANIFESTO.md: missing required sections:${missing_sections}"
+    issues=$((issues + 1))
+  fi
+
+  if [ -n "$placeholder_sections" ]; then
+    echo -e "${YELLOW}[WARN]${NC} PRODUCT_MANIFESTO.md: sections with only placeholder content:${placeholder_sections}"
+    issues=$((issues + 1))
+  fi
+
+  # Check for unresolved Open Questions (P0-012)
+  if grep -qi "Status:[[:space:]]*Open" "$file" 2>/dev/null; then
+    local open_count
+    open_count=$(grep -ci "Status:[[:space:]]*Open" "$file" 2>/dev/null || echo "0")
+    echo -e "${RED}[FAIL]${NC} PRODUCT_MANIFESTO.md: $open_count unresolved Open Question(s) — resolve before Phase 1"
+    issues=$((issues + 1))
+  fi
+}
+
+# --- Approval Entry Field Validation (P0-004) ---
+# Verify approval entries have populated fields, not just template defaults
+validate_approval_fields() {
+  local gate_name="$1"  # e.g., "Phase 0.*Phase 1"
+  local gate_label="$2" # e.g., "Phase 0→1"
+
+  # Find the gate section and check for populated approver/date fields
+  local section
+  section=$(grep -A 20 "$gate_name" "$APPROVAL_LOG" 2>/dev/null || echo "")
+  [ -z "$section" ] && return 0  # No section = checked separately
+
+  # Check for template defaults that indicate unfilled fields
+  if echo "$section" | grep -qiE "(Approver|Reviewer).*\[.*\]|YYYY-MM-DD"; then
+    echo -e "${YELLOW}[WARN]${NC} $gate_label: APPROVAL_LOG.md entry contains placeholder values — fill in approver name and date"
+    issues=$((issues + 1))
+  fi
+
+  # For organizational deployments: warn if git author matches listed approver (P0-005)
+  if [ "$deployment" = "organizational" ]; then
+    local approver_name
+    approver_name=$(echo "$section" | grep -iE "Approver|Reviewer" | head -1 | sed 's/.*|\s*//' | sed 's/\s*|.*//' | tr -d '*' | xargs 2>/dev/null || echo "")
+    if [ -n "$approver_name" ] && [ "$approver_name" != "[Name]" ]; then
+      local git_user
+      git_user=$(git config user.name 2>/dev/null || echo "")
+      if [ -n "$git_user" ] && echo "$approver_name" | grep -qi "$git_user"; then
+        echo -e "${YELLOW}[WARN]${NC} $gate_label: Approver name '$approver_name' matches git user — self-approval detected for organizational deployment"
+        issues=$((issues + 1))
+      fi
+    fi
+  fi
+}
 
 # Check: if current_phase >= 1, gate 0→1 should have a date
 if [ "$current_phase" -ge 1 ]; then
@@ -113,13 +198,31 @@ if [ "$current_phase" -ge 1 ]; then
   fi
 fi
 
-# Artifact existence check: Phase 0→1
+# Approval field validation: Phase 0→1 (P0-004, P0-005)
+if [ "$current_phase" -ge 1 ]; then
+  validate_approval_fields "Phase 0.*Phase 1" "Phase 0→1"
+fi
+
+# Artifact existence + content check: Phase 0→1
 if [ "$current_phase" -ge 1 ]; then
   if [ -f "PRODUCT_MANIFESTO.md" ]; then
     echo -e "${GREEN}  [OK]${NC} PRODUCT_MANIFESTO.md exists"
+    validate_manifesto_content
   else
     echo -e "${YELLOW}[WARN]${NC} Phase 0→1: PRODUCT_MANIFESTO.md not found"
     issues=$((issues + 1))
+  fi
+  # Check for Phase 0 intermediate outputs (P0-002)
+  if [ -d "docs/phase-0" ]; then
+    local p0_files=0
+    [ -f "docs/phase-0/frd.md" ] && p0_files=$((p0_files + 1))
+    [ -f "docs/phase-0/user-journey.md" ] && p0_files=$((p0_files + 1))
+    [ -f "docs/phase-0/data-contract.md" ] && p0_files=$((p0_files + 1))
+    if [ $p0_files -eq 3 ]; then
+      echo -e "${GREEN}  [OK]${NC} Phase 0 intermediates: frd.md, user-journey.md, data-contract.md"
+    elif [ $p0_files -gt 0 ]; then
+      echo -e "${YELLOW}[WARN]${NC} Phase 0 intermediates: $p0_files/3 saved (check docs/phase-0/)"
+    fi
   fi
 fi
 
@@ -136,6 +239,11 @@ if [ "$current_phase" -ge 2 ]; then
     echo -e "${YELLOW}[WARN]${NC} Phase 1→2: current_phase is $current_phase but gate date not recorded in phase-state.json"
     issues=$((issues + 1))
   fi
+fi
+
+# Approval field validation: Phase 1→2 (P0-004)
+if [ "$current_phase" -ge 2 ]; then
+  validate_approval_fields "Phase 1.*Phase 2" "Phase 1→2"
 fi
 
 # Artifact existence check: Phase 1→2

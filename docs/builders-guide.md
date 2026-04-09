@@ -252,7 +252,9 @@ snyk auth
 
 **Governance checkpoint (organizational deployments):** Before beginning Phase 0, verify that all pre-Phase 0 pre-conditions are recorded in `APPROVAL_LOG.md`. See the Governance Framework Section V.
 
-**Start a new Claude conversation for Phase 0.** Keep all Phase 0 steps in the same conversation.
+**Start a new Claude conversation for Phase 0.** Keep all Phase 0 steps in the same conversation. Each step saves its output to `docs/phase-0/` (see individual step instructions), so if a session is interrupted, completed work is preserved on disk.
+
+**Recovery from session loss:** If the conversation is lost mid-Phase 0, start a new session. Provide the agent with any saved intermediate files from `docs/phase-0/` and the Project Intake. Resume from the last incomplete step — do not re-do steps that produced saved output.
 
 ### Intake-First vs. Conversational Discovery
 
@@ -320,6 +322,9 @@ Do not add features beyond the Intake. Flag recommendations separately.
 - [ ] No feature described in vague terms
 - [ ] Will-Not-Have list has at least 3 items
 
+**Template:** `templates/generated/frd.tmpl`
+**Save as:** `docs/phase-0/frd.md`
+
 ---
 
 ### Step 0.2: User Personas & Interaction Flow
@@ -358,6 +363,9 @@ Flag any point where the journey reveals a feature gap.
 
 **Agent persona — Skeptical Product Manager:** When mapping user journeys, the agent adopts the mindset of a skeptical product manager. Start fresh with no assumptions. This is a business application — quality matters more than positivity. Be critical, extremely thorough, and meticulous. Challenge every success path: "What if the user is tired? Distracted? Deliberately adversarial? What happens when they do the unexpected?" Every step is a potential failure point. Every assumption about user behavior is wrong until proven otherwise. Do not assume competence — assume confusion.
 
+**Template:** `templates/generated/user-journey.tmpl`
+**Save as:** `docs/phase-0/user-journey.md`
+
 ---
 
 ### Step 0.3: Data Input/Output & State Logic
@@ -394,6 +402,9 @@ a Must-Have. Review persistence model against budget constraints.
 - [ ] Every third-party dependency has a fallback behavior
 - [ ] PII fields identified
 
+**Template:** `templates/generated/data-contract.tmpl`
+**Save as:** `docs/phase-0/data-contract.md`
+
 ---
 
 ### Step 0.4: Product Manifesto & MVP Cutline
@@ -429,6 +440,7 @@ Include Open Questions: anything flagged during Steps 0.1-0.3 that
 requires my decision before Phase 1.
 ```
 
+**Template:** `templates/generated/product-manifesto.tmpl` — use this as the structural guide. Populate all sections. Do not alter headings.
 **Save as:** `PRODUCT_MANIFESTO.md`
 
 ---
@@ -1036,6 +1048,7 @@ Before moving to Phase 3:
 - [ ] All UAT testing sessions completed for all feature batches
 - [ ] No open SEV-1 or SEV-2 bugs (deferred SEV-2 must be resolved or feature removed)
 - [ ] Bug triage complete — all bugs have a disposition
+- [ ] **MVP Cutline reconciliation:** Compare `FEATURES.md` against the Product Manifesto MVP Cutline. Record any scope additions and their approval rationale. Features built that are not in the Cutline must have documented Orchestrator approval.
 
 **Bug Gate Check:**
 ```bash
