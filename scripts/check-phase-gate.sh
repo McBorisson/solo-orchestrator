@@ -327,6 +327,15 @@ if [ "$current_phase" -ge 4 ]; then
   if [ -n "$gate_3_to_4" ]; then
     if grep -q "Phase 3.*Phase 4" "$APPROVAL_LOG" && grep -A 15 "Phase 3.*Phase 4" "$APPROVAL_LOG" | grep -qE "[0-9]{4}-[0-9]{2}-[0-9]{2}"; then
       echo -e "${GREEN}  [OK]${NC} Phase 3→4: gate dated $gate_3_to_4, approval log has entry"
+      # P3-007: For organizational deployments, verify both App Owner and IT Security approvals
+      if [ "$deployment" = "organizational" ]; then
+        if grep -qi "Application Owner" "$APPROVAL_LOG" && grep -qi "IT Security" "$APPROVAL_LOG"; then
+          echo -e "${GREEN}  [OK]${NC} Phase 3→4: both Application Owner and IT Security entries found"
+        else
+          echo -e "${YELLOW}[WARN]${NC} Phase 3→4: organizational deployment requires both Application Owner AND IT Security approval entries"
+          issues=$((issues + 1))
+        fi
+      fi
     else
       echo -e "${YELLOW}[WARN]${NC} Phase 3→4: gate dated $gate_3_to_4, but APPROVAL_LOG.md has no dated entry"
       issues=$((issues + 1))

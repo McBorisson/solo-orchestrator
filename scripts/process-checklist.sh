@@ -332,6 +332,27 @@ start_phase3() {
   local now
   now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
+  # P3-012: Verify Phase 2 prerequisites before allowing Phase 3 entry
+  local phase_state=".claude/phase-state.json"
+  if [ -f "$phase_state" ]; then
+    local current_phase
+    current_phase=$(grep -o '"current_phase"[[:space:]]*:[[:space:]]*"*[0-9]*"*' "$phase_state" | grep -o '[0-9]*' || echo "0")
+    if [ "$current_phase" -lt 3 ] 2>/dev/null; then
+      print_warn "current_phase is $current_phase (expected >= 3). Update phase-state.json before starting Phase 3."
+    fi
+  fi
+
+  # Check bug gate status
+  local test_gate="$SCRIPT_DIR/test-gate.sh"
+  if [ -x "$test_gate" ]; then
+    local gate_result=0
+    bash "$test_gate" --check-phase-gate || gate_result=$?
+    if [ "$gate_result" -eq 1 ]; then
+      print_fail "Phase 2→3 bug gate BLOCKED. Resolve issues before starting Phase 3."
+      exit 1
+    fi
+  fi
+
   jq --arg now "$now" '
     .phase3_validation = {
       "steps_completed": [],

@@ -528,11 +528,13 @@ Direct the AI to argue AGAINST building: competitors, existing solutions, Go/No-
 
 **DECISION GATE — Orchestrator decides Go or No-Go.**
 
+**Save as:** Record the Go/No-Go decision and key competitive factors as an appendix to `PRODUCT_MANIFESTO.md` or in the Project Bible Section 3 (Architecture Decision Record). The decision rationale must be persistent — an auditor should be able to verify this decision was made.
+
 ---
 
 ### Step 1.1.5: Market Signal Validation (Standard+ Track)
 
-**Performed by the Orchestrator, not the AI.** At least one market signal before committing to architecture.
+**Performed by the Orchestrator, not the AI.** At least one market signal before committing to architecture. Record the signal type (customer interview, letter of intent, survey result, landing page signups) and outcome in the Product Manifesto appendix or Project Bible. "At least one positive signal" means documented evidence, not a gut feeling.
 
 **DECISION GATE — If no positive signal, return to Phase 0.**
 
@@ -572,7 +574,9 @@ For EACH option, include ALL of the following as first-class decisions:
 [APPEND PLATFORM-SPECIFIC REQUIREMENTS FROM YOUR PLATFORM MODULE]
 ```
 
-**Select one option.** Document selection and rationale for rejecting others.
+**Input: Competency Matrix.** Attach the Competency Matrix from Step 0.6 (Manifesto Appendix B). For any domain marked "No," the selected architecture must be compatible with the compensating automated tool. Factor tooling overhead and the Orchestrator's skill gaps into the maintainability assessment for each option.
+
+**Select one option.** Document selection and rationale for rejecting others using the ADR template (`templates/generated/adr.tmpl`) with the Options Evaluated and Rejected Alternatives sections.
 
 **DECISION GATE — Orchestrator selects the architecture.**
 
@@ -604,6 +608,13 @@ Direct the AI to produce a structured threat model and attack the selected archi
 **Output:** Threat Model & Risk/Mitigation Matrix. This artifact is referenced during every Phase 2 security audit (Step 2.4) and validated in Phase 3.2.
 
 **Agent persona — Penetration Tester:** For threat modeling, the agent adopts the mindset of a hostile penetration tester. Start fresh — you have never seen this architecture before. This is for a business application. Quality is more important than positivity. Be critical, extremely thorough, and meticulous. Do not produce a checklist of abstract threats — produce concrete attack paths: "I have a leaked credential from a phishing attack. My first move is to test the API for horizontal privilege escalation. If user IDs are sequential, I enumerate until I find admin." For each STRIDE category, describe the specific attack a hostile actor would perform, not the theoretical risk. Every component is a pivot point. Every data flow is an exfiltration route.
+
+**Structural validation checklist** (reviewer applies at Phase 1→2 gate):
+- [ ] Every STRIDE category (S/T/R/I/D/E) has at least one threat
+- [ ] Every threat references a specific component or data flow in this architecture (not generic OWASP)
+- [ ] Every mitigation is a concrete technical control (not "validate input" or "be careful")
+- [ ] At least one threat describes a multi-step attack chain
+- [ ] Threats use stable IDs (TM-001, TM-002...) for Phase 3 traceability
 
 ---
 
@@ -646,6 +657,17 @@ Direct the AI to define the UI structure for core screens/views:
 - Accessibility baseline: all interactive elements must have text labels or ARIA labels. Never rely on color alone.
 
 > **⟁ PLATFORM MODULE:** Reference your Platform Module for UI framework specifics, platform conventions (native menus, system tray, window management, touch targets), and accessibility tooling.
+
+**Validation checklist:**
+- [ ] Layout defined for each core screen/view
+- [ ] Component responsibilities are clear (what does each piece own?)
+- [ ] All interactive elements have text labels
+- [ ] All four states defined for each interactive component (Empty, Loading, Error, Success)
+- [ ] Output format is text-based component specifications (Project Bible Section 9), not visual mockups
+
+For non-UI projects (CLI tools, APIs, background services): document the interface specification instead — command structure, input/output formats, error responses. The same four-state pattern applies to any interface component.
+
+**Note on skipped steps:** If any step in Phase 1 is skipped (conditional on track or project type), record "N/A — [reason]" in the corresponding Project Bible section. An auditor must be able to distinguish "was skipped deliberately" from "was forgotten."
 
 ---
 
@@ -812,7 +834,8 @@ Direct the agent to generate the CI configuration:
 - [ ] Linter runs clean
 - [ ] Test runner executes (0 tests, 0 failures)
 - [ ] Initial data model applies successfully
-- [ ] Pre-commit hook catches a test secret
+- [ ] Pre-commit hook catches a test secret (gitleaks detects a hardcoded test value)
+- [ ] Pre-commit hook runs Semgrep (verify SAST scanning is active)
 - [ ] License checker runs clean
 - [ ] CI pipeline passes on first push
 - [ ] Backup/restore verified
@@ -955,6 +978,8 @@ If the gate blocks (testing interval reached), execute a UAT session:
    - Asks: "Continue with partial results, or finish testing?"
 
 Agent results go to `tests/uat/sessions/<date>-session-N/agent-results/`. Human submissions go to `submissions/`.
+
+**Note on commits during UAT:** The process enforcement system blocks source commits while a UAT session is in progress (all 9 steps must complete). Bug fix code is written and tested during the remediation step but staged for commit after the full UAT cycle completes. If the session is long, use `git stash` to preserve work-in-progress. Documentation-only commits (.md, .json, .yml) are always allowed.
 
 **After each feature (regardless of testing interval):**
 ```bash
@@ -1130,8 +1155,9 @@ Consolidate all findings into a single remediation list. Fix critical findings f
 4. License compliance (using your ecosystem's tool)
 5. Direct the agent to: fix all critical/high findings, verify data isolation on every interface, verify input validation at every entry point, write regression tests for every fix.
 6. Re-run all scans to confirm resolution.
-7. **SBOM generation** (using your ecosystem's tool — CycloneDX, syft, or equivalent). Save to project root as `sbom.json` (current SBOM) and archive a dated copy to `docs/test-results/[date]_sbom.json` (Phase 3 snapshot). The root copy is the living document updated during monthly maintenance; the archived copy is the Phase 3 audit evidence.
-8. **Threat Model Validation:** Review the Phase 1.3 Threat Model. For every identified threat vector, verify: the mitigation was implemented, it works as designed, or the risk was explicitly accepted with documented rationale. Any threat vector without a verified mitigation or documented acceptance is a finding that must be resolved before go-live.
+7. **DAST scan (web applications):** Run OWASP ZAP baseline scan against the deployed staging environment. Full Track: run active scan. Save results to `docs/test-results/[date]_zap_[pass|fail].[ext]`. Reference your Platform Module for DAST configuration. (Non-web platforms: skip this step.)
+8. **SBOM generation** (using your ecosystem's tool — CycloneDX, syft, or equivalent). Save to project root as `sbom.json` (current SBOM) and archive a dated copy to `docs/test-results/[date]_sbom.json` (Phase 3 snapshot). The root copy is the living document updated during monthly maintenance; the archived copy is the Phase 3 audit evidence.
+9. **Threat Model Validation:** Review the Phase 1.3 Threat Model. For every identified threat vector, verify: the mitigation was implemented, it works as designed, or the risk was explicitly accepted with documented rationale. Any threat vector without a verified mitigation or documented acceptance is a finding that must be resolved before go-live.
 
 **Agent persona — Security Architect / Auditor:** For threat model validation, the agent adopts the mindset of an external security auditor. Start fresh — you have no prior relationship with this project. This is a business application. Quality is more important than positivity. Be critical, extremely thorough, and meticulous. For every threat vector from Phase 1.3: (1) locate where the mitigation code lives, (2) review it line by line, (3) test it with realistic attack payloads, (4) confirm it fails safely. Do not sign off on a mitigation you have not tested. "The threat model says we encrypt data at rest — show me the encryption, show me the key management, show me what happens if the key is lost."
 
@@ -1186,6 +1212,11 @@ Core requirements regardless of platform:
 - **Color-blind user:** "Red and green look the same to me. Does any UI element use color alone to communicate state? Are errors, warnings, and success indicated with text/icons in addition to color?"
 Identify every interaction that fails these tests. Report as "A screen reader user cannot [specific failure]" — not "Missing aria-label."
 
+**Pass/fail criteria:**
+- **Quantitative (web):** Lighthouse accessibility score ≥ 90. Save the HTML report to `docs/test-results/[date]_lighthouse_[pass|fail].html`.
+- **Qualitative (all platforms):** Persona failures that prevent completing the core flow are SEV-1 (must fix). Persona failures that degrade but don't block are SEV-3 (fix or accept with rationale).
+- **Minimum bar:** WCAG AA compliance for all platforms. Full Track requires explicit screen reader testing.
+
 **Process checkpoint:** `scripts/process-checklist.sh --complete-step phase3_validation:accessibility_audit`
 
 ---
@@ -1219,7 +1250,14 @@ For applications with interfaces consumed by other systems (APIs, IPC, file form
 
 ### Step 3.5.7: Load/Stress Testing (Full Track — if applicable)
 
-> **⟁ PLATFORM MODULE:** Reference your Platform Module for appropriate load testing. Web apps test concurrent users. Desktop apps test large file handling, many open documents, or extended operation periods.
+> **⟁ PLATFORM MODULE:** Reference your Platform Module for appropriate load testing.
+
+**Guidelines by platform:**
+- **Web apps:** Use k6, Artillery, or equivalent. Test concurrent users at expected peak load. Measure: P95 response time, error rate under load, throughput. Pass criteria: P95 response < 2x baseline, error rate < 1% at expected load.
+- **Desktop apps:** Test large file handling (10x expected size), many simultaneous documents, extended operation (1hr+ memory stability). Measure: memory usage over time, UI responsiveness under load.
+- **Mobile apps:** Test on minimum supported hardware. Measure: startup time, battery impact, memory usage. Pass criteria per Platform Module.
+
+Save results to `docs/test-results/[date]_load-test_[pass|fail].[ext]` (k6 JSON summary, HTML report, or equivalent).
 
 ---
 
@@ -1277,14 +1315,20 @@ These artifacts serve as the audit evidence for Phase 3 completion. They are ref
 
 ### Phase 3 Remediation
 
-| Issue | Detection | Response |
-|---|---|---|
-| **Logic Drift** | App works but doesn't solve the Phase 0 problem. | "Strayed from Manifesto. Remove [Feature X]. Re-align." |
-| **Silent Errors** | App fails without user feedback. | "Error boundaries. Every failure shows recovery suggestion." |
-| **Security Regression** | Change broke auth or data isolation. | "Full security audit from 3.2. Non-negotiable." |
-| **Accessibility Failures** | Below target scores or broken keyboard navigation. | "Address every finding. Ship nothing below target." |
-| **Performance Regression** | Below target on any metric. | "Profile and audit. Address largest bottleneck first." |
-| **Cross-Platform Failure** | Works on one platform, broken on another. | "Fix before proceeding. All target platforms must pass." |
+| Issue | Detection | Response | Blocks Phase 4? |
+|---|---|---|---|
+| **Logic Drift** | App works but doesn't solve the Phase 0 problem. | Strayed from Manifesto. Remove the feature. Re-align. | Yes (Critical) |
+| **Silent Errors** | App fails without user feedback. | Error boundaries. Every failure shows recovery suggestion. | Yes (High) |
+| **Security Regression** | Change broke auth or data isolation. | Full security audit from 3.2. Non-negotiable. | Yes |
+| **Accessibility Failures** | Below target scores or broken keyboard navigation. | Address every finding. Ship nothing below target. | Yes |
+| **Performance Regression** | Below target on any metric. | Profile and audit. Address largest bottleneck first. | Yes (if Critical/High) |
+| **Cross-Platform Failure** | Works on one platform, broken on another. | Fix before proceeding. All target platforms must pass. | Yes |
+| **Monitoring Unavailable** | Monitoring tool down or configuration lost. | Use an alternative tool. Do not launch without error tracking. | Yes |
+| **App Store Rejection** (mobile) | Store review rejects the submission. | Read rejection reason. Fix cited issue. Resubmit. See Platform Module. | Yes (until accepted) |
+
+**Re-run protocol after major remediation:** If a fix changes application behavior (not just scan configuration), re-run the affected test steps. Security fix → re-run Steps 3.1 (integration) and 3.2 (security). Accessibility fix → re-run Step 3.4. Performance fix → re-run Step 3.5. If multiple step types are affected, use `scripts/process-checklist.sh --reset phase3_validation` to re-run the full Phase 3 sequence. For minor fixes that don't change behavior (suppression configuration, documentation), re-running is not required.
+
+**Evaluation prompts:** For additional validation depth, consider running the Security Review (`evaluation-prompts/Projects/bases/03-security.md`) and Red Team Review (`evaluation-prompts/Projects/bases/06-red-team-review.md`) evaluation prompts. Results should be archived to `docs/eval-results/`. Required for Full Track projects.
 
 ---
 
@@ -1410,6 +1454,13 @@ Document the monitoring configuration in `HANDOFF.md` Section 8 (Monitoring & Al
 
 ### Step 4.4: Ongoing Maintenance Cadence
 
+**Schedule these cadences proactively** — create recurring calendar events for each application. Do not rely on memory. Run `scripts/check-maintenance.sh` to verify whether any cadence is overdue.
+
+**Weekly (30 minutes):**
+- Review error dashboard and monitoring alerts
+- Health check: application is up and responsive
+- Review any user feedback or support requests
+
 **Monthly (1-2 hours):**
 - Dependency and security audit
 - Apply non-breaking security patches
@@ -1507,7 +1558,14 @@ Direct the agent to generate `HANDOFF.md`:
 | `sbom.json` | 3 | Software Bill of Materials | Root (also archived in `docs/test-results/`) | — (tool-generated) |
 | Performance Baselines | 3 | Metrics for future comparison | `docs/test-results/[date]_performance-baseline.[ext]` | — |
 | `USER_GUIDE.md` | 3 | End-user documentation: how to use the application, FAQ, support contact | Root | — |
-| `SECURITY.md` | 4 | Vulnerability reporting — supported versions, reporting mechanism, response time, safe harbor (web/desktop) | Root | — |
+| `SECURITY.md` | 4 | Vulnerability reporting — supported versions, reporting mechanism, response time, safe harbor | Root | `security.tmpl` |
+| Security Audit Findings | 2 | Per-feature security audit findings and resolutions | `docs/security-audits/[feature]-security-audit.md` | `security-audit-findings.tmpl` |
+| Threat Model Validation | 3 | Per-vector validation results linking Phase 1 threats to Phase 3 evidence | `docs/test-results/[date]_threat-model-validation.md` | `threat-model-validation.tmpl` |
+| False Positive Log | 3 | Suppressed security findings with rationale and approval | `docs/test-results/[date]_false-positive-log.md` | `false-positive-log.tmpl` |
+| Rollback Test Results | 4 | Mandatory rollback test evidence | `docs/test-results/[date]_rollback-test.md` | `rollback-test.tmpl` |
+| Post-Incident Reviews | 4+ | Post-mortem analysis after production incidents | `docs/incidents/[date]-[slug].md` | Section in `incident-response.tmpl` |
+| In-Phase Decision Log | 2 (org) | Running log of Phase 2 decisions + biweekly review outcomes | Root or `docs/` | `decision-log.tmpl` |
+| Phase 0 Intermediates | 0 | FRD, User Journey, Data Contract — detailed pre-Manifesto outputs | `docs/phase-0/` | `frd.tmpl`, `user-journey.tmpl`, `data-contract.tmpl` |
 | `docs/INCIDENT_RESPONSE.md` | 4 | Severity classification, notification chains, rollback, containment | `docs/INCIDENT_RESPONSE.md` | `incident-response.tmpl` |
 | `RELEASE_NOTES.md` | 4 | User-facing: what the app does, known limitations, change history (append-only) | Root | `release-notes.tmpl` |
 | `HANDOFF.md` | 4 | Complete transfer document — dev setup, build process, tech debt, AI quick start | Root | `handoff.tmpl` |
