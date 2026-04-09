@@ -27,8 +27,8 @@ PHASE_STATE=".claude/phase-state.json"
 # --- Step sequences ---
 BUILD_LOOP_STEPS=(tests_written tests_verified_failing implemented security_audit documentation_updated feature_recorded)
 UAT_STEPS=(agents_dispatched template_generated orchestrator_notified results_received completeness_verified bugs_consolidated triage_complete remediation_complete gate_passed)
-PHASE3_STEPS=(integration_testing security_hardening chaos_testing accessibility_audit performance_audit contract_testing results_archived)
-PHASE4_STEPS=(production_build rollback_tested go_live_verified monitoring_configured handoff_written)
+PHASE3_STEPS=(integration_testing security_hardening chaos_testing accessibility_audit performance_audit contract_testing results_archived pre_launch_preparation legal_review)
+PHASE4_STEPS=(production_build rollback_tested go_live_verified monitoring_configured handoff_written handoff_tested)
 PHASE2_INIT_STEPS=(remote_repo_created branch_protection_configured project_scaffolded data_model_applied pre_commit_hooks_installed ci_pipeline_configured initialization_verified)
 
 # --- Argument parsing ---
