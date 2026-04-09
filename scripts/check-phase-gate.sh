@@ -182,6 +182,29 @@ validate_approval_fields() {
   fi
 }
 
+# --- Pre-Phase 0 Pre-Conditions Check (P0-010) ---
+# For organizational deployments, verify pre-conditions are recorded
+if [ "$deployment" = "organizational" ] && [ "$current_phase" -ge 0 ]; then
+  poc_mode_val=""
+  poc_mode_val=$(grep -o '"poc_mode"[[:space:]]*:[[:space:]]*"[^"]*"' "$PHASE_STATE" 2>/dev/null | sed 's/.*: *"//' | sed 's/"//' || echo "")
+
+  if [ -z "$poc_mode_val" ] || [ "$poc_mode_val" = "null" ]; then
+    # Full organizational — all 6 pre-conditions required
+    if grep -q "Pre-Phase 0" "$APPROVAL_LOG" 2>/dev/null; then
+      local_precond_count=$(grep -A 30 "Pre-Phase 0" "$APPROVAL_LOG" 2>/dev/null | grep -cE "[0-9]{4}-[0-9]{2}-[0-9]{2}" || echo "0")
+      if [ "$local_precond_count" -lt 3 ]; then
+        echo -e "${YELLOW}[WARN]${NC} Pre-Phase 0: Organizational deployment — only $local_precond_count pre-condition date(s) recorded (6 required)"
+        issues=$((issues + 1))
+      else
+        echo -e "${GREEN}  [OK]${NC} Pre-Phase 0 pre-conditions recorded ($local_precond_count entries)"
+      fi
+    else
+      echo -e "${YELLOW}[WARN]${NC} Pre-Phase 0: Organizational deployment — no pre-conditions section found in APPROVAL_LOG.md"
+      issues=$((issues + 1))
+    fi
+  fi
+fi
+
 # Check: if current_phase >= 1, gate 0→1 should have a date
 if [ "$current_phase" -ge 1 ]; then
   if [ -n "$gate_0_to_1" ]; then

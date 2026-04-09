@@ -1130,7 +1130,7 @@ Consolidate all findings into a single remediation list. Fix critical findings f
 4. License compliance (using your ecosystem's tool)
 5. Direct the agent to: fix all critical/high findings, verify data isolation on every interface, verify input validation at every entry point, write regression tests for every fix.
 6. Re-run all scans to confirm resolution.
-7. **SBOM generation** (using your ecosystem's tool — CycloneDX, syft, or equivalent).
+7. **SBOM generation** (using your ecosystem's tool — CycloneDX, syft, or equivalent). Save to project root as `sbom.json` (current SBOM) and archive a dated copy to `docs/test-results/[date]_sbom.json` (Phase 3 snapshot). The root copy is the living document updated during monthly maintenance; the archived copy is the Phase 3 audit evidence.
 8. **Threat Model Validation:** Review the Phase 1.3 Threat Model. For every identified threat vector, verify: the mitigation was implemented, it works as designed, or the risk was explicitly accepted with documented rationale. Any threat vector without a verified mitigation or documented acceptance is a finding that must be resolved before go-live.
 
 **Agent persona — Security Architect / Auditor:** For threat model validation, the agent adopts the mindset of an external security auditor. Start fresh — you have no prior relationship with this project. This is a business application. Quality is more important than positivity. Be critical, extremely thorough, and meticulous. For every threat vector from Phase 1.3: (1) locate where the mitigation code lives, (2) review it line by line, (3) test it with realistic attack payloads, (4) confirm it fails safely. Do not sign off on a mitigation you have not tested. "The threat model says we encrypt data at rest — show me the encryption, show me the key management, show me what happens if the key is lost."
@@ -1375,9 +1375,9 @@ Walk through the production application manually on each target platform:
 - [ ] All production configuration values set correctly
 - [ ] Platform-specific checks per Platform Module
 
-> **⟁ PLATFORM MODULE:** Reference your Platform Module for the platform-specific go-live checklist (security headers for web, code signing for desktop, app store compliance for mobile, etc.).
+> **⟁ PLATFORM MODULE — MANDATORY:** You MUST complete the platform-specific go-live checklist from your Platform Module in addition to the core checklist above. The Platform Module checklists contain critical platform requirements (SSL/security headers for web, code signing/auto-updater for desktop, app store metadata/certificates for mobile) that are not optional. Failure to complete platform-specific checks may result in deployment rejection (app store), security exposure (web), or broken functionality (desktop).
 
-**DECISION GATE: All checks green before announcing launch.**
+**DECISION GATE: All core AND platform-specific checks green before announcing launch.**
 
 **Release Notes:** Direct the agent to produce `RELEASE_NOTES.md`:
 - Version number and date
@@ -1400,6 +1400,9 @@ Core requirements:
 - Error/crash reporting configured and verified
 - Alerting rules: notify on unhandled errors and critical failures
 - Uptime/health monitoring (if applicable to the platform)
+- **Trigger a test error and verify the alert is received.** Do not mark this step complete until you have confirmed that a deliberately triggered error appears in the monitoring dashboard and fires the expected alert. "Configured" is not "verified" — an untested monitoring setup is indistinguishable from no monitoring.
+
+Document the monitoring configuration in `HANDOFF.md` Section 8 (Monitoring & Alerting subsection): tool name, dashboard URL, alert channel, and access instructions.
 
 **Process checkpoint:** `scripts/process-checklist.sh --complete-step phase4_release:monitoring_configured`
 
