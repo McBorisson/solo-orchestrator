@@ -5,8 +5,8 @@
 | Field | Value |
 |---|---|
 | **Document ID** | SOI-007-GUIDE |
-| **Version** | 1.2 |
-| **Date** | 2026-04-08 |
+| **Version** | 1.3 |
+| **Date** | 2026-04-10 |
 | **Classification** | User Guide |
 | **Companion Documents** | SOI-002-BUILD v1.0 (Builder's Guide), SOI-003-GOV v1.0 (Governance Framework), SOI-004-INTAKE v1.0 (Project Intake Template) |
 
@@ -27,6 +27,7 @@ For what the framework *is*, how it works at a conceptual level, and what it is 
 | [**Governance Framework**](governance-framework.md) | Approval authorities, compliance, risk, portfolio governance | Organizational deployments |
 | [**CLI Setup Addendum**](cli-setup-addendum.md) | Claude Code configuration, Superpowers, MCP servers | After init, before Phase 0 |
 | [**Platform Module**](platform-modules/) | Platform-specific architecture, tooling, testing, distribution | Phases 1-4 |
+| [**Extending Platforms**](extending-platforms.md) | How to add a new platform type to the framework | When adding platforms |
 | [**Executive Review**](executive-review.md) | Business case for CIO evaluation | Organizational evaluation |
 | [**Framework Evaluation Prompts**](../evaluation-prompts/Framework/) | Adversarial reviews of the framework itself from 6 professional perspectives | After framework updates or retooling |
 | [**Project Evaluation Prompts**](../evaluation-prompts/Projects/) | Adversarial reviews of any project built with the framework from 6 professional perspectives | Phase 3 validation, before production deployment |
@@ -284,7 +285,7 @@ The script prompts for 7 inputs:
 |---|---|---|
 | **Project name** | Lowercase, no spaces (e.g., `invoice-tool`) | This becomes the directory name and appears in generated files. |
 | **One-sentence description** | What does it do, in plain language | Used in CLAUDE.md and the Intake template. |
-| **Platform type** | Web / Desktop / Mobile / CLI / Other | Determines which Platform Module is loaded and which release pipeline is generated. Pick the primary delivery surface. |
+| **Platform type** | Web / Desktop / Mobile / MCP Server / Other | Determines which Platform Module is loaded and which release pipeline is generated. Pick the primary delivery surface. See the [Extending Platforms Guide](extending-platforms.md) to add new platform types. |
 | **Project track** | Light / Standard / Full | **Light:** internal tools, <10 users, skip market audit. **Standard:** external users, moderate complexity. **Full:** enterprise buyers, sensitive data, pen testing mandatory. |
 | **Personal or Organizational** | Personal / Organizational | Organizational adds governance pre-flight requirements and approval authority structures. |
 | **Primary language** | TypeScript, Python, Rust, C#, Kotlin, Java, Go, Dart, Swift, Other | Determines the CI pipeline template (testing, linting, SAST, dependency audit). |
@@ -1244,6 +1245,7 @@ The project review system is modular. Each review combines a **base template** (
 | `modules/api-service.md` | REST APIs, GraphQL, gRPC, microservices, serverless |
 | `modules/cli-tool.md` | Command-line tools, build tools, automation utilities |
 | `modules/framework.md` | Dev frameworks, LLM orchestrators, build systems, compliance tools |
+| `modules/mcp-server.md` | MCP servers, AI assistant integrations, tool/resource providers |
 
 **Scripts:**
 
@@ -1437,6 +1439,7 @@ Pick the primary platform and use its module. Cross-platform concerns (e.g., a w
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.3 | 2026-04-10 | Added MCP Server platform to domain modules table, Extending Platforms Guide to document map, updated platform selection guidance. |
 | 1.2 | 2026-04-08 | Added Process Enforcement Details subsection (7 items) and POC Mode Lifecycle subsection (4 items) to close UAT documentation gaps. |
 | 1.1 | 2026-04-02 | Added evaluation prompts documentation (framework and project review prompts). |
 | 1.0 | 2026-04-02 | Initial release. |

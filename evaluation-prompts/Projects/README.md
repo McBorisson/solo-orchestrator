@@ -51,6 +51,7 @@ Projects/
 | `api-service` | REST APIs, GraphQL, gRPC, microservices, serverless |
 | `cli-tool` | Command-line tools, build tools, automation utilities |
 | `framework` | Dev frameworks, LLM orchestrators, build systems, compliance tools |
+| `mcp-server` | MCP servers, AI assistant integrations, tool/resource providers |
 | `desktop-app` | Electron, Tauri, native desktop (WPF, SwiftUI, GTK) |
 
 ## Usage

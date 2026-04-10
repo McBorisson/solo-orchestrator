@@ -9,7 +9,7 @@
 | Field | Value |
 |---|---|
 | **Document ID** | SOI-002-BUILD |
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Classification** | Technical Implementation Manual |
 | **Date** | 2026-04-02 |
 | **Audience** | Solo Orchestrator (technologist executing the framework) |
@@ -19,6 +19,7 @@
 | **Platform Modules** | SOI-PM-WEB v1.0 — Web Applications |
 | | SOI-PM-DESKTOP v1.0 — Desktop Applications (Standalone & Client-Server) |
 | | SOI-PM-MOBILE v1.0 — Mobile Applications (iOS & Android) |
+| | SOI-PM-MCP v1.0 — MCP Servers (Model Context Protocol) |
 
 ---
 
@@ -47,6 +48,7 @@ When the Intake is provided, the Phase 0 and Phase 1 prompts shift from open-end
 - **Project Intake Template** (SOI-004-INTAKE) — Complete before Phase 0. The structured input.
 - **This guide** (SOI-002-BUILD) — Platform-agnostic methodology. The process.
 - **Platform Modules** (SOI-PM-*) — Platform-specific architecture, tooling, testing, deployment. Referenced from this guide at specific points.
+- **Extending Platforms Guide** (SOI-008-EXTEND) — How to add a new platform type to the framework. Covers all five components: platform module, evaluation module, release pipeline, intake suggestions, CI template markers.
 - **CLI Setup Addendum** (SOI-005-CLI) — Claude Code CLI configuration. Optional but recommended.
 - **Enterprise Governance Framework** (SOI-003-GOV) — Required for organizational deployments.
 
@@ -69,7 +71,7 @@ This framework does not replace engineering teams. It is not appropriate for:
 - **Large-scale distributed systems** requiring microservices, message queues, or multi-region deployments. These require dedicated DevOps capacity.
 - **Enterprise integration projects** (SAP, Salesforce, custom ERP) where the integration complexity exceeds the application logic.
 
-The framework is designed for internal tools, utilities, departmental applications, prototypes, and MVP validation — projects that sit in the backlog because they don't justify a full team. Platform Modules for web, desktop, and mobile guide you from MVP through production readiness. Additional platform modules (CLI, embedded) can be added as they mature.
+The framework is designed for internal tools, utilities, departmental applications, prototypes, and MVP validation — projects that sit in the backlog because they don't justify a full team. Platform Modules for web, desktop, mobile, and MCP servers guide you from MVP through production readiness. Additional platform modules can be added following the [Extending Platforms Guide](extending-platforms.md).
 
 ### How This Differs From "Vibe Coding"
 
@@ -1770,4 +1772,5 @@ Direct the agent to generate `HANDOFF.md`:
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.1 | 2026-04-10 | Added MCP Server platform module, Extending Platforms Guide reference, updated document relationships and platform list. |
 | 1.0 | 2026-04-02 | Initial release. |

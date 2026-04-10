@@ -298,9 +298,9 @@ The framework is built on two independent extensibility axes: **platforms** and 
 - `ci/` — one template per **language** (test, lint, SAST, audit). Copied verbatim.
 - `release/` — one template per **platform** (build, sign, package, deploy). Language-specific build commands are injected via placeholder substitution.
 
-This separation means adding support for a new platform requires two files: a platform module (documentation) and a release pipeline template (CI/CD). Adding a new language requires one file: a CI template. Nothing in the Builder's Guide, existing modules, or existing templates changes. The web, desktop, and mobile modules were each built this way — added independently without modifying the core framework or each other.
+This separation means adding support for a new platform requires five components: a platform module (architecture guidance), an evaluation module (reviewer criteria), a release pipeline template (CI/CD), intake suggestions (optional but recommended), and CI template marker updates (language availability). Adding a new language requires one file: a CI template. Nothing in the Builder's Guide, existing modules, or existing templates changes. The web, desktop, mobile, and MCP server modules were each built this way — added independently without modifying the core framework or each other.
 
-**Extensibility example:** To add "Azure Microservices" as a platform, write `docs/platform-modules/azure-microservices.md` (standard module structure) and `templates/pipelines/release/azure-microservices.yml` (with `__PLACEHOLDER__` tokens for language injection). Optionally add `templates/intake-suggestions/azure-microservices.json` for context-aware suggestions in the intake wizard (falls back to common suggestions if not present). The init script auto-discovers available platforms from the `docs/platform-modules/` and `templates/pipelines/release/` directories and auto-discovers available languages from `templates/pipelines/ci/`. No code changes to the init script are needed — new platforms and languages appear as options automatically.
+**Extensibility example:** To add "Azure Microservices" as a platform, write `docs/platform-modules/azure-microservices.md` (architecture guidance), `evaluation-prompts/Projects/modules/azure-microservices.md` (six-reviewer evaluation criteria), `templates/pipelines/release/azure-microservices.yml` (with `__PLACEHOLDER__` tokens for language injection), and optionally `templates/intake-suggestions/azure-microservices.json` (context-aware suggestions). Then update the `platforms=` marker on line 1 of each relevant CI template in `templates/pipelines/ci/` to include the new platform name. The init script auto-discovers available platforms from the `docs/platform-modules/` and `templates/pipelines/release/` directories and auto-discovers available languages from `templates/pipelines/ci/`. No code changes to the init script are needed — new platforms and languages appear as options automatically. See the [Extending Platforms Guide](docs/extending-platforms.md) for the full process.
 
 ---
 
@@ -313,10 +313,11 @@ This separation means adding support for a new platform requires two files: a pl
 | **Web** (SPA, full-stack, API) | `web.md` | v1.0 — Complete |
 | **Desktop** (Windows, macOS, Linux) | `desktop.md` | v1.0 — Complete |
 | **Mobile** (iOS, Android) | `mobile.md` | v1.0 — Complete |
+| **MCP Server** (Model Context Protocol) | `mcp-server.md` | v1.0 — Complete |
 
 Projects on unsupported platforms can select "other" during init. The Builder's Guide works standalone — you just won't have platform-specific architecture and distribution guidance.
 
-New platform modules can be added without modifying the core framework. A platform module is complete when it covers: Architecture → Tooling → Build & Packaging → Testing → Distribution → Maintenance.
+New platform modules can be added without modifying the core framework. See the [Extending Platforms Guide](docs/extending-platforms.md) for the complete step-by-step process — it covers all five components (platform module, evaluation module, release pipeline, intake suggestions, CI template markers) and includes a validation checklist.
 
 ---
 
