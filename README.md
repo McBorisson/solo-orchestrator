@@ -75,7 +75,7 @@ See the [User Guide](docs/user-guide.md) for detailed walkthrough of each step.
 - **Security by default** — SAST (Semgrep), secret detection (gitleaks), dependency scanning (Snyk), license compliance, and DAST (OWASP ZAP) installed and configured automatically. CI pipeline blocks merges on findings.
 - **Test-driven development** — Tests first, implementation second. Pre-commit hooks warn when implementation ships without tests.
 - **9 languages, extensible to any** — TypeScript, Python, Rust, Go, C#, Kotlin, Java, Dart, Swift ship out of the box. Need C++? Drop one CI template at `templates/pipelines/ci/cpp.yml` — it appears as a language option automatically.
-- **3 platforms, extensible to any** — Web, desktop, and mobile ship out of the box. Need Azure Microservices? Drop a platform module at `docs/platform-modules/azure-microservices.md` and a release pipeline at `templates/pipelines/release/azure-microservices.yml` — it appears as a platform option automatically. **No code changes to the init script.** The framework auto-discovers platforms and languages from the file system. See [Extensibility](#extensibility) for details.
+- **4 platforms, extensible to any** — Web, desktop, mobile, and MCP server ship out of the box. Need Azure Microservices? Drop a platform module at `docs/platform-modules/azure-microservices.md` and a release pipeline at `templates/pipelines/release/azure-microservices.yml` — it appears as a platform option automatically. **No code changes to the init script.** The framework auto-discovers platforms and languages from the file system. See [Extensibility](#extensibility) for details.
 - **Enterprise governance** — Approval authorities, compliance screening, insurance requirements, backup maintainer, and audit trail. Full documentation suite for CIO/CISO/Legal review.
 - **POC modes** — Sponsored and Private POC modes defer governance overhead while you validate the approach with production-quality technical work.
 - **One command setup** — `./init.sh` handles everything: tool installation, project scaffolding, CI/CD generation, security tooling, Git initialization, and health check.
@@ -157,7 +157,7 @@ your-project/
 │   ├── api and interfaces/                # Interface/API documentation
 │   ├── snapshots/                         # Phase gate document snapshots
 │   ├── platform-modules/
-│   │   └── [web|desktop|mobile].md        # Platform-specific guidance
+│   │   └── [web|desktop|mobile|mcp-server].md  # Platform-specific guidance
 │   └── test-results/                      # Phase 3 test evidence (empty until Phase 3)
 ├── evaluation-prompts/
 │   └── Projects/
@@ -177,7 +177,8 @@ your-project/
 │       ├── common.json                    # Platform-independent (budget, timeline, accessibility)
 │       ├── web.json                       # Web platform (auth, hosting, DB, frameworks)
 │       ├── desktop.json                   # Desktop platform
-│       └── mobile.json                    # Mobile platform
+│       ├── mobile.json                    # Mobile platform
+│       └── mcp-server.json               # MCP server platform (transport, persistence, SDK)
 ```
 
 ### System-wide installations (with user prompting)
@@ -360,15 +361,13 @@ Tracks control scope depth. For organizational deployments, POC modes (Sponsored
 
 ---
 
----
-
 ## For CIOs and Enterprise Evaluation
 
 The [Executive Review](docs/executive-review.md) is designed to be evaluated independently — including by AI models. The [Enterprise Governance Framework](docs/governance-framework.md) provides the approval authorities, compliance screening, risk management, and portfolio governance required for organizational adoption.
 
 Evaluation prompts are in `evaluation-prompts/`:
 - **Framework reviews** (`evaluation-prompts/Framework/`) — 6 independent adversarial reviews of the framework itself: Senior Engineer, CIO, SVP IT Security, Corporate Legal, Technical User, and Red Team. Run after framework updates.
-- **Project reviews** (`evaluation-prompts/Projects/`) — 6 independent adversarial reviews of any project built with the framework: same 6 perspectives, with domain-specific modules for web, desktop, mobile, API, and framework project types. Run during Phase 3 validation.
+- **Project reviews** (`evaluation-prompts/Projects/`) — 6 independent adversarial reviews of any project built with the framework: same 6 perspectives, with domain-specific modules for web, desktop, mobile, MCP server, API, and framework project types. Run during Phase 3 validation.
 
 ---
 
@@ -458,8 +457,8 @@ For enterprise/organizational use: always use the framework. The governance arti
 | Agent instructions | Single CLAUDE.md file | CLAUDE.md + Builder's Guide + Platform Module — comprehensive AI instruction set |
 | Project planning | Ad hoc | Structured Intake Template + phase-gated discovery (Phases 0-1) |
 | CI security scanning | Manual pipeline setup | 7 language-specific templates with Semgrep SAST, dependency audit, license checking |
-| Release pipeline | Manual pipeline setup | 3 platform-specific templates (web, desktop, mobile) |
-| Platform guidance | None | Web, Desktop, Mobile modules with architecture patterns, tooling, testing, distribution |
+| Release pipeline | Manual pipeline setup | 4 platform-specific templates (web, desktop, mobile, MCP server) |
+| Platform guidance | None | Web, Desktop, Mobile, MCP Server modules with architecture patterns, tooling, testing, distribution |
 | Enterprise governance | None | Full framework with approval authorities, compliance screening, portfolio governance, and POC modes for pre-approval validation |
 | Project intake | Manual CLAUDE.md | Guided intake wizard (interactive script or AI-assisted) with context-aware suggestions per platform |
 | Security scan guidance | Read the docs yourself | Plain-language interpretation guide for common Semgrep and Snyk findings |
@@ -478,13 +477,13 @@ The methodology, intake template, platform modules, and CI pipeline templates ar
 - **Linux package manager support covers apt, dnf, and pacman.** Alpine (apk) and other distributions require manual tool installation. The init script auto-detects brew (macOS), apt (Debian/Ubuntu), dnf (Fedora/RHEL), and pacman (Arch/Manjaro).
 - **CI/CD templates are GitHub Actions only.** The framework provides pipeline templates for GitHub Actions. GitLab CI and Azure DevOps are supported as repository hosts, but pipeline templates must be translated manually.
 - **Single language per init.** The init script generates CI for one primary language. Polyglot projects (e.g., TypeScript frontend + Python backend) require manual addition of CI steps for secondary languages.
-- **Not yet validated through an organizational pilot.** The framework has been used for personal projects. The pilot evaluation process (Executive Review, Section X) defines how to test it organizationally. Treat this as a well-structured hypothesis, not a proven methodology.
+- **Not yet validated through an organizational pilot.** The framework has been used by the author to build two cross-platform MVP applications (K-PDF, MeshScope), validating Phases 0-2. The pilot evaluation process (Executive Review, Section X) defines how to test it organizationally. Treat this as a methodology with demonstrated personal-project results, not yet organizationally proven.
 
 ---
 
 ## Current Status
 
-This is the initial release of the Solo Orchestrator Framework. It has been used by the author to build personal projects but has not yet been validated through a formal organizational pilot. The framework's own pilot evaluation process (see Executive Review, Section X) defines how to test it. Treat this as a well-structured hypothesis, not a proven methodology. Feedback from real-world usage will drive future iterations.
+This is the initial release of the Solo Orchestrator Framework. It has been used by the author to build two cross-platform MVP applications (K-PDF and MeshScope), validating the methodology through Phases 0-2 (Discovery, Architecture, Construction). It has not yet been validated through a formal organizational pilot. The framework's own pilot evaluation process (see Executive Review, Section X) defines how to test it organizationally. Feedback from real-world usage will drive future iterations.
 
 ---
 
