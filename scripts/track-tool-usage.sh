@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Solo Orchestrator — PostToolUse hook for MCP tool usage tracking
-# Logs Context7 and Qdrant tool calls to .claude/tool-usage.json.
+# Logs Context7, Qdrant, and any configured MCP tool calls to .claude/tool-usage.json.
+# Updates compliance state for the session-mcp-gate.sh PreToolUse enforcement hook.
 # Fires after every tool call — must be fast for non-MCP tools.
 
 # Don't use set -e — this is an advisory PostToolUse hook that must NEVER block
@@ -23,7 +24,7 @@ fi
 
 # Fast exit for non-MCP, non-commit tools (vast majority of calls)
 case "$TOOL_NAME" in
-  *context7*|*qdrant*) ;; # Continue to tracking logic
+  *context7*|*qdrant*|mcp__*) ;; # Continue to tracking logic for any MCP tool
   Bash)
     # Check if this is a git commit (to increment counter)
     BASH_CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
@@ -47,7 +48,14 @@ if [ ! -f "$TOOL_USAGE" ]; then
   "calls": [],
   "commits_since_last_context7": 0,
   "qdrant_find_called": false,
-  "qdrant_store_called": false
+  "qdrant_store_called": false,
+  "context7_called": false,
+  "mcp_gate_satisfied": false,
+  "mcp_requirements": {
+    "qdrant_required": false,
+    "context7_required": false,
+    "additional_required": []
+  }
 }
 EOF
 fi
@@ -59,7 +67,7 @@ TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 # Track Context7 calls
 if echo "$TOOL_NAME" | grep -q "context7" 2>/dev/null; then
   jq --arg tool "$TOOL_NAME" --arg ts "$TIMESTAMP" \
-    '.calls += [{"tool": $tool, "timestamp": $ts}] | .commits_since_last_context7 = 0' \
+    '.calls += [{"tool": $tool, "timestamp": $ts}] | .commits_since_last_context7 = 0 | .context7_called = true' \
     "$TOOL_USAGE" > "$TOOL_USAGE.tmp" && mv "$TOOL_USAGE.tmp" "$TOOL_USAGE"
 fi
 
@@ -72,6 +80,16 @@ if echo "$TOOL_NAME" | grep -q "qdrant" 2>/dev/null; then
   elif echo "$TOOL_NAME" | grep -q "store" 2>/dev/null; then
     jq --arg tool "$TOOL_NAME" --arg ts "$TIMESTAMP" \
       '.calls += [{"tool": $tool, "timestamp": $ts}] | .qdrant_store_called = true' \
+      "$TOOL_USAGE" > "$TOOL_USAGE.tmp" && mv "$TOOL_USAGE.tmp" "$TOOL_USAGE"
+  fi
+fi
+
+# Track any other MCP tool call (for additional_required enforcement)
+if echo "$TOOL_NAME" | grep -q "^mcp__" 2>/dev/null; then
+  # Only log if not already tracked above (avoid double-logging context7/qdrant)
+  if ! echo "$TOOL_NAME" | grep -qE "context7|qdrant" 2>/dev/null; then
+    jq --arg tool "$TOOL_NAME" --arg ts "$TIMESTAMP" \
+      '.calls += [{"tool": $tool, "timestamp": $ts}]' \
       "$TOOL_USAGE" > "$TOOL_USAGE.tmp" && mv "$TOOL_USAGE.tmp" "$TOOL_USAGE"
   fi
 fi

@@ -1414,6 +1414,24 @@ PERMEOF
           hooks_added=true
         fi
 
+        # Add MCP session gate to PreToolUse hook (targets Write and Edit)
+        # This blocks file modifications until required MCP tools (qdrant-find, context7)
+        # have been called — closing the session-start enforcement gap.
+        for GATE_TOOL in Write Edit; do
+          if ! jq -e ".hooks.PreToolUse[]? | select(.matcher == \"$GATE_TOOL\") | .hooks[]? | select(.command | contains(\"session-mcp-gate.sh\"))" .claude/settings.json >/dev/null 2>&1; then
+            # Check if a matcher group for this tool already exists
+            GATE_INDEX=$(jq "[.hooks.PreToolUse[] | .matcher // \"none\"] | to_entries[] | select(.value == \"$GATE_TOOL\") | .key" .claude/settings.json 2>/dev/null | head -1 || echo "")
+            if [ -n "$GATE_INDEX" ]; then
+              jq ".hooks.PreToolUse[$GATE_INDEX].hooks += [{\"type\": \"command\", \"command\": \"bash \\\"\$CLAUDE_PROJECT_DIR\\\"/scripts/session-mcp-gate.sh\"}]" .claude/settings.json > .claude/settings.json.tmp \
+                && mv .claude/settings.json.tmp .claude/settings.json
+            else
+              jq ".hooks.PreToolUse += [{\"matcher\": \"$GATE_TOOL\", \"hooks\": [{\"type\": \"command\", \"command\": \"bash \\\"\$CLAUDE_PROJECT_DIR\\\"/scripts/session-mcp-gate.sh\"}]}]" .claude/settings.json > .claude/settings.json.tmp \
+                && mv .claude/settings.json.tmp .claude/settings.json
+            fi
+            hooks_added=true
+          fi
+        done
+
         # Add tool usage tracking to PostToolUse hook
         if jq -e '.hooks.PostToolUse' .claude/settings.json >/dev/null 2>&1; then
           if ! jq -e '.hooks.PostToolUse[0].hooks[] | select(.command | contains("track-tool-usage.sh"))' .claude/settings.json >/dev/null 2>&1; then
@@ -1428,7 +1446,7 @@ PERMEOF
         fi
 
         if [ "$hooks_added" = true ]; then
-          print_ok "Session hooks installed (version check, test gate, Qdrant reminder, commit gate, tool tracking)"
+          print_ok "Session hooks installed (version check, test gate, MCP gate, Qdrant reminder, commit gate, tool tracking)"
         fi
       fi
     fi
