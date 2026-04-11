@@ -1,6 +1,6 @@
 # The Solo Orchestrator Framework
 
-## Executive Review — Version 1.0
+## Executive Review — Version 1.1
 
 ---
 
@@ -9,9 +9,9 @@
 | Field | Value |
 |---|---|
 | **Document ID** | SOI-001-EXEC |
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Classification** | Executive Briefing |
-| **Date** | 2026-04-02 |
+| **Date** | 2026-04-10 |
 | **Audience** | CIO, VP of Engineering, Director of Software Development |
 | **Framework Documents** | See Section XI — Document Suite |
 
@@ -23,7 +23,7 @@
 
 The Solo Orchestrator Framework is a structured software development methodology that enables a single experienced technologist to build MVP-quality applications with a clear path to production, using AI Large Language Models as the execution layer. The technologist acts as Product Owner, Lead Architect, and QA Director. The AI proposes architecture, generates logic, and writes code within constraints defined and validated by the human operator. The framework produces functional, tested, security-scanned MVPs — production deployment requires additional hardening, operational readiness, and governance completion.
 
-The framework currently supports **web, desktop, and mobile applications** with Platform Modules that guide projects from MVP through production readiness. The core methodology is platform-agnostic — additional platforms (CLI, embedded) can be added through new Platform Modules as they mature.
+The framework currently supports **web, desktop, mobile, and MCP server** applications with Platform Modules that guide projects from MVP through production readiness. The core methodology is platform-agnostic — additional platforms (CLI, embedded) can be added through new Platform Modules as they mature.
 
 The framework is a phase-gated process consisting of five stages: Product Discovery (defining requirements), Architecture & Planning (selecting technology), Construction (building features), Validation & Hardening (security and quality assurance), and Release & Maintenance (distribution and ongoing support). Each phase produces documented artifacts that gate entry into the next phase. No code is deployed without passing automated testing, security scanning, and human review.
 
@@ -33,11 +33,11 @@ The framework is **modular** — the core methodology is platform-agnostic, with
 
 Every large organization has a software backlog that will never be built. The projects are too small to justify a full development team, too complex for no-code platforms, and too specific for off-the-shelf SaaS. They age in Jira while business units find workarounds — spreadsheets, manual processes, or unauthorized SaaS purchases that create shadow IT risk.
 
-The Solo Orchestrator model addresses this gap. A single qualified technologist can take a concept from idea to validated MVP in weeks at a fraction of the cost of a traditional team, with a structured path to production when the project proves its value. Platform Modules currently support web, desktop, and mobile applications.
+The Solo Orchestrator model addresses this gap. A single qualified technologist can take a concept from idea to validated MVP in weeks at a fraction of the cost of a traditional team, with a structured path to production when the project proves its value. Platform Modules currently support web, desktop, mobile, and MCP server applications.
 
 ### Current Maturity
 
-This is the initial release of the framework. It has been developed and used by the author for personal projects. It has not yet been validated through a formal organizational pilot as described in Section X. The framework should be evaluated as a structured methodology ready for pilot testing, not as a field-proven practice. The pilot evaluation process defined in this document is the mechanism for validation.
+This is the initial release of the framework. It has been used by the author to build two complete MVP applications — a cross-platform PDF editor (K-PDF) and a 3D mesh visualization tool (MeshScope) — both downloadable and fully functional on Windows, macOS, and Linux. These projects validated the framework through Phases 0-2 (Discovery, Architecture, Construction). The framework has not yet been validated through a formal organizational pilot as described in Section X. It should be evaluated as a methodology with demonstrated personal-project results, ready for organizational pilot testing. The pilot evaluation process defined in this document is the mechanism for organizational validation.
 
 ### What This Is Not
 
@@ -158,13 +158,13 @@ Expect 2-4 hours/week for the first 3 months post-launch. Maintenance is bursty.
 
 ## IV. Process Overview
 
-The framework operates in five phases. Each phase produces documented artifacts that gate entry into the next phase. The Builder's Guide (SOI-002-BUILD v1.0) provides the complete platform-agnostic methodology. Platform Modules provide platform-specific implementation guidance.
+The framework operates in five phases. Each phase produces documented artifacts that gate entry into the next phase. The Builder's Guide (SOI-002-BUILD v1.1) provides the complete platform-agnostic methodology. Platform Modules provide platform-specific implementation guidance.
 
 ### Phase 0: Product Discovery & Logic Mapping
 
 **Duration:** 1-2 days | **Decision gates:** 1 (Manifesto approval)
 
-Define what the product does, who uses it, and how data flows through it before any technology decisions. The **Project Intake Template** (SOI-004-INTAKE) accelerates this phase by collecting requirements, constraints, and the Orchestrator's technical profile upfront, allowing the AI agent to validate and expand rather than discover from scratch.
+Define what the product does, who uses it, and how data flows through it before any technology decisions. The **Project Intake Template** (SOI-004-INTAKE) accelerates this phase by collecting requirements, constraints, and the Orchestrator's technical profile upfront, allowing the AI agent to validate and expand rather than discover from scratch. The **Intake Wizard** (`scripts/intake-wizard.sh`) provides a guided interactive walkthrough of the Intake — it asks questions in sequence, offers context-aware suggestions based on the selected platform and language, supports pause/resume, and produces a completed Intake document. For personal or private POC projects, the Intake can also be filled out conversationally by pasting it into any AI assistant.
 
 **Output artifact:** `PRODUCT_MANIFESTO.md`
 
@@ -200,6 +200,10 @@ Build, package, and distribute via the platform-appropriate mechanism — web de
 
 **Output artifacts:** CI/CD configuration, platform-specific build/package pipeline, incident response playbook, monitoring integration, `HANDOFF.md`.
 
+### Extensibility
+
+The framework auto-discovers platforms and languages from the filesystem at runtime. Adding a new platform (e.g., Azure Microservices, embedded firmware, CLI tools) requires creating files in specific directories — a platform module, an evaluation module, a release pipeline template, and intake suggestions. The init script discovers them automatically. No code changes to the init script are required. The same mechanism applies to languages: dropping a CI template in `templates/pipelines/ci/` makes it available as a language option. See the Extending Platforms Guide (SOI-008-EXTEND) for the complete process.
+
 ---
 
 ## V. Enterprise Governance
@@ -217,6 +221,8 @@ Enterprise deployment requires a governance layer that the framework itself does
 **Portfolio Governance:** For organizations running multiple Solo Orchestrators — mandatory SSO, centralized logging, shared architecture catalog, maximum applications per Orchestrator (5-8 recommended), and graduation criteria for transitioning applications to conventional engineering teams.
 
 **The Project Intake Template** (SOI-004-INTAKE) collects the data these governance controls require. Section 8 of the Intake (Governance Pre-Flight) maps directly to the Governance Framework's pre-conditions.
+
+**POC Modes:** The framework supports two proof-of-concept modes for organizational adoption. **Sponsored POC** allows an organization-approved pilot where technical approvals (IT Security, Legal) are completed upfront but non-technical governance (insurance confirmation, ITSM registration) is deferred. **Private POC** allows personal exploration with all governance deferred. In both modes, all technical work is production-grade — the same phases, TDD discipline, security scanning, and documentation apply. Phase 4 (production release) is blocked until the project is upgraded to production status. All technical work carries forward unchanged when governance is completed. POC modes reduce the organizational adoption barrier from "resolve all pre-conditions before any work begins" to "resolve technical pre-conditions, validate the methodology, then complete governance for production."
 
 ---
 
@@ -279,6 +285,7 @@ Desktop and mobile distribution introduces additional legal requirements not pre
 | **Intellectual property uncertainty** | Medium | Copyright protection for AI-generated code is legally unsettled. Human-directed phase gates and code provenance documentation strengthen but do not guarantee claims. Organizations should consult IP counsel. The framework does not scan for patent or copyright infringement in generated code. |
 | **Portfolio scaling** | Medium | Maximum 5-8 applications per Orchestrator. Quarterly portfolio review. Graduation criteria defined. |
 | **Cross-platform inconsistency** | Medium | CI builds and tests on all target platforms. Platform-specific testing checklists per Platform Module. |
+| **Framework reliability** | Low | Automated test suite (4,777 lines across 6 test files) validates init script output across all platform/language/track combinations. Upgrade path tests validate project migration between framework versions. Edge case and known-bug regression suites provide ongoing quality assurance for the framework itself. |
 | **Platform vendor changes** | Medium | Code signing certificate expiry, app store policy changes, SDK deprecation. Biannual platform review in maintenance cadence. |
 
 ---
@@ -351,11 +358,14 @@ The Solo Orchestrator Framework consists of the following documents:
 
 | Document | ID | Purpose | Audience |
 |---|---|---|---|
-| **Executive Review** (this document) | SOI-001-EXEC v1.0 | High-level overview, business case, risk assessment | CIO, VP of Engineering, Directors |
-| **Builder's Guide** | SOI-002-BUILD v1.0 | Platform-agnostic methodology — phases, prompts, quality controls, remediation | Solo Orchestrator |
+| **Executive Review** (this document) | SOI-001-EXEC v1.1 | High-level overview, business case, risk assessment | CIO, VP of Engineering, Directors |
+| **Builder's Guide** | SOI-002-BUILD v1.1 | Platform-agnostic methodology — phases, prompts, quality controls, remediation | Solo Orchestrator |
 | **Enterprise Governance Framework** | SOI-003-GOV v1.0 | Approval authorities, compliance, risk management, portfolio governance | CIO, IT Security, Legal, Risk, Audit |
 | **Project Intake Template** | SOI-004-INTAKE v1.0 | Structured data collection for autonomous AI agent execution | Solo Orchestrator (fills out), Governance (reviews Section 8) |
 | **CLI Setup Addendum** | SOI-005-CLI v1.0 | Claude Code CLI configuration: permissions, Superpowers, MCP servers, CLAUDE.md | Solo Orchestrator |
+| **User Guide** | SOI-007-GUIDE v1.3 | Step-by-step walkthrough from setup to maintenance — the primary operating document | Solo Orchestrator |
+| **Extending Platforms Guide** | SOI-008-EXTEND v1.0 | How to add new platform types to the framework | Contributors, Framework Maintainers |
+| **Security Scan Guide** | — | Plain-language interpretation of common Semgrep and Snyk findings | Solo Orchestrator |
 
 ### Platform Modules
 
@@ -364,6 +374,7 @@ The Solo Orchestrator Framework consists of the following documents:
 | **Web Applications** | SOI-PM-WEB v1.0 | SPAs, full-stack, APIs. Next.js, React, Vercel/Railway/Supabase. |
 | **Desktop Applications** | SOI-PM-DESKTOP v1.0 | Windows/macOS/Linux standalone and client-server. Tauri, Electron, Flutter Desktop. |
 | **Mobile Applications** | SOI-PM-MOBILE v1.0 | iOS/Android native and cross-platform. React Native (Expo), Flutter, Swift, Kotlin. |
+| **MCP Servers** | SOI-PM-MCP v1.0 | Model Context Protocol servers — stdio and HTTP/SSE transport. TypeScript SDK, Zod validation, tool/resource/prompt patterns. |
 
 The framework is extensible — new Platform Modules (embedded systems, CLI tools, game development, etc.) can be added without modifying the core documents. Each module follows a standard internal structure: Architecture Patterns → Tooling → Build & Packaging → Testing → Distribution → Maintenance.
 
@@ -372,6 +383,13 @@ The framework is extensible — new Platform Modules (embedded systems, CLI tool
 | Document | ID | Purpose |
 |---|---|---|
 | **CIO Evaluation Prompt** | SOI-006-EVAL v1.0 | Cross-model LLM evaluation prompt for stress-testing the framework documents |
+
+### Evaluation Prompts
+
+| Document | Purpose |
+|---|---|
+| **Framework Evaluation Prompts** (6 perspectives) | Adversarial reviews from Senior Engineer, CIO, CISO, Legal, Technical User, and Red Team perspectives — applied to the framework itself |
+| **Project Evaluation Prompts** (6 perspectives + platform modules) | Same 6 perspectives applied to any project built with the framework, with platform-specific review context |
 
 ---
 
@@ -396,4 +414,5 @@ If this review warrants further evaluation:
 
 | Version | Date | Changes |
 |---|---|---|
+| 1.1 | 2026-04-10 | Updated to reflect current framework state: two completed MVP projects, POC modes, intake wizard, MCP server platform module, auto-discovery extensibility, framework test suite, and complete document inventory. No structural changes to the document. |
 | 1.0 | 2026-04-02 | Initial release. |

@@ -18,21 +18,26 @@ For what the framework *is*, how it works at a conceptual level, and what it is 
 
 ### Document Map
 
-| Document | What It Contains | When You Need It |
-|---|---|---|
-| **This guide** (user-guide.md) | What you do, step by step, from setup to maintenance | Start here |
-| [**README**](../README.md) | Framework overview, prerequisites, platform/language support | Before starting |
-| [**Builder's Guide**](builders-guide.md) | The complete methodology — deep reference for phases, glossary, and advanced procedures | When you need detail beyond what this guide provides |
-| [**Project Intake**](../templates/project-intake.md) | Your product definition — fill this out before Phase 0 | Pre-Phase 0 |
-| [**Governance Framework**](governance-framework.md) | Approval authorities, compliance, risk, portfolio governance | Organizational deployments |
-| [**CLI Setup Addendum**](cli-setup-addendum.md) | Claude Code configuration, Superpowers, MCP servers | After init, before Phase 0 |
-| [**Platform Module**](platform-modules/) | Platform-specific architecture, tooling, testing, distribution | Phases 1-4 |
-| [**Extending Platforms**](extending-platforms.md) | How to add a new platform type to the framework | When adding platforms |
-| [**Executive Review**](executive-review.md) | Business case for CIO evaluation | Organizational evaluation |
-| [**Framework Evaluation Prompts**](../evaluation-prompts/Framework/) | Adversarial reviews of the framework itself from 6 professional perspectives | After framework updates or retooling |
-| [**Project Evaluation Prompts**](../evaluation-prompts/Projects/) | Adversarial reviews of any project built with the framework from 6 professional perspectives | Phase 3 validation, before production deployment |
+| Document | Priority | What It Contains | When You Need It |
+|---|---|---|---|
+| **This guide** (user-guide.md) | **Follow** | What you do, step by step, from setup to maintenance | Start here |
+| [**Project Intake**](../templates/project-intake.md) | **Fill out** | Your product definition — wizard available | Pre-Phase 0 |
+| [**Platform Module**](platform-modules/) | **Reference** | Platform-specific architecture, tooling, testing, distribution | Phases 1-4 |
+| [**README**](../README.md) | Skim | Framework overview, prerequisites, platform/language support | Before starting |
+| [**Builder's Guide**](builders-guide.md) | Reference | The complete methodology — deep reference for phases, glossary, and advanced procedures | When you need detail beyond what this guide provides |
+| [**CLI Setup Addendum**](cli-setup-addendum.md) | Reference | Claude Code configuration, Superpowers, MCP servers | After init, before Phase 0 |
+| [**Security Scan Guide**](security-scan-guide.md) | Reference | Plain-language guide to common scan findings | When you get scan results |
+| [**Governance Framework**](governance-framework.md) | Org only | Approval authorities, compliance, risk, portfolio governance | Organizational deployments |
+| [**Executive Review**](executive-review.md) | Org only | Business case for CIO evaluation | Organizational evaluation |
+| [**Extending Platforms**](extending-platforms.md) | Contributor | How to add a new platform type to the framework | When adding platforms |
+| [**Framework Evaluation Prompts**](../evaluation-prompts/Framework/) | Evaluation | Adversarial reviews of the framework itself from 6 professional perspectives | After framework updates or retooling |
+| [**Project Evaluation Prompts**](../evaluation-prompts/Projects/) | Evaluation | Adversarial reviews of any project built with the framework from 6 professional perspectives | Phase 3 validation, before production deployment |
 
 **What you actually need open:** This guide, the [Project Intake](../templates/project-intake.md), and your [Platform Module](platform-modules/). Everything else is reference material — the table above tells you when each document becomes relevant.
+
+**How to read this guide:** Follow it step by step. Read the section for your current step, do the step, then read the next section. You do not need to read this guide end-to-end before starting. Each section tells you exactly what to do, what the AI agent does, and what to review before moving on.
+
+**Prefer asking over reading?** All framework documents are designed to be machine-readable. Load the project's `docs/` directory into your AI assistant and ask it questions about the framework's capabilities, limitations, or procedures. The documents contain enough structured context for any capable AI to answer accurately.
 
 ---
 

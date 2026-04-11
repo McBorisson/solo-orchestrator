@@ -12,6 +12,10 @@ The methodology itself — the phases, TDD discipline, threat modeling, document
 
 ---
 
+> **How much do you need to read?** About 30 minutes to set up and get oriented. The [User Guide](docs/user-guide.md) walks you through everything step by step — read each section as you reach that step, not all at once. The [Intake Wizard](scripts/intake-wizard.sh) guides you through your project definition interactively. Your [Platform Module](docs/platform-modules/) is reference material for your specific platform. That's it. The Builder's Guide, Governance Framework, and other documents are a reference library — the User Guide points you to them at the right moment. You don't read them upfront. All framework documents are machine-readable — you can load them into any AI assistant and ask questions instead of reading them manually.
+
+---
+
 ## Start Here: The User Guide
 
 **Read the [User Guide](docs/user-guide.md) first.** It walks you through the entire process from setup to first release — what you do at each step, what external approvals you need, and what to expect as output. It has two parallel paths:
@@ -486,20 +490,19 @@ This is the initial release of the Solo Orchestrator Framework. It has been used
 
 ## Document Versions
 
-| Document | Version | Date |
-|---|---|---|
-| Builder's Guide | v1.0 | 2026-04-02 |
-| Enterprise Governance Framework | v1.0 | 2026-04-02 |
-| Executive Review | v1.0 | 2026-04-02 |
-| Project Intake Template | v1.0 | 2026-04-02 |
-| CLI Setup Addendum | v1.0 | 2026-04-02 |
-| User Guide | v1.0 | 2026-04-02 |
-| Platform Module: Web | v1.0 | 2026-04-02 |
-| Platform Module: Desktop | v1.0 | 2026-04-02 |
-| Platform Module: Mobile | v1.0 | 2026-04-02 |
-| Security Scan Guide | v1.0 | 2026-04-02 |
-| Evaluation Prompts (Framework) | v1.0 | 2026-04-02 |
-| Evaluation Prompts (Projects) | v1.0 | 2026-04-02 |
+| Document | Role | Version | Date |
+|---|---|---|---|
+| **User Guide** | **Follow step-by-step** | v1.3 | 2026-04-10 |
+| **Project Intake Template** | **Fill out (wizard helps)** | v1.0 | 2026-04-02 |
+| **Platform Modules** (Web, Desktop, Mobile, MCP Server) | **Reference during build** | v1.0 | 2026-04-02 / 2026-04-10 |
+| Builder's Guide | Reference — advanced methodology detail | v1.1 | 2026-04-10 |
+| Security Scan Guide | Reference — when you get scan findings | v1.0 | 2026-04-02 |
+| CLI Setup Addendum | Reference — Claude Code configuration | v1.0 | 2026-04-02 |
+| Enterprise Governance Framework | Organizational deployments only | v1.0 | 2026-04-02 |
+| Executive Review | CIO/CISO evaluation only | v1.1 | 2026-04-10 |
+| Evaluation Prompts (Framework) | Adversarial review — after framework updates | v1.0 | 2026-04-02 |
+| Evaluation Prompts (Projects) | Adversarial review — Phase 3 validation | v1.0 | 2026-04-02 |
+| Extending Platforms Guide | Contributor — adding new platforms | v1.0 | 2026-04-10 |
 
 ---
 
