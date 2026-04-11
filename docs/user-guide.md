@@ -1367,7 +1367,7 @@ npm install -g snyk
 
 **"My project is too complex for one person."**
 
-If your project needs multiple concurrent developers, microservices, 99.99%+ SLA, or regulated-industry compliance (SOC 2, HIPAA, PCI-DSS), it is not a Solo Orchestrator project. See "What This Is Not" in the [README](../README.md).
+If your project needs multiple concurrent developers, microservices, or 99.99%+ SLA, it is outside the framework's current scope. Regulated-industry compliance (SOC 2, HIPAA, PCI-DSS) is a planned extension — the governance structure already provides role-based approval gate separation, but compliance-specific modules have not yet been built. See "What This Is Not (Today)" in the [README](../README.md).
 
 ---
 

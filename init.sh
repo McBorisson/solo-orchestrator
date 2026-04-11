@@ -1497,6 +1497,7 @@ PERMEOF
   "track": "$TRACK",
   "deployment": "$DEPLOYMENT",
   "poc_mode": $poc_json,
+  "compliance_ready": false,
   "gates": {
     "phase_0_to_1": null,
     "phase_1_to_2": null,
@@ -1803,6 +1804,15 @@ generate_claude_md() {
       -e "s|__LANGUAGE__|$LANGUAGE|g" \
       -e "s|__TEST_INTERVAL__|$TEST_INTERVAL|g" \
       "$SCRIPT_DIR/templates/generated/claude-md.tmpl" > CLAUDE.md
+
+  # Add compliance note for organizational deployments
+  if [ "$DEPLOYMENT" = "organizational" ]; then
+    cat >> CLAUDE.md << 'COMPEOF'
+
+### Branch Protection (Organizational Deployments)
+Branch protection with required reviewers is recommended for organizational deployments and will be required when compliance modules are available. Until then, the Orchestrator creates and merges their own PRs with phase gate review at milestones. When branch protection is enabled, PRs require an independent reviewer before merge — this provides per-change code review that strengthens the governance audit trail.
+COMPEOF
+  fi
 }
 
 generate_approval_log() {
@@ -2197,6 +2207,11 @@ print_next_steps() {
       echo "     confirmation, AI deployment path approval, ITSM registration."
       echo "     Record all pre-condition approvals in APPROVAL_LOG.md."
       echo "     See docs/reference/governance-framework.md for details."
+      echo ""
+      echo "     RECOMMENDED: Enable branch protection with required reviewers."
+      echo "     This will be required when compliance modules are available."
+      echo "     Configure via GitHub repo settings or:"
+      echo "     gh api repos/OWNER/REPO/branches/main/protection -X PUT -f required_pull_request_reviews[required_approving_review_count]=1"
       echo ""
       echo "  4. START BUILDING:"
     fi

@@ -39,17 +39,17 @@ The Solo Orchestrator model addresses this gap. A single qualified technologist 
 
 This is the initial release of the framework. It has been used by the author to build two complete MVP applications — a cross-platform PDF editor (K-PDF) and a 3D mesh visualization tool (MeshScope) — both downloadable and fully functional on Windows, macOS, and Linux. These projects validated the framework through Phases 0-2 (Discovery, Architecture, Construction). The [Example Project](https://github.com/kraulerson/solo-orchestrator-example-project) contains the complete artifact trail from the MeshScope build — every document, decision record, test session, and governance approval produced during development. The framework has not yet been validated through a formal organizational pilot as described in Section X. It should be evaluated as a methodology with demonstrated personal-project results, ready for organizational pilot testing. The pilot evaluation process defined in this document is the mechanism for organizational validation.
 
-### What This Is Not
+### Current Scope
 
-This framework does not replace enterprise engineering teams. It is not appropriate for:
+The framework currently targets internal tools, utilities, departmental applications, prototypes, and MVP validation — projects that sit in the backlog because they don't justify a full team.
 
-- **Compliance-regulated systems** requiring SOC 2, HIPAA, PCI-DSS, or FedRAMP certification. These require dedicated security teams and audit processes beyond what a solo builder can validate.
-- **High-availability systems** with 99.99%+ uptime SLAs. Solo-maintained systems have a single point of failure at the operator level.
-- **Large-scale distributed systems** requiring microservices, message queues, or multi-region deployments. These require dedicated DevOps capacity.
-- **Enterprise integration projects** (SAP, Salesforce, custom ERP) where the integration complexity exceeds the application logic.
-- **Multi-tenant SaaS platforms** where data isolation, tenant-specific configuration, and billing integration add architectural complexity beyond a solo builder's capacity.
+The following are outside the current scope. The framework's modular architecture and existing governance structure can be extended to cover each — they are content gaps, not architectural limitations:
 
-The framework is designed for internal tools, utilities, departmental applications, prototypes, and MVP validation — projects that sit in the backlog because they don't justify a full team.
+- **Compliance-regulated systems** (SOC 2, HIPAA, PCI-DSS, FedRAMP) — The governance framework already provides role-based approval gate separation through independent approval roles at every organizational phase gate, append-only audit evidence, and anti-self-approval controls. What's missing is compliance-specific modules that map these controls to specific regulatory standards, plus a per-change code review step enforceable through branch protection with required reviewers.
+- **High-availability systems** (99.99%+ SLA) — The framework can build software architectured for HA and produces Phase 4 handoff documentation for operations teams. Application maintenance can continue under the Solo Orchestrator methodology by any qualified person. SLA guarantees are an infrastructure operations responsibility separate from the development methodology.
+- **Large-scale distributed systems** (microservices, multi-region) — Addressable through new platform modules. The extensibility model supports this.
+- **Enterprise integration projects** (SAP, Salesforce, custom ERP) — Addressable through dedicated platform modules.
+- **Multi-tenant SaaS platforms** — Addressable through architecture guidance in a dedicated platform module.
 
 ### How This Differs From "Vibe Coding"
 

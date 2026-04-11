@@ -62,16 +62,18 @@ When the Intake is provided, the Phase 0 and Phase 1 prompts shift from open-end
 
 The Solo Orchestrator Framework is a structured software development methodology that enables a single experienced technologist to build MVP-quality applications with a clear path to production, using AI Large Language Models as the execution layer. The technologist acts as Product Owner, Lead Architect, and QA Director. The AI proposes architecture, generates logic, and writes code within constraints defined and validated by the human operator. The framework produces functional, tested, security-scanned MVPs — production deployment requires additional hardening, operational readiness, and (for organizational projects) governance completion.
 
-### What This Is Not
+### Current Scope
 
-This framework does not replace engineering teams. It is not appropriate for:
+The framework currently targets internal tools, utilities, departmental applications, prototypes, and MVP validation — projects that sit in the backlog because they don't justify a full team. Platform Modules for web, desktop, mobile, and MCP servers guide projects from MVP through production readiness.
 
-- **Compliance-regulated systems** requiring SOC 2, HIPAA, PCI-DSS, or FedRAMP certification. These require dedicated security teams and audit processes beyond what a solo builder can validate.
-- **High-availability systems** with 99.99%+ uptime SLAs. Solo-maintained systems have a single point of failure at the operator level.
-- **Large-scale distributed systems** requiring microservices, message queues, or multi-region deployments. These require dedicated DevOps capacity.
-- **Enterprise integration projects** (SAP, Salesforce, custom ERP) where the integration complexity exceeds the application logic.
+The following are outside the current scope. They are content gaps addressable through the framework's modular extensibility, not architectural limitations:
 
-The framework is designed for internal tools, utilities, departmental applications, prototypes, and MVP validation — projects that sit in the backlog because they don't justify a full team. Platform Modules for web, desktop, mobile, and MCP servers guide you from MVP through production readiness. Additional platform modules can be added following the [Extending Platforms Guide](extending-platforms.md).
+- **Compliance-regulated systems** (SOC 2, HIPAA, PCI-DSS, FedRAMP) — The governance framework already provides role-based approval gate separation (independent approvers at every organizational phase gate), append-only audit evidence, and anti-self-approval controls. What's missing is compliance-specific content modules that map these controls to specific regulatory requirements, plus a per-change code review requirement during Phase 2 (enforceable through GitHub branch protection with required reviewers).
+- **High-availability systems** (99.99%+ SLA) — The framework can build software architectured for high availability and produces handoff documentation for operations teams. Application maintenance can continue under the Solo Orchestrator methodology by any qualified person. SLA guarantees are an infrastructure operations responsibility separate from the application development methodology.
+- **Large-scale distributed systems** (microservices, multi-region) — Addressable through new platform modules. The extensibility model supports this; the modules have not been written.
+- **Enterprise integration projects** (SAP, Salesforce, custom ERP) — Specialized domains addressable through dedicated platform modules and intake suggestion files.
+
+Additional platform modules can be added following the [Extending Platforms Guide](extending-platforms.md).
 
 ### How This Differs From "Vibe Coding"
 

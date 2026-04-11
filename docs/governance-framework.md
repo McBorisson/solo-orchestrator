@@ -45,17 +45,17 @@ Every large organization has a software backlog that will never be built. The pr
 
 The Solo Orchestrator model addresses this gap. A single qualified technologist can take a concept from idea to validated MVP in weeks at a fraction of the cost of a traditional team, with a structured path to production when the project proves its value.
 
-### What This Is Not
+### Current Scope
 
-This framework does not replace enterprise engineering teams. It is not appropriate for:
+The framework currently targets internal tools, rapid prototyping, departmental applications, and MVP validation.
 
-- **Compliance-regulated systems** requiring SOC 2, HIPAA, PCI-DSS, or FedRAMP certification.
-- **High-availability systems** with 99.99%+ uptime SLAs.
-- **Large-scale distributed systems** requiring microservices, message queues, or multi-region deployments.
-- **Enterprise integration projects** (SAP, Salesforce, custom ERP) where the integration complexity exceeds the application logic.
-- **Multi-tenant SaaS platforms** where data isolation, tenant-specific configuration, and billing integration add architectural complexity beyond a solo builder's capacity.
+The following are outside the current scope but architecturally addressable. The governance structure already provides role-based approval gate separation, audit evidence, and anti-self-approval controls — what's missing is compliance-specific content and additional platform modules:
 
-The framework is designed for internal tools, rapid prototyping, departmental applications, and MVP validation.
+- **Compliance-regulated systems** (SOC 2, HIPAA, PCI-DSS, FedRAMP) — Requires compliance-specific modules mapping existing governance controls to regulatory requirements, plus per-change code review enforcement via branch protection.
+- **High-availability systems** (99.99%+ SLA) — The framework builds HA-ready software and produces handoff documentation. SLA responsibility transfers to the operations team that inherits the system. Maintenance can continue under the Solo Orchestrator methodology.
+- **Large-scale distributed systems** (microservices, multi-region) — Requires new platform modules.
+- **Enterprise integration projects** (SAP, Salesforce, custom ERP) — Requires dedicated platform modules.
+- **Multi-tenant SaaS platforms** — Requires architecture guidance in a dedicated platform module.
 
 ---
 
@@ -720,7 +720,7 @@ The Solo Orchestrator model concentrates all technical access in one individual.
    - All code changes are committed to version control with signed commits (recommended).
    - Production deployments flow through CI/CD — no manual production deployments.
    - Audit logging enabled on hosting platform and secrets manager.
-3. **Scope limitation.** Applications handling financial transactions, PII at scale, or regulated data (SOC 2, HIPAA, PCI) MUST NOT use the Solo Orchestrator model. These require separation of duties that a single-person model cannot provide.
+3. **Scope limitation.** Applications handling financial transactions, PII at scale, or regulated data (SOC 2, HIPAA, PCI) require compliance-specific modules that have not yet been developed. The governance framework already provides the structural requirements — role-based approval gate separation through independent phase gate approvers, append-only audit evidence, and anti-self-approval controls. The gap is compliance-specific content mapping and per-change code review enforcement. Do not deploy Solo Orchestrator applications in regulated environments until the applicable compliance module has been built, validated, and the per-change code review requirement is enforced via branch protection.
 
 ---
 
