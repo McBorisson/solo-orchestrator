@@ -114,7 +114,7 @@ cargo install tauri-cli
 
 **Electron:**
 ```bash
-# Node.js 18+ required (should already be installed for Claude Code)
+# Node.js 20+ required (Node 22 LTS recommended; Node 18 reached end of life April 2025)
 npm install --save-dev electron electron-builder
 # No additional platform-specific prerequisites
 ```

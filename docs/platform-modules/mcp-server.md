@@ -18,7 +18,7 @@
 
 ## Scope
 
-This module covers MCP (Model Context Protocol) servers: services that expose tools, resources, and prompts to AI assistant clients such as Claude Code, Claude Desktop, and other MCP-compatible hosts. It addresses both local/stdio servers and remotely hosted HTTP/SSE servers, including those that integrate with external APIs, maintain persistent data stores, and call LLM APIs internally for analysis.
+This module covers MCP (Model Context Protocol) servers: services that expose tools, resources, and prompts to AI assistant clients such as Claude Code, Claude Desktop, and other MCP-compatible hosts. It addresses both local/stdio servers and remotely hosted Streamable HTTP servers, including those that integrate with external APIs, maintain persistent data stores, and call LLM APIs internally for analysis.
 
 ---
 
@@ -28,12 +28,13 @@ This module covers MCP (Model Context Protocol) servers: services that expose to
 
 | Component | Recommended | Alternatives | Notes |
 |---|---|---|---|
-| **MCP SDK** | `@modelcontextprotocol/sdk` (TypeScript) | `mcp` (Python), `mcp-golang` (Go) | TypeScript aligns with Anthropic's ecosystem and has the most mature SDK |
+| **MCP SDK (TypeScript)** | `@modelcontextprotocol/server` + `@modelcontextprotocol/node` (modular) | `@modelcontextprotocol/sdk` (legacy monolithic) | The TypeScript SDK was split into modular packages (`core`, `client`, `server`, `node`). New projects should use the modular packages. The legacy monolithic `@modelcontextprotocol/sdk` package still works for existing code. |
+| **MCP SDK (alternatives)** | `mcp` (Python), `rmcp` (Rust) | `mcp-golang` (Go) | Python SDK is mature; Rust SDK is official. |
 | **Transport: Local** | stdio | — | Standard for Claude Code integration; server launched per-session |
-| **Transport: Remote** | Streamable HTTP (SSE fallback) | WebSocket (not standard MCP) | For centralized hosting, homelab, multi-client access |
+| **Transport: Remote** | Streamable HTTP (`NodeStreamableHTTPServerTransport`) | WebSocket (not standard MCP) | For centralized hosting, homelab, multi-client access. SSE transport was removed from the MCP SDK — use Streamable HTTP for all remote servers. |
 | **Schema Validation** | Zod | JSON Schema (manual) | Zod provides TypeScript type inference and runtime validation from a single source |
 
-**Solo Orchestrator recommendation:** TypeScript with `@modelcontextprotocol/sdk`. Support stdio for development and local use. Add HTTP/SSE transport if multi-client or remote hosting is a requirement.
+**Solo Orchestrator recommendation:** TypeScript with the modular MCP packages (`@modelcontextprotocol/server` for server-side, `@modelcontextprotocol/node` for Node HTTP transport). Support stdio for development and local use. Add Streamable HTTP transport if multi-client or remote hosting is a requirement. The legacy `@modelcontextprotocol/sdk` package still works but is being phased out; new projects should use the modular packages from the start.
 
 ### 1.2 Server Architecture
 
@@ -67,9 +68,9 @@ This module covers MCP (Model Context Protocol) servers: services that expose to
 | Deployment | Transport | Best For |
 |---|---|---|
 | **Local (stdio)** | stdio | Development, personal use with Claude Code |
-| **Docker (self-hosted)** | HTTP/SSE | Homelab, LXC containers, always-on access |
-| **Railway / Render** | HTTP/SSE | Cloud hosting, no infrastructure management |
-| **Fly.io** | HTTP/SSE | Edge deployment, global low-latency access |
+| **Docker (self-hosted)** | Streamable HTTP | Homelab, LXC containers, always-on access |
+| **Railway / Render** | Streamable HTTP | Cloud hosting, no infrastructure management |
+| **Fly.io** | Streamable HTTP | Edge deployment, global low-latency access |
 
 ### 1.5 Scheduling and Background Tasks
 
@@ -77,11 +78,11 @@ If the server needs to perform periodic work (monitoring, data refresh):
 
 | Approach | Best For | Trade-offs |
 |---|---|---|
-| **node-cron** (in-process) | Long-running HTTP/SSE servers | Simple; tied to server lifecycle |
+| **node-cron** (in-process) | Long-running Streamable HTTP servers | Simple; tied to server lifecycle |
 | **External cron** (OS or container) | stdio servers, separation of concerns | Server doesn't need to be running continuously |
 | **Manual trigger tool** | User-controlled refresh | No automation; relies on user remembering to invoke |
 
-**Solo Orchestrator recommendation:** For stdio servers, use external cron calling a CLI entry point. For HTTP/SSE servers, use in-process scheduling with node-cron. Always expose a manual trigger tool as well.
+**Solo Orchestrator recommendation:** For stdio servers, use external cron calling a CLI entry point. For Streamable HTTP servers, use in-process scheduling with node-cron. Always expose a manual trigger tool as well.
 
 ---
 
@@ -91,7 +92,13 @@ If the server needs to perform periodic work (monitoring, data refresh):
 
 In addition to the Builder's Guide Pre-Build Setup:
 
-**MCP SDK:**
+**MCP SDK (modular — recommended for new projects):**
+```bash
+npm install @modelcontextprotocol/server @modelcontextprotocol/node
+# Add @modelcontextprotocol/client only if the same package also consumes MCP servers
+```
+
+**MCP SDK (legacy monolithic — still functional for existing code):**
 ```bash
 npm install @modelcontextprotocol/sdk
 ```
@@ -126,7 +133,7 @@ npx @modelcontextprotocol/inspector
 # Test stdio server
 npx @modelcontextprotocol/inspector node dist/index.js
 
-# Test HTTP/SSE server
+# Test Streamable HTTP server
 npx @modelcontextprotocol/inspector --url http://localhost:3000/mcp
 ```
 
@@ -233,7 +240,7 @@ Use MCP Inspector to test the full server lifecycle:
 2. Tool invocation with valid parameters
 3. Tool invocation with invalid parameters (verify error responses)
 4. Resource listing and reading (if applicable)
-5. Transport-specific behavior (stdio vs HTTP/SSE)
+5. Transport-specific behavior (stdio vs Streamable HTTP)
 
 ```bash
 npx @modelcontextprotocol/inspector node dist/index.js
@@ -263,7 +270,7 @@ Verify the server implements the MCP protocol correctly:
 
 ### 4.5 Load Testing (Full Track)
 
-If the server supports HTTP/SSE transport and will serve multiple clients:
+If the server supports Streamable HTTP transport and will serve multiple clients:
 
 ```bash
 # Test concurrent tool invocations
@@ -319,7 +326,7 @@ Document the exact MCP configuration for users:
 }
 ```
 
-**HTTP/SSE (remote):**
+**Streamable HTTP (remote):**
 ```json
 {
   "mcpServers": {
@@ -338,7 +345,7 @@ In addition to the Builder's Guide Phase 4.2:
 - [ ] All tool descriptions are clear enough for LLM invocation without examples
 - [ ] MCP Inspector smoke test passes (initialize, list tools, invoke each tool)
 - [ ] stdio transport tested in Claude Code
-- [ ] HTTP/SSE transport tested with MCP Inspector (if applicable)
+- [ ] Streamable HTTP transport tested with MCP Inspector (if applicable)
 - [ ] Error responses are structured JSON-RPC errors (not bare strings or stack traces)
 - [ ] Environment variables documented in README and `.env.example`
 - [ ] Data store initialized correctly on first run (no manual setup required)
@@ -353,7 +360,7 @@ npm install @sentry/node
 ```
 Alert on: tool invocation failures, external API errors, LLM API errors, data store corruption.
 
-**Health check (HTTP/SSE servers):**
+**Health check (Streamable HTTP servers):**
 Expose a `/health` endpoint returning server status, data freshness, and external API reachability.
 
 **Cost monitoring (if using LLM APIs internally):**
@@ -406,7 +413,7 @@ Every published MCP server MUST include a vulnerability disclosure mechanism:
 
 ```
 MCP-SERVER-SPECIFIC REQUIREMENTS:
-11. MCP transport(s) to support (stdio, HTTP/SSE, or both)
+11. MCP transport(s) to support (stdio, Streamable HTTP, or both)
 12. Tool inventory with input/output schemas
 13. Resource and prompt definitions (if any)
 14. Persistence strategy (SQLite, JSON, PostgreSQL) and data model
@@ -419,7 +426,7 @@ MCP-SERVER-SPECIFIC REQUIREMENTS:
 ### Phase 2 — Project Initialization (Append to Core Steps)
 
 - [ ] MCP SDK installed and configured
-- [ ] Entry point supports selected transport(s) (stdio, HTTP/SSE)
+- [ ] Entry point supports selected transport(s) (stdio, Streamable HTTP)
 - [ ] At least one tool defined and invocable via MCP Inspector
 - [ ] `.env.example` with all required environment variables
 - [ ] Data store initialized on first run (schema migration or file creation)
@@ -442,7 +449,8 @@ MCP-SERVER-SPECIFIC REQUIREMENTS:
 
 | Tool | Install | Purpose |
 |---|---|---|
-| MCP SDK | `npm install @modelcontextprotocol/sdk` | MCP server framework |
+| MCP SDK (modular) | `npm install @modelcontextprotocol/server @modelcontextprotocol/node` | MCP server framework — new projects |
+| MCP SDK (legacy) | `npm install @modelcontextprotocol/sdk` | Monolithic package — existing projects only |
 | MCP Inspector | `npx @modelcontextprotocol/inspector` | Interactive MCP testing/debugging |
 | Zod | `npm install zod` | Schema validation and TypeScript inference |
 | better-sqlite3 | `npm install better-sqlite3` | Embedded SQLite database |

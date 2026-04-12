@@ -148,9 +148,9 @@
     "frontend_framework": {
       "typescript": [
         {
-          "name": "Next.js 15 (App Router)",
+          "name": "Next.js 16 (App Router)",
           "rank": 1,
-          "context": "Full-stack React framework with server components, API routes, and Vercel integration. The ecosystem default for TypeScript web apps.",
+          "context": "Full-stack React framework with server components, API routes, and Vercel integration. The ecosystem default for TypeScript web apps. Next.js 16 stabilized several App Router APIs and added an upgrade codemod from 15.",
           "when": "Most web projects"
         },
         {
@@ -168,9 +168,9 @@
       ],
       "default": [
         {
-          "name": "Next.js 15",
+          "name": "Next.js 16",
           "rank": 1,
-          "context": "Full-stack React framework. The most commonly recommended stack for TypeScript web apps.",
+          "context": "Full-stack React framework. The most commonly recommended stack for TypeScript web apps. Next.js 16 is the current major version; projects on Next.js 15 can upgrade with the built-in codemod.",
           "when": "Most web projects"
         }
       ]
