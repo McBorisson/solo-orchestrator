@@ -90,6 +90,11 @@ get_gate_date() {
   local gate_key="$1"
   local value
   value=$(grep -o "\"$gate_key\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" "$PHASE_STATE" | sed 's/.*: *"//' | sed 's/"//' || echo "")
+  # Validate the extracted value is a plausible date (YYYY-MM-DD format)
+  if [ -n "$value" ] && ! echo "$value" | grep -qE '^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'; then
+    echo ""  # Invalid date format — treat as missing
+    return
+  fi
   echo "$value"
 }
 
@@ -168,10 +173,12 @@ validate_approval_fields() {
   fi
 
   # For organizational deployments: warn if git author matches listed approver (P0-005)
+  # The approval log uses a two-column table: | **Field** | Value |
+  # Extract the approver name from the value column of the Approver row using awk.
   if [ "$deployment" = "organizational" ]; then
     local approver_name
-    approver_name=$(echo "$section" | grep -iE "Approver|Reviewer" | head -1 | sed 's/.*|\s*//' | sed 's/\s*|.*//' | tr -d '*' | xargs 2>/dev/null || echo "")
-    if [ -n "$approver_name" ] && [ "$approver_name" != "[Name]" ]; then
+    approver_name=$(echo "$section" | awk -F'|' '/[Aa]pprover/ && !/Role/ { gsub(/^[[:space:]]+|[[:space:]]+$/, "", $3); gsub(/\*/, "", $3); print $3; exit }' 2>/dev/null || echo "")
+    if [ -n "$approver_name" ] && [ "$approver_name" != "[Name]" ] && [ "$approver_name" != "" ]; then
       local git_user
       git_user=$(git config user.name 2>/dev/null || echo "")
       if [ -n "$git_user" ] && echo "$approver_name" | grep -qi "$git_user"; then
@@ -193,7 +200,7 @@ if [ "$deployment" = "organizational" ] && [ "$current_phase" -ge 0 ]; then
   if [ -z "$poc_mode_val" ] || [ "$poc_mode_val" = "null" ]; then
     # Full organizational — all 6 pre-conditions required
     if grep -q "Pre-Phase 0" "$APPROVAL_LOG" 2>/dev/null; then
-      local_precond_count=$(grep -A 30 "Pre-Phase 0" "$APPROVAL_LOG" 2>/dev/null | grep -cE "[0-9]{4}-[0-9]{2}-[0-9]{2}" || echo "0")
+      local_precond_count=$(grep -A 30 "Pre-Phase 0" "$APPROVAL_LOG" 2>/dev/null | grep -cE "[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])" || echo "0")
       if [ "$local_precond_count" -lt 6 ]; then
         echo -e "${YELLOW}[WARN]${NC} Pre-Phase 0: Organizational deployment — only $local_precond_count pre-condition date(s) recorded (6 required)"
         issues=$((issues + 1))
@@ -211,7 +218,7 @@ fi
 if [ "$current_phase" -ge 1 ]; then
   if [ -n "$gate_0_to_1" ]; then
     # Verify APPROVAL_LOG.md has a corresponding entry
-    if grep -q "Phase 0.*Phase 1" "$APPROVAL_LOG" && grep -A 15 "Phase 0.*Phase 1" "$APPROVAL_LOG" | grep -qE "[0-9]{4}-[0-9]{2}-[0-9]{2}"; then
+    if grep -q "Phase 0.*Phase 1" "$APPROVAL_LOG" && grep -A 15 "Phase 0.*Phase 1" "$APPROVAL_LOG" | grep -qE "[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])"; then
       echo -e "${GREEN}  [OK]${NC} Phase 0→1: gate dated $gate_0_to_1, approval log has entry"
     else
       echo -e "${YELLOW}[WARN]${NC} Phase 0→1: gate dated $gate_0_to_1, but APPROVAL_LOG.md has no dated entry"
@@ -254,7 +261,7 @@ fi
 # Check: if current_phase >= 2, gate 1→2 should have a date
 if [ "$current_phase" -ge 2 ]; then
   if [ -n "$gate_1_to_2" ]; then
-    if grep -q "Phase 1.*Phase 2" "$APPROVAL_LOG" && grep -A 15 "Phase 1.*Phase 2" "$APPROVAL_LOG" | grep -qE "[0-9]{4}-[0-9]{2}-[0-9]{2}"; then
+    if grep -q "Phase 1.*Phase 2" "$APPROVAL_LOG" && grep -A 15 "Phase 1.*Phase 2" "$APPROVAL_LOG" | grep -qE "[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])"; then
       echo -e "${GREEN}  [OK]${NC} Phase 1→2: gate dated $gate_1_to_2, approval log has entry"
     else
       echo -e "${YELLOW}[WARN]${NC} Phase 1→2: gate dated $gate_1_to_2, but APPROVAL_LOG.md has no dated entry"
@@ -296,7 +303,7 @@ fi
 # Check: if current_phase >= 3, gate 2→3 should have a date
 if [ "$current_phase" -ge 3 ]; then
   if [ -n "$gate_2_to_3" ]; then
-    if grep -q "Phase 2.*Phase 3" "$APPROVAL_LOG" && grep -A 15 "Phase 2.*Phase 3" "$APPROVAL_LOG" | grep -qE "[0-9]{4}-[0-9]{2}-[0-9]{2}"; then
+    if grep -q "Phase 2.*Phase 3" "$APPROVAL_LOG" && grep -A 15 "Phase 2.*Phase 3" "$APPROVAL_LOG" | grep -qE "[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])"; then
       echo -e "${GREEN}  [OK]${NC} Phase 2→3: gate dated $gate_2_to_3, approval log has entry"
     else
       echo -e "${YELLOW}[WARN]${NC} Phase 2→3: gate dated $gate_2_to_3, but APPROVAL_LOG.md has no dated entry"
@@ -327,7 +334,7 @@ fi
 # Check: if current_phase >= 4, gate 3→4 should have a date
 if [ "$current_phase" -ge 4 ]; then
   if [ -n "$gate_3_to_4" ]; then
-    if grep -q "Phase 3.*Phase 4" "$APPROVAL_LOG" && grep -A 15 "Phase 3.*Phase 4" "$APPROVAL_LOG" | grep -qE "[0-9]{4}-[0-9]{2}-[0-9]{2}"; then
+    if grep -q "Phase 3.*Phase 4" "$APPROVAL_LOG" && grep -A 15 "Phase 3.*Phase 4" "$APPROVAL_LOG" | grep -qE "[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])"; then
       echo -e "${GREEN}  [OK]${NC} Phase 3→4: gate dated $gate_3_to_4, approval log has entry"
       # P3-007: For organizational deployments, verify both App Owner and IT Security approvals
       if [ "$deployment" = "organizational" ]; then

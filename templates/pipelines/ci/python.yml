@@ -79,7 +79,7 @@ jobs:
             COMMIT_AUTHOR=$(git log --format='%an' origin/main...HEAD -- APPROVAL_LOG.md 2>/dev/null | head -1)
             ADDED_LINES=$(git diff origin/main...HEAD -- APPROVAL_LOG.md 2>/dev/null | grep '^+' | grep -i 'Approver' | head -1 || true)
             if [ -n "$ADDED_LINES" ] && [ -n "$COMMIT_AUTHOR" ]; then
-              APPROVER_NAME=$(echo "$ADDED_LINES" | sed 's/.*|\s*//' | sed 's/\s*|.*//' | tr -d '+*' | xargs)
+              APPROVER_NAME=$(echo "$ADDED_LINES" | awk -F'|' '{ gsub(/^[[:space:]]+|[[:space:]]+$/, "", $3); gsub(/\*/, "", $3); gsub(/\+/, "", $3); print $3 }' | xargs)
               if [ -n "$APPROVER_NAME" ] && [ "$APPROVER_NAME" != "$COMMIT_AUTHOR" ]; then
                 echo "::warning::Commit author ($COMMIT_AUTHOR) differs from listed approver ($APPROVER_NAME). Verify this is intentional."
                 # Organizations wanting hard enforcement: change ::warning:: to ::error:: and uncomment: exit 1
