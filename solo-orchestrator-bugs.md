@@ -283,6 +283,60 @@ Do NOT apply the fix until I review the proposal.
 
 ---
 
+## BUG-005: `validate.sh` and `check-updates.sh` check a framework-version file that is never created
+
+**Found:** 2026-04-20
+**Found while:** Auditing README claims against actual generated project layout in `lancache_orchestrator`
+**Severity:** Low (cosmetic — no functional failure, but scripts silently display empty pin data)
+
+### Prompt to fix
+
+```
+Working in the solo-orchestrator repo.
+
+README.md used to claim `.claude/framework-config.yml` and `.claude/framework-version.txt`
+are generated during init. Neither file is actually created — neither solo-orchestrator's
+init.sh nor CDF's init writes them. Verified against a current-version project
+(lancache_orchestrator, initialized 2026-04-20): `.claude/` contains manifest.json
+(CDF's actual metadata), settings.json, phase-state.json, process-state.json,
+tool-preferences.json, tool-usage.json, build-progress.json, orchestrator-source.json,
+settings.local.json — but no framework-config.yml and no framework-version.txt.
+
+README has been fixed to remove the phantom files. But two utility scripts still
+reference framework-version.txt:
+
+  - scripts/validate.sh:80-83  — reads .claude/framework-version.txt to show pinned SHA
+  - scripts/check-updates.sh:55-58 — same
+
+Both branches silently no-op in every real project (the file doesn't exist, so the
+`if [ -f ... ]; then` block is skipped). The actual pin is in .claude/manifest.json:
+
+  {
+    "frameworkVersion": "4.2.0",
+    "frameworkCommit": "b32fce5",
+    ...
+  }
+
+Please:
+1. Update validate.sh to read manifest.json .frameworkCommit and .frameworkVersion
+   using jq (jq is already a required prerequisite per templates/tool-matrix/common.json).
+2. Update check-updates.sh the same way.
+3. Preserve the degrade-gracefully behavior: if manifest.json is missing or malformed,
+   the scripts should continue without erroring out (they currently just skip).
+```
+
+### Resolution — 2026-04-20 (same session)
+
+**Status:** Fixed.
+
+**Root cause:** Dead code. `.claude/framework-version.txt` was planned as a Solo-Orchestrator-owned pin file, but Solo never wrote it — CDF records its own pin in `.claude/manifest.json` during its init. The check branches in `validate.sh` and `check-updates.sh` were written against the intended-but-never-created file and silently no-op'd in every real project.
+
+**Fix:** Both scripts now read `.claude/manifest.json` via `jq`, displaying `frameworkCommit` (short 12 chars) and `frameworkVersion` when available. If `manifest.json` is missing or unreadable, the branch is silently skipped — same graceful behavior as before. `jq` is already a required prereq in `templates/tool-matrix/common.json` so no new dependency.
+
+**Files touched:** `scripts/validate.sh`, `scripts/check-updates.sh`.
+
+---
+
 ## Template for new entries
 
 When adding a new bug, copy this block and fill it in:
