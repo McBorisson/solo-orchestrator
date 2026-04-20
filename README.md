@@ -8,7 +8,7 @@ This is not vibe coding. It's a phase-gated, test-driven, documentation-mandator
 
 **This framework is built on and tested with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (Anthropic).** The init script, CLAUDE.md configuration, Superpowers plugin, MCP server integrations, and CLI Setup Addendum are all Claude Code-specific.
 
-The methodology itself — the phases, TDD discipline, threat modeling, documentation mandates, and security scanning — is agent-agnostic and works with any sufficiently capable AI coding agent. The operational automation layer that makes the autonomous workflow practical is Claude Code. See [Vendor Dependency & Exit Path](#vendor-dependency--exit-path) for migration details.
+The methodology itself — the phases, TDD discipline, threat modeling, documentation mandates, and security scanning — is agent-agnostic and works with any sufficiently capable AI coding agent. The operational automation layer that makes the autonomous workflow practical is Claude Code. See [Methodology vs. Tooling: What's Portable](#methodology-vs-tooling-whats-portable) for migration details.
 
 ---
 
@@ -77,7 +77,7 @@ See the [User Guide](docs/user-guide.md) for detailed walkthrough of each step.
 - **Security by default** — SAST (Semgrep), secret detection (gitleaks), dependency scanning (Snyk), license compliance, and DAST (OWASP ZAP) installed and configured automatically. CI pipeline blocks merges on findings.
 - **Test-driven development** — Tests first, implementation second. Pre-commit hooks warn when implementation ships without tests.
 - **9 languages, extensible to any** — TypeScript, Python, Rust, Go, C#, Kotlin, Java, Dart, Swift ship out of the box. Need C++? Drop one CI template at `templates/pipelines/ci/cpp.yml` — it appears as a language option automatically.
-- **4 platforms, extensible to any** — Web, desktop, mobile, and MCP server ship out of the box. Need Azure Microservices? Drop a platform module at `docs/platform-modules/azure-microservices.md` and a release pipeline at `templates/pipelines/release/azure-microservices.yml` — it appears as a platform option automatically. **No code changes to the init script.** The framework auto-discovers platforms and languages from the file system. See [Extensibility](#extensibility) for details.
+- **4 platforms, extensible to any** — Web, desktop, mobile, and MCP server ship out of the box. Need Azure Microservices? Drop a platform module at `docs/platform-modules/azure-microservices.md` and a release pipeline at `templates/pipelines/release/azure-microservices.yml` — it appears as a platform option automatically. **No code changes to the init script.** The framework auto-discovers platforms and languages from the file system. See [Modular Architecture](#modular-architecture) for details.
 - **Enterprise governance** — Approval authorities, compliance screening, insurance requirements, backup maintainer, and audit trail. Full documentation suite for CIO/CISO/Legal review.
 - **POC modes** — Sponsored and Private POC modes defer governance overhead while you validate the approach with production-quality technical work.
 - **One command setup** — `./init.sh` handles everything: tool installation, project scaffolding, CI/CD generation, security tooling, Git initialization, and health check.
@@ -89,7 +89,7 @@ See the [User Guide](docs/user-guide.md) for detailed walkthrough of each step.
 | Tool | Required | Install |
 |---|---|---|
 | **Git** | Yes | Init script offers to install automatically (brew/apt/dnf). Or install manually: [git-scm.com](https://git-scm.com/downloads) |
-| **Node.js 18+** | Yes | Init script offers to install automatically. Required as infrastructure tooling (Snyk CLI, license-checker) regardless of your project language. Also the runtime for JS/TS projects. |
+| **Node.js** | Yes | Floor: 18.17+ (matches init script version check). **Recommended: 20 LTS or 22 LTS** — Node 18 reached end-of-life April 2025, so new installs should pick a supported LTS. Init script offers to install automatically. Required as infrastructure tooling (Snyk CLI, license-checker) regardless of your project language. Also the runtime for JS/TS projects. |
 | **Language runtime** | Yes | Python, Rust/Cargo, .NET SDK, JDK, Go, or Flutter (if not using Node.js/TypeScript). Init script offers to install your selected runtime automatically. |
 | **jq** | Yes | Init script offers to install automatically (brew/apt/dnf). Required by the Development Guardrails for Claude Code for JSON operations. |
 | **Docker** | Recommended | Init script offers to install automatically. macOS: choice of Colima (recommended — headless, no license required, auto-starts on boot) or Docker Desktop. Linux: system package with systemd auto-start. Used by Qdrant (persistent semantic memory) and OWASP ZAP (DAST scanning). |
@@ -143,10 +143,16 @@ your-project/
 ├── .git/hooks/
 │   └── pre-commit                        # Secret detection + SAST quick scan
 ├── .claude/
-│   ├── framework/                        # Development Guardrails for Claude Code (Git hook guardrails)
-│   ├── framework-config.yml              # Active profile configuration
-│   ├── framework-version.txt             # Pinned framework commit SHA
-│   └── phase-state.json                  # Current phase tracking
+│   ├── framework/                        # Development Guardrails for Claude Code (gates, hooks, rules)
+│   ├── manifest.json                     # CDF config: pinned commit, active profile, active rules/hooks
+│   ├── settings.json                     # Claude Code permissions + hook registrations
+│   ├── settings.local.json               # Project-local MCP override (Qdrant collection name)
+│   ├── phase-state.json                  # Current phase + gate dates + POC mode
+│   ├── process-state.json                # Sequential step enforcement state
+│   ├── tool-preferences.json             # Resolved tool matrix context for this project
+│   ├── tool-usage.json                   # MCP tool usage tracking (per session)
+│   ├── build-progress.json               # Features completed + test gate state
+│   └── orchestrator-source.json          # Path to solo-orchestrator source (for reconfigure/verify)
 ├── docs/
 │   ├── reference/
 │   │   ├── builders-guide.md              # The complete methodology
@@ -157,6 +163,8 @@ your-project/
 │   │   └── security-scan-guide.md         # Common scan findings explained
 │   ├── ADR documentation/                 # Architecture Decision Records
 │   ├── api and interfaces/                # Interface/API documentation
+│   ├── phase-0/                           # FRD, user journey, data contract (pre-Manifesto)
+│   ├── security-audits/                   # Per-feature security audit findings
 │   ├── snapshots/                         # Phase gate document snapshots
 │   ├── platform-modules/
 │   │   └── [web|desktop|mobile|mcp-server].md  # Platform-specific guidance
@@ -171,17 +179,48 @@ your-project/
 ├── scripts/
 │   ├── intake-wizard.sh                   # Guided intake wizard (interactive or AI-assisted)
 │   ├── validate.sh                        # Framework compliance checker
-│   ├── check-phase-gate.sh                # Phase gate validator
-│   ├── check-updates.sh                   # Upstream framework update checker
-│   └── resume.sh                          # Session resume prompt generator
+│   ├── verify-install.sh                  # Installation verification + auto-remediation
+│   ├── check-phase-gate.sh                # Phase gate validator + snapshot creator
+│   ├── check-versions.sh                  # Tool version check against minimums + latest
+│   ├── check-updates.sh                   # Upstream framework doc update checker
+│   ├── check-maintenance.sh               # Maintenance cadence (weekly/monthly/quarterly)
+│   ├── check-changelog.sh                 # Changelog freshness (CI annotation)
+│   ├── check-session-state.sh             # CLAUDE.md staleness (CI annotation)
+│   ├── resolve-tools.sh                   # Tool matrix resolver (by platform/lang/track/phase)
+│   ├── upgrade-project.sh                 # Track/deployment/POC upgrade
+│   ├── reconfigure-project.sh             # Regenerate after platform/lang/name change
+│   ├── test-gate.sh                       # UAT interval + SEV-1/2 bug gate
+│   ├── process-checklist.sh               # Sequential step enforcement state machine
+│   ├── pre-commit-gate.sh                 # PreToolUse hook: blocks commits on gaps
+│   ├── track-tool-usage.sh                # PostToolUse hook: MCP usage tracking
+│   ├── session-version-check.sh           # SessionStart hook: version check
+│   ├── session-test-gate-check.sh         # SessionStart hook: test gate + MCP gate init
+│   ├── session-mcp-gate.sh                # PreToolUse hook: block Write/Edit until MCP called
+│   ├── session-end-qdrant-reminder.sh     # Stop hook: Qdrant storage reminder
+│   ├── resume.sh                          # Session resume prompt generator
+│   └── lib/helpers.sh                     # Shared shell helpers (colors, logging, MCP detection)
 ├── templates/
+│   ├── generated/                         # 26 .tmpl files (CLAUDE.md, Manifesto, Bible, ADR, ...)
+│   ├── tool-matrix/                       # Tool resolution matrix per platform
+│   │   ├── common.json                    # Universal tools (git, node, jq, docker, ...)
+│   │   ├── web.json
+│   │   ├── desktop.json
+│   │   └── mobile.json
 │   └── intake-suggestions/                # Context-aware suggestions for the intake wizard
 │       ├── common.json                    # Platform-independent (budget, timeline, accessibility)
 │       ├── web.json                       # Web platform (auth, hosting, DB, frameworks)
 │       ├── desktop.json                   # Desktop platform
 │       ├── mobile.json                    # Mobile platform
-│       └── mcp-server.json               # MCP server platform (transport, persistence, SDK)
+│       └── mcp-server.json                # MCP server platform (transport, persistence, SDK)
+├── tests/
+│   └── uat/                               # UAT session working dir + templates (populated Phase 2+)
+│       ├── templates/                     # Session template (HTML + Markdown)
+│       └── sessions/                      # One subdir per session: agent-results/, submissions/
+└── .solo-orchestrator/
+    └── init-YYYYMMDD-HHMMSS.log           # Init script log (one per run)
 ```
+
+> **Note on the tree:** This is the representative layout produced by a fresh init. State files in `.claude/` (`phase-state.json`, `process-state.json`, `build-progress.json`, `tool-usage.json`) mutate as the project progresses. To see your actual current state, `ls -la .claude/` and `ls scripts/` — those are authoritative.
 
 ### System-wide installations (with user prompting)
 
@@ -195,6 +234,12 @@ The init script installs these tools globally on your machine. Each installation
 | **Claude Code** | AI coding agent | brew (macOS) or npm global (Linux) |
 | **Lighthouse** | Web performance auditing (web projects only) | npm global |
 | **OWASP ZAP** | DAST scanning (web projects with Docker only) | Docker image pull |
+
+**Auto-installed external framework (separate MIT repository):**
+
+| Component | Purpose | Install Method |
+|---|---|---|
+| **Development Guardrails for Claude Code** | Git hook-based guardrails: session-start checks, pre-commit hooks, profile-driven rules. Version pinned in `.claude/manifest.json`. | `init.sh` clones [`kraulerson/claude-dev-framework`](https://github.com/kraulerson/claude-dev-framework) to `~/.claude-dev-framework` (reused across projects), then runs its init to install per-project hooks into `.claude/framework/`. `init.sh` also patches the CDF Context7 detection to recognize plugin-installed Context7 (see `solo-orchestrator-bugs.md` BUG-001). |
 
 **Optional enhancements (user-configured after init):**
 
@@ -458,14 +503,14 @@ For enterprise/organizational use: always use the framework. The governance arti
 |---|---|---|
 | Agent instructions | Single CLAUDE.md file | CLAUDE.md + Builder's Guide + Platform Module — comprehensive AI instruction set |
 | Project planning | Ad hoc | Structured Intake Template + phase-gated discovery (Phases 0-1) |
-| CI security scanning | Manual pipeline setup | 7 language-specific templates with Semgrep SAST, dependency audit, license checking |
+| CI security scanning | Manual pipeline setup | 9 language-specific templates with Semgrep SAST, dependency audit, license checking |
 | Release pipeline | Manual pipeline setup | 4 platform-specific templates (web, desktop, mobile, MCP server) |
 | Platform guidance | None | Web, Desktop, Mobile, MCP Server modules with architecture patterns, tooling, testing, distribution |
 | Enterprise governance | None | Full framework with approval authorities, compliance screening, portfolio governance, and POC modes for pre-approval validation |
 | Project intake | Manual CLAUDE.md | Guided intake wizard (interactive script or AI-assisted) with context-aware suggestions per platform |
 | Security scan guidance | Read the docs yourself | Plain-language interpretation guide for common Semgrep and Snyk findings |
 | Session continuity | Manual context management | Session resume script generates prompt from project state |
-| Evaluation tooling | None | LLM-executable red team and legal analysis prompts |
+| Evaluation tooling | None | 6 reviewer perspectives (senior engineer, CIO, security, legal, technical user, red team) composable against 7 project-type modules (web, desktop, mobile, MCP server, API, CLI, framework); `run-reviews.sh` orchestrates all six in one command |
 
 The methodology, intake template, platform modules, and CI pipeline templates are the primary value. The framework packages operational knowledge that would otherwise need to be discovered project-by-project.
 
