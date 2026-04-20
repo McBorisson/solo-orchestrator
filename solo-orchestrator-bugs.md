@@ -4,6 +4,19 @@ This file tracks bugs and rough edges found in the Solo Orchestrator framework w
 
 ---
 
+## Before reporting — investigation checklist
+
+When the framework says *"X is missing / not installed / not configured,"* it may be a real absence **or** a detector false-negative. Run these checks before writing the prompt-to-fix, and state both the claimed state and the observed state explicitly in the prompt so a future Claude doesn't chase the wrong hypothesis.
+
+1. **Verify X's actual state directly.** A script saying "not installed" is a claim, not a fact. Check independently: `claude mcp list`, `jq` the config, `ls` the path, run the tool. Observe before reporting.
+2. **Check the solo-orchestrator source repo, not just the downstream project.** Templates, configs, and scripts referenced by the Builder's Guide may exist in source but fail to propagate. Before concluding "X needs to be authored," grep / `ls` the source. The bug may be a missing `cp` line or a drifted path, not a missing artifact (see BUG-003 for an example).
+3. **Check alternate install / config paths.** `~/.claude/settings.json` vs. `~/.claude.json`; `.mcpServers.*` vs. `.enabledPlugins.*`; global vs. project-scoped; direct MCP vs. Claude Code plugin. Detectors often inspect one path and miss the others (see BUG-001).
+4. **Phrase the prompt with observed vs. claimed.** Example: *"Framework hook printed '[X not installed]', but `claude mcp list` shows X connected"* — that wording makes the false-negative framing load-bearing. "X is missing" alone nudges a future Claude toward authoring a replacement instead of fixing detection.
+
+If the framework is right that X is genuinely absent, these checks cost ~30 seconds. If it's a false negative, they keep the downstream session from investigating the wrong problem.
+
+---
+
 ## BUG-001: Context7 MCP detection is stale in framework compliance hook
 
 **Found:** 2026-04-20
@@ -213,6 +226,60 @@ cp "$SCRIPT_DIR/templates/generated/data-contract.tmpl" templates/generated/
 **Existing downstream projects** (initialized before this fix) still lack the three templates. To remediate, copy the three files directly from the Solo source `templates/generated/` into the project's `templates/generated/`.
 
 **Follow-up worth considering (not required):** The explicit per-file copy list is brittle — any future template added to `templates/generated/` will silently fail to propagate until someone remembers to add a `cp` line. Consider replacing with `cp "$SCRIPT_DIR/templates/generated/"*.tmpl templates/generated/`. Out of scope for this bug.
+
+---
+
+## BUG-004: `check-phase-gate.sh` uses `local` outside a function (exits 1 on legitimate gate crossings)
+
+**Found:** 2026-04-20
+**Found while:** Phase 0 → Phase 1 gate transition of `lancache_orchestrator` (same session as BUG-001/002/003)
+**Severity:** Medium (blocks CI gate enforcement on otherwise-valid gate transitions)
+
+### Prompt to fix
+
+```
+Working in the solo-orchestrator repo.
+
+I hit a shell-scripting bug in scripts/check-phase-gate.sh during a legitimate
+Phase 0 → Phase 1 gate transition in a downstream project.
+
+Repro:
+  1. In a project with current_phase=1 in .claude/phase-state.json, a valid
+     APPROVAL_LOG.md Phase 0→1 entry (dated 2026-04-20), and a complete
+     PRODUCT_MANIFESTO.md with all 8 numbered sections, no "Status: Open" lines.
+  2. Run: bash scripts/check-phase-gate.sh
+  3. Output:
+
+       Phase Gate Consistency Check
+       Current phase: 1
+
+         [OK] Phase 0→1: gate dated 2026-04-20, approval log has entry
+         [OK] PRODUCT_MANIFESTO.md exists
+       scripts/check-phase-gate.sh: line 249: local: can only be used in a function
+
+  4. Exit code: 1.
+
+Content-wise the gate passed the two checks that did run, but the `local`
+declaration crashes the script before completing the remaining checks
+(manifesto-section validation, Open-Questions scan, Phase 0 intermediate-
+artifact presence). CI that runs this script will fail the merge even though
+every validation it emitted before the crash printed [OK].
+
+Please:
+1. Open scripts/check-phase-gate.sh and look at line 249 (and surrounding
+   context). The `local KEYWORD` declaration is outside a function body.
+2. Fix one of two ways:
+   (a) Wrap the enclosing block in a function and call it, or
+   (b) Drop `local` and just use `VAR=...` (the variable will leak to shell
+       scope, but that's tolerable for a short gate script).
+3. After fixing, re-run the script against this downstream project at
+   /Users/karl/Documents/Claude Projects/lancache_orchestrator and confirm
+   it exits 0 with the full set of intended [OK]/[WARN] lines.
+4. Grep scripts/ (and .claude/framework/ if present) for other `local`
+   usages outside functions — fix them the same way for consistency.
+
+Do NOT apply the fix until I review the proposal.
+```
 
 ---
 
