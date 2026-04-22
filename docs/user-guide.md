@@ -328,6 +328,7 @@ The init script also generates **two pipelines**: a CI pipeline (`ci.yml`) selec
 | `.gitignore` | init.sh | Nothing | Add entries as needed |
 | `.claude/framework/` | init.sh (cloned from GitHub) | Nothing | Git hooks are auto-installed |
 | `.claude/phase-state.json` | init.sh | Nothing — updated by scripts | Tracks current phase |
+| `.claude/manifest.json` | init.sh + CDF | Nothing — updated by scripts | Tracks framework version, git host, project mode, remote URL |
 | `docs/reference/` | init.sh (copied from solo-orchestrator) | Nothing | Reference documents |
 | `docs/platform-modules/` | init.sh (copied) | Nothing | Platform-specific guidance |
 | `docs/reference/security-scan-guide.md` | init.sh (copied) | Nothing | Plain-language guide for common scan findings |
@@ -337,6 +338,17 @@ The init script also generates **two pipelines**: a CI pipeline (`ci.yml`) selec
 | **Superpowers** | You (optional) | Install plugin, configure in CLAUDE.md | See [CLI Setup Addendum](cli-setup-addendum.md#1-superpowers) |
 | **Context7 MCP** | You (optional) | One command to add MCP server | See [CLI Setup Addendum](cli-setup-addendum.md#4-context7) |
 | **Qdrant MCP** | You (optional) | Docker + MCP server config | See [CLI Setup Addendum](cli-setup-addendum.md#5-qdrant) |
+
+### `.claude/manifest.json` — Project State Schema
+
+The manifest is a JSON file maintained jointly by CDF (for framework version pin) and solo-orchestrator (for host/mode/remote). Notable fields:
+
+- `version` — framework version pin (maintained by CDF)
+- `host` — git host type: `github` | `gitlab` | `bitbucket` | `other`. Written at init time; consumed by host-aware scripts to route calls through the correct driver.
+- `mode` — project mode: `personal` | `org`. Controls protection bar and some governance paths.
+- `remote_url` — HTTPS clone URL of the remote created at init.
+
+Scripts should always read these via `jq` (e.g., `jq -r '.host' .claude/manifest.json`) rather than parsing manually.
 
 ### What to Check After Init
 
