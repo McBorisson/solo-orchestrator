@@ -905,6 +905,15 @@ scripts/check-gate.sh --preflight       # dry-run: verifies protection
 scripts/check-gate.sh --repair          # re-applies protection if preflight fails
 ```
 
+**GitHub tier limitation — important.** On free-tier GitHub personal accounts, branch protection rules are **only supported on public repos**. Private repos require GitHub Pro ($4/month) or higher. If you run `init.sh` with a free-tier personal account and select `private` visibility, the driver will create the repo and push successfully but fail at `host_configure_protection` with HTTP 403: *"Upgrade to GitHub Pro or make this repository public to enable this feature."*
+
+Workarounds:
+- **Recommended:** upgrade the account to GitHub Pro. One-time cost, unblocks private + protected repos permanently.
+- **Alternative:** choose `public` visibility — branch protection works on free-tier for public repos.
+- **Accept risk:** choose `private` and accept that protection cannot be configured automatically; you'll need to rely on personal discipline until you upgrade. (Framework does not currently support this path cleanly — verification will keep failing at the backstop gate. Tracked as BL-002 in the backlog for a future graceful-degradation fix.)
+
+For organizational deployments: GitHub Team or Enterprise includes branch protection on private repos by default, so this limitation does not apply to org projects.
+
 **3. Initialize the project with the AI agent:**
 
 Provide the Project Bible and direct the agent to:
