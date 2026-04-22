@@ -853,32 +853,66 @@ The Builder's Guide methodology (phases, decision gates, Build Loop, test-first)
 
 **Polyglot and monorepo projects:** The init script generates a CI pipeline for one primary language. If your project uses multiple languages (e.g., TypeScript frontend + Python backend), add CI steps for secondary languages to `.github/workflows/ci.yml` during this initialization phase. For monorepo structures (multiple packages or services in one repository), configure path-scoped CI triggers so the full pipeline does not run on every change to every package. The Build Loop applies independently to each service or package.
 
-**1. Create the repository:**
+**1. Choose your git host and create the repository.**
+
+`init.sh` handles this automatically based on your intake selection — you don't run these commands by hand. The host-specific mechanics are documented below for reference, and for when you need to repair/recreate via `scripts/check-gate.sh --repair`.
+
+**GitHub (first-class)** — requires `gh` CLI installed and authenticated (`gh auth login`):
 ```bash
-mkdir [project-name] && cd [project-name]
-git init
-git remote add origin https://github.com/[org]/[repo].git
+gh repo create <name> --private     # or --public
+# init.sh handles: git init, git add, git commit, git remote add origin, gh api PUT protection
 ```
 
-**2. Configure branch protection** (required before Phase 2):
-
+**GitLab (first-class)** — requires `glab` CLI installed and authenticated (`glab auth login`; self-hosted: `glab auth login --hostname gitlab.example.com`):
 ```bash
-# Using GitHub CLI — run from the project directory after pushing the initial commit:
-gh api repos/{owner}/{repo}/branches/main/protection \
-  --method PUT \
-  --field "required_pull_request_reviews[required_approving_review_count]=0" \
-  --field "required_pull_request_reviews[dismiss_stale_reviews]=true" \
-  --field "required_status_checks[strict]=true" \
-  --field "required_status_checks[contexts][]=test" \
-  --field "enforce_admins=true" \
-  --field "restrictions=null" \
-  --field "allow_force_pushes=false" \
-  --field "allow_deletions=false"
+glab repo create <name> --private
+# init.sh handles: git setup + glab api POST projects/<path>/protected_branches
 ```
 
-This enforces: PRs required for all changes to `main`, status checks must pass, force pushes disabled, and rules apply to admins (you). Replace `{owner}/{repo}` with your GitHub org/repo path. Adjust `contexts` to match your CI job names.
+**Bitbucket Cloud (first-class)** — requires an App Password (not account password) at https://bitbucket.org/account/settings/app-passwords/ with scopes `repository:admin`, `project:admin`, `pullrequest:write`, exported as env vars:
+```bash
+export BITBUCKET_USER="your-bitbucket-username"
+export BITBUCKET_APP_PASSWORD="your-app-password"
+# (Org workspace? also: export BITBUCKET_WORKSPACE="org-name")
+# init.sh handles: repo create + branch-restrictions via curl
+```
 
-If you cannot use the GitHub CLI, configure these settings manually: Settings → Branches → Add rule → Branch name pattern: `main` → check "Require a pull request before merging", "Require status checks to pass before merging", uncheck "Allow force pushes."
+**Other hosts (Gitea, Codeberg, self-hosted)**:
+1. Create the repo manually on your host before running init.sh.
+2. During intake, choose `other` and paste the HTTPS clone URL when prompted.
+3. Configure branch protection manually per your host's docs — required bar:
+   - Force-push disabled on main
+   - Admins not exempt (if supported)
+   - Org mode only: require at least 1 PR review
+4. At the attestation prompt in init.sh, type `yes` to confirm protection is configured.
+5. No CI template is laid down for `other`. Supply your own `.gitlab-ci.yml` / Jenkinsfile / etc.
+6. Attestation expires after 90 days; re-confirm when the Phase 1→2 backstop fires.
+
+**2. Protection bar** (personal vs organizational):
+
+| Mode | Force-push | Admins | PR reviews | Status checks |
+|---|---|---|---|---|
+| Personal | Disabled | Not exempt | Not required | Not required |
+| Organizational | Disabled | Not exempt | 1+ approver | CI must pass |
+
+This is enforced by `init.sh` via the selected host driver and verified by `scripts/check-phase-gate.sh` at every Phase 1→2 check. Drift detection is automatic — if protection is loosened later, the gate blocks until `scripts/check-gate.sh --repair` restores it.
+
+**Existing projects that predate this gate:**  The first time you upgrade or cross Phase 1→2, you may need to backfill manifest + protection:
+
+```bash
+scripts/check-gate.sh --backfill-host   # infers host from git remote URL
+scripts/check-gate.sh --preflight       # dry-run: verifies protection
+scripts/check-gate.sh --repair          # re-applies protection if preflight fails
+```
+
+**GitHub tier limitation — important.** On free-tier GitHub personal accounts, branch protection rules are **only supported on public repos**. Private repos require GitHub Pro ($4/month) or higher. If you run `init.sh` with a free-tier personal account and select `private` visibility, the driver will create the repo and push successfully but fail at `host_configure_protection` with HTTP 403: *"Upgrade to GitHub Pro or make this repository public to enable this feature."*
+
+Workarounds:
+- **Recommended:** upgrade the account to GitHub Pro. One-time cost, unblocks private + protected repos permanently.
+- **Alternative:** choose `public` visibility — branch protection works on free-tier for public repos.
+- **Accept risk:** choose `private` and accept that protection cannot be configured automatically; you'll need to rely on personal discipline until you upgrade. (Framework does not currently support this path cleanly — verification will keep failing at the backstop gate. Tracked as BL-002 in the backlog for a future graceful-degradation fix.)
+
+For organizational deployments: GitHub Team or Enterprise includes branch protection on private repos by default, so this limitation does not apply to org projects.
 
 **3. Initialize the project with the AI agent:**
 

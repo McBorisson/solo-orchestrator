@@ -285,8 +285,9 @@ collect_project_info() {
       seen_platforms="$seen_platforms $pname"
     fi
   done
-  # Scan release pipelines for platforms not already found
-  for f in "$SCRIPT_DIR/templates/pipelines/release/"*.yml; do
+  # Scan release pipelines for platforms not already found (GitHub subfolder is
+  # canonical — all hosts ship the same platform set per spec 2026-04-21).
+  for f in "$SCRIPT_DIR/templates/pipelines/release/github/"*.yml; do
     [ -f "$f" ] || continue
     local pname
     pname=$(basename "$f" .yml)
@@ -381,10 +382,12 @@ collect_project_info() {
     fi
   fi
 
-  # Auto-discover available languages from CI pipeline templates
-  # Filter by platform: only show languages whose CI template lists the selected platform
+  # Auto-discover available languages from CI pipeline templates.
+  # Filter by platform: only show languages whose CI template lists the selected platform.
+  # GitHub subfolder is canonical for discovery — all hosts ship the same language set
+  # per spec 2026-04-21.
   local available_languages=()
-  for f in "$SCRIPT_DIR/templates/pipelines/ci/"*.yml; do
+  for f in "$SCRIPT_DIR/templates/pipelines/ci/github/"*.yml; do
     [ -f "$f" ] || continue
     local lname
     lname=$(basename "$f" .yml)
@@ -1358,52 +1361,6 @@ PERMEOF
       if [ -f ".claude/manifest.json" ]; then
         print_ok "Development Guardrails for Claude Code installed and configured"
 
-        # Patch the project-local CDF Context7 detection to recognize plugin-installed
-        # Context7 (surfaces as mcp__plugin_context7_context7__*). CDF's stock check
-        # only looks at ~/.claude/settings.json .mcpServers.context7, which misses the
-        # plugin path and ~/.claude.json and produces a false "not installed" warning
-        # on every SessionStart. Appending a later function definition shadows the
-        # original in bash sourcing; the marker prevents double-patching on re-init.
-        if [ -f ".claude/framework/hooks/_helpers.sh" ] && \
-           ! grep -q "SOLO_ORCHESTRATOR_CONTEXT7_PATCH" .claude/framework/hooks/_helpers.sh 2>/dev/null; then
-          cat >> .claude/framework/hooks/_helpers.sh <<'SOPATCH'
-
-# SOLO_ORCHESTRATOR_CONTEXT7_PATCH — recognize plugin-installed Context7
-# and the alternate ~/.claude.json config location.
-check_context7() {
-  check_jq || return 1
-  local user_settings="$HOME/.claude/settings.json"
-  local user_json="$HOME/.claude.json"
-  [ -f "$user_settings" ] && jq -e '.mcpServers.context7 // .mcpServers["context7-mcp"] // empty' "$user_settings" >/dev/null 2>&1 && return 0
-  [ -f "$user_json" ]     && jq -e '.mcpServers.context7 // .mcpServers["context7-mcp"] // empty' "$user_json"     >/dev/null 2>&1 && return 0
-  [ -f "$user_settings" ] && jq -e '.enabledPlugins | to_entries[] | select(.key | test("^context7"; "i")) | select(.value == true)' "$user_settings" >/dev/null 2>&1 && return 0
-  return 1
-}
-SOPATCH
-          print_ok "Patched CDF Context7 detection (plugin-installed + ~/.claude.json)"
-        fi
-
-        # Patch the project-local CDF stop-checklist.sh to fix invalid Stop hook JSON.
-        # CDF's stock advisory output uses hookSpecificOutput with hookEventName "Stop",
-        # but Claude Code's schema only defines PreToolUse/PostToolUse/UserPromptSubmit
-        # for hookSpecificOutput. The invalid JSON triggers a validation error on every
-        # session stop. Fix: replace the jq JSON output with stderr echo (advisory only,
-        # the blocking path on line 74 already uses the correct top-level schema).
-        if [ -f ".claude/framework/hooks/stop-checklist.sh" ] && \
-           grep -q '"hookEventName": "Stop"' .claude/framework/hooks/stop-checklist.sh 2>/dev/null && \
-           ! grep -q "SOLO_ORCHESTRATOR_STOP_HOOK_PATCH" .claude/framework/hooks/stop-checklist.sh 2>/dev/null; then
-          awk '
-            /jq -n --arg m "\$MSG"/ { skip=1; print "      # SOLO_ORCHESTRATOR_STOP_HOOK_PATCH — advisory via stderr, not invalid JSON"; print "      echo \"$MSG\" >&2"; next }
-            skip && /^[ \t]*\}'"'"'/ { skip=0; next }
-            skip { next }
-            { print }
-          ' .claude/framework/hooks/stop-checklist.sh > .claude/framework/hooks/stop-checklist.sh.tmp \
-            && mv .claude/framework/hooks/stop-checklist.sh.tmp .claude/framework/hooks/stop-checklist.sh \
-            && chmod +x .claude/framework/hooks/stop-checklist.sh \
-            && print_ok "Patched CDF stop-checklist.sh (advisory via stderr, not invalid hookSpecificOutput)" \
-            || print_warn "Could not patch stop-checklist.sh — Stop hook advisory will show validation errors (cosmetic only)"
-        fi
-
         # Remove the CDF migration backup. CDF backs up .claude/ before merging its
         # hooks — but Solo Orchestrator seeded .claude/ moments earlier in this same
         # init, so the backup contains no user work, and CDF only merges the hooks
@@ -1706,8 +1663,122 @@ Platform: $PLATFORM
 Track: $TRACK
 Framework: Solo Orchestrator v1.0"
 
+  # --- Host-aware repo creation (spec 2026-04-21 host-aware repo gate) ---
+  # Reads git_host + repo_visibility from intake-progress.json (set by
+  # intake-wizard.sh). If absent, prompts inline. Creates remote, registers
+  # origin, pushes initial commit, configures branch protection, verifies.
+  # Writes host/mode/remote_url to .claude/manifest.json.
+  create_and_protect_remote
+
   echo ""
   print_ok "Project created at $PROJECT_DIR"
+}
+
+# ================================================================
+# Host-Aware Repo Creation (spec 2026-04-21)
+# ================================================================
+create_and_protect_remote() {
+  local host visibility
+  if [ -f .claude/intake-progress.json ]; then
+    host=$(jq -r '.answers.git_host // empty' .claude/intake-progress.json 2>/dev/null || echo "")
+    visibility=$(jq -r '.answers.repo_visibility // empty' .claude/intake-progress.json 2>/dev/null || echo "")
+  fi
+  # Fallback: prompt inline if not captured in intake
+  [ -z "$host" ]       && host=$(prompt_choice "Git host:" "github" "gitlab" "bitbucket" "other")
+  [ -z "$visibility" ] && visibility=$(prompt_choice "Repository visibility:" "private" "public")
+
+  # Map DEPLOYMENT "organizational" → "org" for consistency with spec
+  local mode="$DEPLOYMENT"
+  [ "$mode" = "organizational" ] && mode="org"
+  # Org forces private
+  if [ "$mode" = "org" ] && [ "$visibility" != "private" ]; then
+    print_warn "Org mode forces private visibility (overriding '$visibility')"
+    visibility="private"
+  fi
+
+  print_step "Creating git repository on $host"
+
+  local remote_url=""
+  if [ "$host" = "other" ]; then
+    # URL-paste path — no CLI, no API verification
+    read -rp "Paste the HTTPS clone URL of the remote repo you've created: " remote_url
+    [ -z "$remote_url" ] && { print_fail "Remote URL required for 'other' host"; return 1; }
+    git remote add origin "$remote_url"
+    if ! git push -u origin main 2>/dev/null && ! git push -u origin master 2>/dev/null; then
+      print_fail "Push failed — verify URL and credentials"
+      return 1
+    fi
+    echo ""
+    echo "Since 'other' host is not API-verifiable, attest branch protection:"
+    echo "  - Force-push disabled on main"
+    echo "  - Admins not exempt from rules"
+    [ "$mode" = "org" ] && echo "  - PR reviews required (at least 1 approver)"
+    local attest
+    read -rp "Has branch protection been configured per the above? [type 'yes' to attest]: " attest
+    [ "$attest" != "yes" ] && { print_fail "Attestation required — cannot proceed to Phase 0"; return 1; }
+    # Record attestation in process-state.json
+    mkdir -p .claude
+    if [ ! -f .claude/process-state.json ]; then
+      echo '{"phase2_init":{"steps_completed":[],"attestations":{}}}' > .claude/process-state.json
+    fi
+    jq --arg at "$(date -u +%FT%TZ)" \
+       '.phase2_init.attestations.branch_protection = {attested_by: "orchestrator", at: $at}' \
+       .claude/process-state.json > .claude/process-state.json.tmp \
+       && mv .claude/process-state.json.tmp .claude/process-state.json
+  else
+    # First-class host: dispatcher + driver
+    # shellcheck disable=SC1090
+    source "$SCRIPT_DIR/scripts/lib/host.sh"
+    source "$SCRIPT_DIR/scripts/host-drivers/$host.sh"
+
+    host_require_cli || { print_fail "Host CLI prerequisite failed — see messages above"; return 1; }
+
+    print_info "Creating $visibility repo '$PROJECT_NAME' on $host..."
+    remote_url=$(host_create_repo "$PROJECT_NAME" "$visibility") || { print_fail "Repo creation failed"; return 1; }
+    print_ok "Remote created at $remote_url"
+
+    host_register_remote "$remote_url"
+
+    print_info "Pushing initial commit..."
+    # Try main first, fall back to master
+    host_push_initial main 2>/dev/null || host_push_initial master || { print_fail "Push failed — $remote_url exists but empty"; return 1; }
+
+    print_info "Configuring branch protection ($mode mode)..."
+    host_configure_protection main "$mode" || host_configure_protection master "$mode" \
+      || { print_fail "Protection config failed — run 'scripts/check-gate.sh --repair' after troubleshooting"; return 1; }
+
+    print_info "Verifying protection..."
+    if ! host_verify_protection main "$mode" 2>/dev/null && ! host_verify_protection master "$mode"; then
+      # Retry once for API lag
+      sleep 10
+      if ! host_verify_protection main "$mode" 2>/dev/null && ! host_verify_protection master "$mode"; then
+        print_fail "Verification failed — run 'scripts/check-gate.sh --repair'"
+        return 1
+      fi
+    fi
+    print_ok "Protection verified for $mode mode"
+  fi
+
+  # Write host + mode + remote_url to .claude/manifest.json (create if absent)
+  mkdir -p .claude
+  if [ -f .claude/manifest.json ]; then
+    jq --arg h "$host" --arg m "$mode" --arg u "$remote_url" \
+       '.host = $h | .mode = $m | .remote_url = $u' \
+       .claude/manifest.json > .claude/manifest.json.tmp \
+       && mv .claude/manifest.json.tmp .claude/manifest.json
+  else
+    cat > .claude/manifest.json <<MANIFESTEOF
+{"host": "$host", "mode": "$mode", "remote_url": "$remote_url"}
+MANIFESTEOF
+  fi
+
+  # Mark phase2_init steps complete
+  if [ ! -f .claude/process-state.json ]; then
+    echo '{"phase2_init":{"steps_completed":[]}}' > .claude/process-state.json
+  fi
+  jq '.phase2_init.steps_completed += ["remote_repo_created","branch_protection_configured"] | .phase2_init.steps_completed |= unique' \
+     .claude/process-state.json > .claude/process-state.json.tmp \
+     && mv .claude/process-state.json.tmp .claude/process-state.json
 }
 
 # ================================================================
@@ -2120,21 +2191,48 @@ generate_ci() {
     *)                     ci_template="other.yml" ;;
   esac
 
-  local template_path="$SCRIPT_DIR/templates/pipelines/ci/$ci_template"
+  # Host-aware template selection (spec 2026-04-21). Read host from intake
+  # progress if available; default to github. Copy to host-appropriate path.
+  local host="github"
+  if [ -f .claude/intake-progress.json ]; then
+    host=$(jq -r '.answers.git_host // "github"' .claude/intake-progress.json 2>/dev/null || echo "github")
+  fi
+
+  local template_path="$SCRIPT_DIR/templates/pipelines/ci/$host/$ci_template"
+  local target_path
+  case "$host" in
+    github)     target_path=".github/workflows/ci.yml"; mkdir -p .github/workflows ;;
+    gitlab)     target_path=".gitlab-ci.yml" ;;
+    bitbucket)  target_path="bitbucket-pipelines.yml" ;;
+    other)
+      print_info "Host 'other' — no CI template laid down. Supply your own CI config."
+      return 0
+      ;;
+    *) print_warn "Unknown host '$host'; defaulting to GitHub"; target_path=".github/workflows/ci.yml"; mkdir -p .github/workflows; template_path="$SCRIPT_DIR/templates/pipelines/ci/github/$ci_template" ;;
+  esac
+
   if [ -f "$template_path" ]; then
-    cp "$template_path" .github/workflows/ci.yml
+    cp "$template_path" "$target_path"
   else
     print_warn "CI template not found: $template_path"
     return 1
   fi
 
-  print_info "CI pipeline created at .github/workflows/ci.yml (language: $LANGUAGE)"
+  print_info "CI pipeline created at $target_path (host: $host, language: $LANGUAGE)"
 }
 
 generate_release() {
-  local release_template="$SCRIPT_DIR/templates/pipelines/release/$PLATFORM.yml"
+  # Host-aware release template selection (spec 2026-04-21).
+  local host="github"
+  if [ -f .claude/intake-progress.json ]; then
+    host=$(jq -r '.answers.git_host // "github"' .claude/intake-progress.json 2>/dev/null || echo "github")
+  fi
+
+  [ "$host" = "other" ] && { print_info "Host 'other' — no release template laid down. Supply your own."; return 0; }
+
+  local release_template="$SCRIPT_DIR/templates/pipelines/release/$host/$PLATFORM.yml"
   if [ ! -f "$release_template" ]; then
-    print_info "No release pipeline template for platform '$PLATFORM'. Skipping release pipeline."
+    print_info "No release pipeline template for platform '$PLATFORM' on host '$host'. Skipping release pipeline."
     return 0
   fi
 
