@@ -101,3 +101,58 @@ Driver-level test coverage varies: GitHub has 8 scenarios (full contract, both m
 **Scope:** extend `tests/host-drivers/bitbucket.test.sh` with mock-curl fixtures for: configure_protection (personal + org payloads), verify_protection (all restriction types present → pass; missing restrictions → fail with specific messages), drift detection.
 
 **Trigger:** Before the first solo-orchestrator user tries Bitbucket, OR whenever touching `bitbucket.sh`.
+
+---
+
+## BL-006: Enforce Build Loop via pre-commit hook (warns-then-blocks)
+
+**Logged:** 2026-04-22
+**Category:** Debt
+**Severity:** High
+**Status:** Open
+
+Surfaced during the lancache project audit. `scripts/process-checklist.sh --start-feature` is advisory — a `feat(...)` commit can land without starting a Build Loop session, and `--record-feature` detects the drift only after the fact (post-commit audit). On lancache, ID1 and ID3 (MVP Cutline items per PRODUCT_MANIFESTO §5) were committed as `feat(init): ...` without going through the Build Loop; the drift was caught only when running `--record-feature` retroactively.
+
+**Scope:** add a pre-commit-gate check that inspects the staged commit message and blocks (or warns-then-blocks on repeat) when a `feat(...)` commit has no corresponding active Build Loop session in `.claude/build-progress.json` OR no matching recorded feature. Needs a design pass to nail down:
+- Warns-then-blocks progression semantics (e.g., first warning allowed, second blocks? or always blocks new feat commits without a session?)
+- False-positive handling: hotfixes (`fix:`, not `feat:`), refactors, docs-only changes, merge commits, amended commits, squash-merge scenarios
+- Escape hatch: is there a sanctioned bypass path for genuine init-era scaffolding (coupled to BL-007's Init vs Build Loop clarification)?
+- How to signal "I'm about to commit a feat, start a Build Loop first" vs. existing user flow
+
+**Trigger:** Before another MVP Cutline ID can drift past the Build Loop unnoticed. Coupled with BL-007 (the Init-vs-Build-Loop rule) — these should be designed together since the rule determines what the hook enforces.
+
+**Related:** lancache project Phase 2 audit, 2026-04-22; path-forward decision to use pre-commit (not post-commit) per technical constraint that post-commit hooks cannot block.
+
+---
+
+## BL-007: Builder's Guide rule — MVP Cutline IDs always require full Build Loop
+
+**Logged:** 2026-04-22
+**Category:** Debt
+**Severity:** Medium
+**Status:** Open
+
+Surfaced during the lancache project audit. Builder's Guide §2.0 (Phase 2 Init sub-steps) and §2.1+ (Build Loop) are distinct phases. A developer or AI reading CLAUDE.md can reasonably conclude that init-era feature work (during §2.0 steps 2–10: scaffolding, migrations, CI setup, Docker, backup verification) doesn't need the full Build Loop ceremony — which is exactly what happened on lancache when `feat(init): initial migration + runner` and `feat(init): structlog with correlation-ID propagation` were treated as init scaffolding. Both were actually MVP Cutline IDs (ID1 and ID3) that deserved full Build Loops.
+
+**Scope:** explicit rule in Builder's Guide — "MVP Cutline items (F-IDs and ID-IDs per PRODUCT_MANIFESTO §5) ALWAYS require a full Build Loop, regardless of which Phase 2 sub-step they land in. If Phase 2 Init work (§2.0 steps 2–10) produces a commit that implements a Cutline ID, that commit must go through `--start-feature` → tests → implementation → audit → `--record-feature` just like any §2.1+ work."
+
+Possibly pair with tooling enforcement in BL-006 that cross-references commit messages against a manifest-derived Cutline ID list — but doc-only is the minimum.
+
+**Trigger:** Couple with BL-006 — the doc rule defines what the hook enforces.
+
+---
+
+## BL-008: Rollback/abort workflow for recorded features and UAT sessions
+
+**Logged:** 2026-04-22
+**Category:** Debt
+**Severity:** Medium
+**Status:** Open
+
+Surfaced during the lancache project audit. When a feature gets recorded incorrectly (e.g., `--record-feature` called for a commit that shouldn't have been treated as a feature) or a UAT session is started but needs to be aborted, there's no sanctioned workflow. On lancache, the user is about to correct via direct `jq` edit of `build-progress.json` + `--reset uat_session` — workable but undocumented.
+
+**Scope:** add `scripts/process-checklist.sh --unrecord-feature NAME` to cleanly remove a feature from `build-progress.json` (with confirmation prompt); document the existing `--reset uat_session` in CLAUDE.md's Testing & Bug Workflow section; possibly add `--abort-build-loop` if a feature was started but never finished and the orchestrator wants to scrap it without recording.
+
+**Trigger:** Most immediate follow-up of the three — user is doing the manual fix via jq today. Smallest scope (new subcommand + docs); good quick-win to tackle first.
+
+**Related:** lancache project Phase 2 audit, 2026-04-22. Tackling first per path-forward ordering.
