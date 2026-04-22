@@ -90,3 +90,90 @@ cd - >/dev/null
 rm -rf "$WORK"
 
 echo "github.test.sh: host_register_remote PASSED"
+
+# Test: host_configure_protection personal calls correct API
+MOCK_DIR=$(mock_cli_setup)
+export PATH="$MOCK_DIR:$OLD_PATH"
+WORK=$(mktemp -d); cd "$WORK"
+git init -q
+git remote add origin "https://github.com/testuser/testrepo.git"
+mock_cli_respond gh "api -X PUT repos/testuser/testrepo/branches/main/protection" 0 '{"url":"...","enforce_admins":{"enabled":true}}'
+set +e
+host_configure_protection "main" "personal"
+code=$?
+set -e
+assert_exit_code 0 "$code" "personal configure succeeds"
+cd - >/dev/null
+rm -rf "$WORK"
+mock_cli_teardown "$MOCK_DIR"
+export PATH="$OLD_PATH"
+echo "github.test.sh: host_configure_protection (personal) PASSED"
+
+# Test: org mode payload succeeds
+MOCK_DIR=$(mock_cli_setup)
+export PATH="$MOCK_DIR:$OLD_PATH"
+WORK=$(mktemp -d); cd "$WORK"
+git init -q
+git remote add origin "https://github.com/org/repo.git"
+mock_cli_respond gh "api -X PUT repos/org/repo/branches/main/protection" 0 '{"ok":true}'
+host_configure_protection "main" "org"
+code=$?
+assert_exit_code 0 "$code" "org configure succeeds"
+cd - >/dev/null
+rm -rf "$WORK"
+mock_cli_teardown "$MOCK_DIR"
+export PATH="$OLD_PATH"
+echo "github.test.sh: host_configure_protection (org) PASSED"
+
+# Test: verify passes when personal rules met
+MOCK_DIR=$(mock_cli_setup)
+export PATH="$MOCK_DIR:$OLD_PATH"
+WORK=$(mktemp -d); cd "$WORK"
+git init -q
+git remote add origin "https://github.com/u/r.git"
+mock_cli_respond gh "api repos/u/r/branches/main/protection" 0 '{"enforce_admins":{"enabled":true},"allow_force_pushes":{"enabled":false}}'
+set +e
+output=$(host_verify_protection "main" "personal" 2>&1)
+code=$?
+set -e
+assert_exit_code 0 "$code" "personal pass"
+
+# Test: verify fails with specific message when force-push allowed
+mock_cli_respond gh "api repos/u/r/branches/main/protection" 0 '{"enforce_admins":{"enabled":true},"allow_force_pushes":{"enabled":true}}'
+set +e
+output=$(host_verify_protection "main" "personal" 2>&1)
+code=$?
+set -e
+assert_exit_code 1 "$code" "force-push allowed fails"
+assert_contains "$output" "force-push" "mentions specific rule"
+
+# Test: verify fails when enforce_admins off
+mock_cli_respond gh "api repos/u/r/branches/main/protection" 0 '{"enforce_admins":{"enabled":false},"allow_force_pushes":{"enabled":false}}'
+set +e
+output=$(host_verify_protection "main" "personal" 2>&1)
+code=$?
+set -e
+assert_exit_code 1 "$code" "admins exempt fails"
+assert_contains "$output" "admin" "mentions admins rule"
+
+# Test: org mode requires reviewer
+mock_cli_respond gh "api repos/u/r/branches/main/protection" 0 '{"enforce_admins":{"enabled":true},"allow_force_pushes":{"enabled":false},"required_pull_request_reviews":{"required_approving_review_count":0}}'
+set +e
+output=$(host_verify_protection "main" "org" 2>&1)
+code=$?
+set -e
+assert_exit_code 1 "$code" "org requires reviewer"
+assert_contains "$output" "review" "mentions reviewer rule"
+
+# Test: org mode passes
+mock_cli_respond gh "api repos/u/r/branches/main/protection" 0 '{"enforce_admins":{"enabled":true},"allow_force_pushes":{"enabled":false},"required_pull_request_reviews":{"required_approving_review_count":1,"dismiss_stale_reviews":true},"required_status_checks":{"strict":true,"contexts":[]}}'
+set +e
+host_verify_protection "main" "org"
+code=$?
+set -e
+assert_exit_code 0 "$code" "org pass"
+
+cd - >/dev/null; rm -rf "$WORK"
+mock_cli_teardown "$MOCK_DIR"
+export PATH="$OLD_PATH"
+echo "github.test.sh: host_verify_protection PASSED"
