@@ -49,3 +49,25 @@ WORK3=$(mktemp -d)
 rm -rf "$WORK3"
 
 echo "dispatcher.test.sh: all tests PASSED"
+
+# Test: host_load_driver sources github driver and exposes full contract
+WORK4=$(mktemp -d); cd "$WORK4"
+mkdir -p .claude
+echo '{"host":"github","mode":"personal"}' > .claude/manifest.json
+# Use git init so _host_repo_root returns this dir, not solo-orchestrator
+git init -q
+# Symlink the real driver so dispatcher can source it
+mkdir -p scripts/host-drivers scripts/lib
+cp "$REPO_ROOT/scripts/lib/host.sh" scripts/lib/host.sh
+cp "$REPO_ROOT/scripts/host-drivers/github.sh" scripts/host-drivers/github.sh
+source scripts/lib/host.sh
+host_load_driver
+assert_eq "github" "$(host_name)" "dispatcher loads github driver"
+for fn in host_require_cli host_create_repo host_register_remote host_push_initial host_configure_protection host_verify_protection; do
+  if ! declare -f "$fn" >/dev/null; then
+    echo "ASSERT FAIL: $fn not defined after load" >&2
+    exit 1
+  fi
+done
+cd - >/dev/null; rm -rf "$WORK4"
+echo "dispatcher.test.sh: contract completeness PASSED"
