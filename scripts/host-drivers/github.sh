@@ -33,3 +33,23 @@ host_require_cli() {
   fi
   return 0
 }
+
+# host_create_repo <name> <visibility>
+# visibility: "private" | "public"
+# stdout: HTTPS clone URL on success
+# exit: 0 success; non-zero on failure (gh's error surfaced to stderr)
+host_create_repo() {
+  local name="${1:?host_create_repo: name required}"
+  local visibility="${2:?host_create_repo: visibility required}"
+  case "$visibility" in
+    private|public) ;;
+    *) echo "host_create_repo: visibility must be 'private' or 'public', got '$visibility'" >&2; return 1 ;;
+  esac
+  local result
+  if ! result=$(gh repo create "$name" "--$visibility" 2>&1); then
+    echo "$result" >&2
+    return 1
+  fi
+  # gh prints the URL as the last line
+  echo "$result" | tail -n 1
+}

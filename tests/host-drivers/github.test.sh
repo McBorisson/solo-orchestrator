@@ -44,3 +44,28 @@ assert_contains "$output" "authenticated" "mentions auth"
 export PATH="$OLD_PATH"
 mock_cli_teardown "$MOCK_DIR"
 echo "github.test.sh: host_require_cli (unauthed) PASSED"
+
+# Test: host_create_repo private
+MOCK_DIR=$(mock_cli_setup)
+export PATH="$MOCK_DIR:$OLD_PATH"
+mock_cli_respond gh "repo create my-repo --private" 0 "https://github.com/user/my-repo"
+url=$(host_create_repo "my-repo" "private")
+assert_eq "https://github.com/user/my-repo" "$url" "create private repo returns URL"
+
+# Test: host_create_repo public
+mock_cli_respond gh "repo create pub-repo --public" 0 "https://github.com/user/pub-repo"
+url=$(host_create_repo "pub-repo" "public")
+assert_eq "https://github.com/user/pub-repo" "$url" "create public repo returns URL"
+
+# Test: existing repo fails cleanly
+mock_cli_respond gh "repo create dupe --private" 1 "repository already exists"
+set +e
+output=$(host_create_repo "dupe" "private" 2>&1)
+code=$?
+set -e
+assert_exit_code 1 "$code" "existing repo returns non-zero"
+assert_contains "$output" "already exists" "surfaces underlying error"
+
+mock_cli_teardown "$MOCK_DIR"
+export PATH="$OLD_PATH"
+echo "github.test.sh: host_create_repo PASSED"
