@@ -1660,8 +1660,122 @@ Platform: $PLATFORM
 Track: $TRACK
 Framework: Solo Orchestrator v1.0"
 
+  # --- Host-aware repo creation (spec 2026-04-21 host-aware repo gate) ---
+  # Reads git_host + repo_visibility from intake-progress.json (set by
+  # intake-wizard.sh). If absent, prompts inline. Creates remote, registers
+  # origin, pushes initial commit, configures branch protection, verifies.
+  # Writes host/mode/remote_url to .claude/manifest.json.
+  create_and_protect_remote
+
   echo ""
   print_ok "Project created at $PROJECT_DIR"
+}
+
+# ================================================================
+# Host-Aware Repo Creation (spec 2026-04-21)
+# ================================================================
+create_and_protect_remote() {
+  local host visibility
+  if [ -f .claude/intake-progress.json ]; then
+    host=$(jq -r '.answers.git_host // empty' .claude/intake-progress.json 2>/dev/null || echo "")
+    visibility=$(jq -r '.answers.repo_visibility // empty' .claude/intake-progress.json 2>/dev/null || echo "")
+  fi
+  # Fallback: prompt inline if not captured in intake
+  [ -z "$host" ]       && host=$(prompt_choice "Git host:" "github" "gitlab" "bitbucket" "other")
+  [ -z "$visibility" ] && visibility=$(prompt_choice "Repository visibility:" "private" "public")
+
+  # Map DEPLOYMENT "organizational" → "org" for consistency with spec
+  local mode="$DEPLOYMENT"
+  [ "$mode" = "organizational" ] && mode="org"
+  # Org forces private
+  if [ "$mode" = "org" ] && [ "$visibility" != "private" ]; then
+    print_warn "Org mode forces private visibility (overriding '$visibility')"
+    visibility="private"
+  fi
+
+  print_step "Creating git repository on $host"
+
+  local remote_url=""
+  if [ "$host" = "other" ]; then
+    # URL-paste path — no CLI, no API verification
+    read -rp "Paste the HTTPS clone URL of the remote repo you've created: " remote_url
+    [ -z "$remote_url" ] && { print_fail "Remote URL required for 'other' host"; return 1; }
+    git remote add origin "$remote_url"
+    if ! git push -u origin main 2>/dev/null && ! git push -u origin master 2>/dev/null; then
+      print_fail "Push failed — verify URL and credentials"
+      return 1
+    fi
+    echo ""
+    echo "Since 'other' host is not API-verifiable, attest branch protection:"
+    echo "  - Force-push disabled on main"
+    echo "  - Admins not exempt from rules"
+    [ "$mode" = "org" ] && echo "  - PR reviews required (at least 1 approver)"
+    local attest
+    read -rp "Has branch protection been configured per the above? [type 'yes' to attest]: " attest
+    [ "$attest" != "yes" ] && { print_fail "Attestation required — cannot proceed to Phase 0"; return 1; }
+    # Record attestation in process-state.json
+    mkdir -p .claude
+    if [ ! -f .claude/process-state.json ]; then
+      echo '{"phase2_init":{"steps_completed":[],"attestations":{}}}' > .claude/process-state.json
+    fi
+    jq --arg at "$(date -u +%FT%TZ)" \
+       '.phase2_init.attestations.branch_protection = {attested_by: "orchestrator", at: $at}' \
+       .claude/process-state.json > .claude/process-state.json.tmp \
+       && mv .claude/process-state.json.tmp .claude/process-state.json
+  else
+    # First-class host: dispatcher + driver
+    # shellcheck disable=SC1090
+    source "$SCRIPT_DIR/scripts/lib/host.sh"
+    source "$SCRIPT_DIR/scripts/host-drivers/$host.sh"
+
+    host_require_cli || { print_fail "Host CLI prerequisite failed — see messages above"; return 1; }
+
+    print_info "Creating $visibility repo '$PROJECT_NAME' on $host..."
+    remote_url=$(host_create_repo "$PROJECT_NAME" "$visibility") || { print_fail "Repo creation failed"; return 1; }
+    print_ok "Remote created at $remote_url"
+
+    host_register_remote "$remote_url"
+
+    print_info "Pushing initial commit..."
+    # Try main first, fall back to master
+    host_push_initial main 2>/dev/null || host_push_initial master || { print_fail "Push failed — $remote_url exists but empty"; return 1; }
+
+    print_info "Configuring branch protection ($mode mode)..."
+    host_configure_protection main "$mode" || host_configure_protection master "$mode" \
+      || { print_fail "Protection config failed — run 'scripts/check-gate.sh --repair' after troubleshooting"; return 1; }
+
+    print_info "Verifying protection..."
+    if ! host_verify_protection main "$mode" 2>/dev/null && ! host_verify_protection master "$mode"; then
+      # Retry once for API lag
+      sleep 10
+      if ! host_verify_protection main "$mode" 2>/dev/null && ! host_verify_protection master "$mode"; then
+        print_fail "Verification failed — run 'scripts/check-gate.sh --repair'"
+        return 1
+      fi
+    fi
+    print_ok "Protection verified for $mode mode"
+  fi
+
+  # Write host + mode + remote_url to .claude/manifest.json (create if absent)
+  mkdir -p .claude
+  if [ -f .claude/manifest.json ]; then
+    jq --arg h "$host" --arg m "$mode" --arg u "$remote_url" \
+       '.host = $h | .mode = $m | .remote_url = $u' \
+       .claude/manifest.json > .claude/manifest.json.tmp \
+       && mv .claude/manifest.json.tmp .claude/manifest.json
+  else
+    cat > .claude/manifest.json <<MANIFESTEOF
+{"host": "$host", "mode": "$mode", "remote_url": "$remote_url"}
+MANIFESTEOF
+  fi
+
+  # Mark phase2_init steps complete
+  if [ ! -f .claude/process-state.json ]; then
+    echo '{"phase2_init":{"steps_completed":[]}}' > .claude/process-state.json
+  fi
+  jq '.phase2_init.steps_completed += ["remote_repo_created","branch_protection_configured"] | .phase2_init.steps_completed |= unique' \
+     .claude/process-state.json > .claude/process-state.json.tmp \
+     && mv .claude/process-state.json.tmp .claude/process-state.json
 }
 
 # ================================================================
