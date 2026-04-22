@@ -1364,6 +1364,11 @@ PERMEOF
         # plugin path and ~/.claude.json and produces a false "not installed" warning
         # on every SessionStart. Appending a later function definition shadows the
         # original in bash sourcing; the marker prevents double-patching on re-init.
+        #
+        # Note: CDF upstream commit fd8469a fixed tool-name recognition (marker tracker
+        # now recognizes mcp__plugin_context7_context7__*) but did NOT extend the
+        # check_context7() detection function itself. This shim still fills that gap.
+        # TODO: upstream this function to CDF's _helpers.sh to eliminate the shim.
         if [ -f ".claude/framework/hooks/_helpers.sh" ] && \
            ! grep -q "SOLO_ORCHESTRATOR_CONTEXT7_PATCH" .claude/framework/hooks/_helpers.sh 2>/dev/null; then
           cat >> .claude/framework/hooks/_helpers.sh <<'SOPATCH'
@@ -1381,27 +1386,6 @@ check_context7() {
 }
 SOPATCH
           print_ok "Patched CDF Context7 detection (plugin-installed + ~/.claude.json)"
-        fi
-
-        # Patch the project-local CDF stop-checklist.sh to fix invalid Stop hook JSON.
-        # CDF's stock advisory output uses hookSpecificOutput with hookEventName "Stop",
-        # but Claude Code's schema only defines PreToolUse/PostToolUse/UserPromptSubmit
-        # for hookSpecificOutput. The invalid JSON triggers a validation error on every
-        # session stop. Fix: replace the jq JSON output with stderr echo (advisory only,
-        # the blocking path on line 74 already uses the correct top-level schema).
-        if [ -f ".claude/framework/hooks/stop-checklist.sh" ] && \
-           grep -q '"hookEventName": "Stop"' .claude/framework/hooks/stop-checklist.sh 2>/dev/null && \
-           ! grep -q "SOLO_ORCHESTRATOR_STOP_HOOK_PATCH" .claude/framework/hooks/stop-checklist.sh 2>/dev/null; then
-          awk '
-            /jq -n --arg m "\$MSG"/ { skip=1; print "      # SOLO_ORCHESTRATOR_STOP_HOOK_PATCH — advisory via stderr, not invalid JSON"; print "      echo \"$MSG\" >&2"; next }
-            skip && /^[ \t]*\}'"'"'/ { skip=0; next }
-            skip { next }
-            { print }
-          ' .claude/framework/hooks/stop-checklist.sh > .claude/framework/hooks/stop-checklist.sh.tmp \
-            && mv .claude/framework/hooks/stop-checklist.sh.tmp .claude/framework/hooks/stop-checklist.sh \
-            && chmod +x .claude/framework/hooks/stop-checklist.sh \
-            && print_ok "Patched CDF stop-checklist.sh (advisory via stderr, not invalid hookSpecificOutput)" \
-            || print_warn "Could not patch stop-checklist.sh — Stop hook advisory will show validation errors (cosmetic only)"
         fi
 
         # Remove the CDF migration backup. CDF backs up .claude/ before merging its

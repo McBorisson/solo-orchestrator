@@ -86,6 +86,12 @@ only want to eliminate the false negative.
 
 **Files touched:** `init.sh`, `scripts/lib/helpers.sh`, `scripts/verify-install.sh`, `templates/tool-matrix/common.json`.
 
+### 2026-04-21 Update — Partial upstream fix in CDF; shim still needed
+
+**Status:** Still needed (partial CDF fix). CDF upstream commit `fd8469a` ("fix: handle plugin-prefixed and query-docs Context7 tool names") fixed the **marker-tracker hook** to recognize `mcp__plugin_context7_context7__*` tool names, but did **not** extend the underlying `check_context7()` detection function in `~/.claude-dev-framework/hooks/_helpers.sh:147-153`. Upstream still only checks `.mcpServers.context7` in `~/.claude/settings.json` — missing the `.claude.json` path and the `.enabledPlugins` path. Solo's shadowing shim continues to fill that gap.
+
+**TODO (follow-up):** Upstream the three-path detection into CDF's `check_context7()` (`_helpers.sh:147`). Once landed, Solo's post-install shim can be removed entirely per the "fix upstream, use shims only for remaining gaps" policy.
+
 ---
 
 ## BUG-002: .claude-backup/ directory left as init residue in generated projects
@@ -450,6 +456,12 @@ it doesn't need structured JSON.
 **Existing downstream projects** have the broken hook in `.claude/framework/hooks/stop-checklist.sh`. To remediate: replace the `jq -n --arg m "$MSG" '{ ... }'` block (around line 101) with `echo "$MSG" >&2`, or re-run init.sh.
 
 **Files touched:** `init.sh`, `solo-orchestrator-bugs.md`.
+
+### 2026-04-21 Update — Superseded by CDF upstream
+
+**Status:** Superseded. CDF upstream commit `a640ba8` ("fix: Stop hook advisory uses invalid hookSpecificOutput schema") landed the equivalent fix directly in `~/.claude-dev-framework/hooks/stop-checklist.sh`. The downstream post-install patch in Solo's `init.sh` has been removed — against current upstream the patch was dead code (its target pattern `"hookEventName": "Stop"` no longer exists upstream, so the `grep` guard skipped the patch entirely). Existing downstream projects sync the fix via `scripts/upgrade-project.sh` or by manually copying `~/.claude-dev-framework/hooks/stop-checklist.sh` into `.claude/framework/hooks/`.
+
+**Files touched (this update):** `init.sh` (removed lines 1386-1405).
 
 ---
 
