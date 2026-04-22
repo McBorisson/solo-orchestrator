@@ -69,3 +69,24 @@ assert_contains "$output" "already exists" "surfaces underlying error"
 mock_cli_teardown "$MOCK_DIR"
 export PATH="$OLD_PATH"
 echo "github.test.sh: host_create_repo PASSED"
+
+# Test: host_register_remote adds origin
+WORK=$(mktemp -d); cd "$WORK"
+git init -q
+host_register_remote "https://github.com/u/r.git"
+actual=$(git remote get-url origin)
+assert_eq "https://github.com/u/r.git" "$actual" "register_remote sets origin"
+cd - >/dev/null
+rm -rf "$WORK"
+
+# Test: host_register_remote replaces existing origin idempotently
+WORK=$(mktemp -d); cd "$WORK"
+git init -q
+git remote add origin "https://example.com/old.git"
+host_register_remote "https://github.com/u/r.git"
+actual=$(git remote get-url origin)
+assert_eq "https://github.com/u/r.git" "$actual" "register_remote replaces existing"
+cd - >/dev/null
+rm -rf "$WORK"
+
+echo "github.test.sh: host_register_remote PASSED"

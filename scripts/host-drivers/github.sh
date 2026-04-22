@@ -53,3 +53,21 @@ host_create_repo() {
   # gh prints the URL as the last line
   echo "$result" | tail -n 1
 }
+
+# host_register_remote <url>
+# Idempotent — replaces existing origin or adds new.
+host_register_remote() {
+  local url="${1:?host_register_remote: url required}"
+  if git remote get-url origin >/dev/null 2>&1; then
+    git remote set-url origin "$url"
+  else
+    git remote add origin "$url"
+  fi
+}
+
+# host_push_initial <branch>
+# Initial push with upstream tracking.
+host_push_initial() {
+  local branch="${1:-main}"
+  git push -u origin "$branch"
+}
