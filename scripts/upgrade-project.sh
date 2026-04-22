@@ -1312,6 +1312,45 @@ if [ -x "scripts/verify-install.sh" ]; then
   bash scripts/verify-install.sh || true
 fi
 
+# --- Host-aware migration (spec 2026-04-21) ---
+# Projects created before the host-aware gate need the flat CI template layout
+# migrated into per-host subfolders and the manifest backfilled with a host field.
+# This runs idempotently — safe on already-migrated projects.
+
+if [ -d templates/pipelines/ci ] && [ ! -d templates/pipelines/ci/github ] && ls templates/pipelines/ci/*.yml >/dev/null 2>&1; then
+  print_step "Migrating flat CI template layout → per-host subfolders"
+  mkdir -p templates/pipelines/ci/github templates/pipelines/release/github
+  for f in templates/pipelines/ci/*.yml; do
+    [ -f "$f" ] && (git mv "$f" "templates/pipelines/ci/github/$(basename "$f")" 2>/dev/null || mv "$f" "templates/pipelines/ci/github/$(basename "$f")")
+  done
+  for f in templates/pipelines/release/*.yml; do
+    [ -f "$f" ] && (git mv "$f" "templates/pipelines/release/github/$(basename "$f")" 2>/dev/null || mv "$f" "templates/pipelines/release/github/$(basename "$f")")
+  done
+  print_ok "CI/release templates moved to github/ subfolders"
+fi
+
+if [ -f .claude/manifest.json ] && ! jq -e '.host' .claude/manifest.json >/dev/null 2>&1; then
+  print_step "Backfilling manifest.json 'host' field"
+  print_info "Manifest predates the host-aware gate — inferring host from git remote"
+  host_url=$(git remote get-url origin 2>/dev/null || echo "")
+  case "$host_url" in
+    *github.com*)    inferred_host="github" ;;
+    *gitlab*)        inferred_host="gitlab" ;;
+    *bitbucket.org*) inferred_host="bitbucket" ;;
+    *)               inferred_host="other" ;;
+  esac
+  jq --arg h "$inferred_host" '.host = $h' .claude/manifest.json > .claude/manifest.json.tmp \
+    && mv .claude/manifest.json.tmp .claude/manifest.json
+  print_ok "host set to '$inferred_host' (verify via scripts/check-gate.sh --backfill-host if wrong)"
+
+  echo ""
+  print_info "Before your next Phase 1→2 transition, run:"
+  print_info "  bash scripts/check-gate.sh --preflight"
+  print_info "If preflight fails, run:"
+  print_info "  bash scripts/check-gate.sh --repair"
+  echo ""
+fi
+
 # Run full project validation to surface new track requirements
 if [ -x "scripts/validate.sh" ]; then
   echo ""
