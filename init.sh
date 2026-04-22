@@ -285,8 +285,9 @@ collect_project_info() {
       seen_platforms="$seen_platforms $pname"
     fi
   done
-  # Scan release pipelines for platforms not already found
-  for f in "$SCRIPT_DIR/templates/pipelines/release/"*.yml; do
+  # Scan release pipelines for platforms not already found (GitHub subfolder is
+  # canonical — all hosts ship the same platform set per spec 2026-04-21).
+  for f in "$SCRIPT_DIR/templates/pipelines/release/github/"*.yml; do
     [ -f "$f" ] || continue
     local pname
     pname=$(basename "$f" .yml)
@@ -381,10 +382,12 @@ collect_project_info() {
     fi
   fi
 
-  # Auto-discover available languages from CI pipeline templates
-  # Filter by platform: only show languages whose CI template lists the selected platform
+  # Auto-discover available languages from CI pipeline templates.
+  # Filter by platform: only show languages whose CI template lists the selected platform.
+  # GitHub subfolder is canonical for discovery — all hosts ship the same language set
+  # per spec 2026-04-21.
   local available_languages=()
-  for f in "$SCRIPT_DIR/templates/pipelines/ci/"*.yml; do
+  for f in "$SCRIPT_DIR/templates/pipelines/ci/github/"*.yml; do
     [ -f "$f" ] || continue
     local lname
     lname=$(basename "$f" .yml)
@@ -2188,21 +2191,48 @@ generate_ci() {
     *)                     ci_template="other.yml" ;;
   esac
 
-  local template_path="$SCRIPT_DIR/templates/pipelines/ci/$ci_template"
+  # Host-aware template selection (spec 2026-04-21). Read host from intake
+  # progress if available; default to github. Copy to host-appropriate path.
+  local host="github"
+  if [ -f .claude/intake-progress.json ]; then
+    host=$(jq -r '.answers.git_host // "github"' .claude/intake-progress.json 2>/dev/null || echo "github")
+  fi
+
+  local template_path="$SCRIPT_DIR/templates/pipelines/ci/$host/$ci_template"
+  local target_path
+  case "$host" in
+    github)     target_path=".github/workflows/ci.yml"; mkdir -p .github/workflows ;;
+    gitlab)     target_path=".gitlab-ci.yml" ;;
+    bitbucket)  target_path="bitbucket-pipelines.yml" ;;
+    other)
+      print_info "Host 'other' — no CI template laid down. Supply your own CI config."
+      return 0
+      ;;
+    *) print_warn "Unknown host '$host'; defaulting to GitHub"; target_path=".github/workflows/ci.yml"; mkdir -p .github/workflows; template_path="$SCRIPT_DIR/templates/pipelines/ci/github/$ci_template" ;;
+  esac
+
   if [ -f "$template_path" ]; then
-    cp "$template_path" .github/workflows/ci.yml
+    cp "$template_path" "$target_path"
   else
     print_warn "CI template not found: $template_path"
     return 1
   fi
 
-  print_info "CI pipeline created at .github/workflows/ci.yml (language: $LANGUAGE)"
+  print_info "CI pipeline created at $target_path (host: $host, language: $LANGUAGE)"
 }
 
 generate_release() {
-  local release_template="$SCRIPT_DIR/templates/pipelines/release/$PLATFORM.yml"
+  # Host-aware release template selection (spec 2026-04-21).
+  local host="github"
+  if [ -f .claude/intake-progress.json ]; then
+    host=$(jq -r '.answers.git_host // "github"' .claude/intake-progress.json 2>/dev/null || echo "github")
+  fi
+
+  [ "$host" = "other" ] && { print_info "Host 'other' — no release template laid down. Supply your own."; return 0; }
+
+  local release_template="$SCRIPT_DIR/templates/pipelines/release/$host/$PLATFORM.yml"
   if [ ! -f "$release_template" ]; then
-    print_info "No release pipeline template for platform '$PLATFORM'. Skipping release pipeline."
+    print_info "No release pipeline template for platform '$PLATFORM' on host '$host'. Skipping release pipeline."
     return 0
   fi
 
