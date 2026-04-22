@@ -1358,36 +1358,6 @@ PERMEOF
       if [ -f ".claude/manifest.json" ]; then
         print_ok "Development Guardrails for Claude Code installed and configured"
 
-        # Patch the project-local CDF Context7 detection to recognize plugin-installed
-        # Context7 (surfaces as mcp__plugin_context7_context7__*). CDF's stock check
-        # only looks at ~/.claude/settings.json .mcpServers.context7, which misses the
-        # plugin path and ~/.claude.json and produces a false "not installed" warning
-        # on every SessionStart. Appending a later function definition shadows the
-        # original in bash sourcing; the marker prevents double-patching on re-init.
-        #
-        # Note: CDF upstream commit fd8469a fixed tool-name recognition (marker tracker
-        # now recognizes mcp__plugin_context7_context7__*) but did NOT extend the
-        # check_context7() detection function itself. This shim still fills that gap.
-        # TODO: upstream this function to CDF's _helpers.sh to eliminate the shim.
-        if [ -f ".claude/framework/hooks/_helpers.sh" ] && \
-           ! grep -q "SOLO_ORCHESTRATOR_CONTEXT7_PATCH" .claude/framework/hooks/_helpers.sh 2>/dev/null; then
-          cat >> .claude/framework/hooks/_helpers.sh <<'SOPATCH'
-
-# SOLO_ORCHESTRATOR_CONTEXT7_PATCH — recognize plugin-installed Context7
-# and the alternate ~/.claude.json config location.
-check_context7() {
-  check_jq || return 1
-  local user_settings="$HOME/.claude/settings.json"
-  local user_json="$HOME/.claude.json"
-  [ -f "$user_settings" ] && jq -e '.mcpServers.context7 // .mcpServers["context7-mcp"] // empty' "$user_settings" >/dev/null 2>&1 && return 0
-  [ -f "$user_json" ]     && jq -e '.mcpServers.context7 // .mcpServers["context7-mcp"] // empty' "$user_json"     >/dev/null 2>&1 && return 0
-  [ -f "$user_settings" ] && jq -e '.enabledPlugins | to_entries[] | select(.key | test("^context7"; "i")) | select(.value == true)' "$user_settings" >/dev/null 2>&1 && return 0
-  return 1
-}
-SOPATCH
-          print_ok "Patched CDF Context7 detection (plugin-installed + ~/.claude.json)"
-        fi
-
         # Remove the CDF migration backup. CDF backs up .claude/ before merging its
         # hooks — but Solo Orchestrator seeded .claude/ moments earlier in this same
         # init, so the backup contains no user work, and CDF only merges the hooks
