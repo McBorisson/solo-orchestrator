@@ -601,3 +601,63 @@ Run this once per project (during Phase 2 Project Initialization):
 | Version | Date | Changes |
 |---|---|---|
 | 1.0 | 2026-04-02 | Initial release. |
+
+---
+
+## Git Host CLIs
+
+Solo Orchestrator uses host-specific CLIs for repo creation and protection configuration. Install the one matching your chosen host during intake (required before running `init.sh`).
+
+### gh (GitHub)
+
+```bash
+# macOS
+brew install gh
+
+# Ubuntu/Debian
+type -p curl >/dev/null || sudo apt install curl -y
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+sudo apt update && sudo apt install gh -y
+
+# Other platforms: https://github.com/cli/cli#installation
+
+# Authenticate
+gh auth login
+gh auth status
+```
+
+### glab (GitLab)
+
+```bash
+# macOS
+brew install glab
+
+# Linux/Windows: https://gitlab.com/gitlab-org/cli/-/releases
+
+# Authenticate — gitlab.com
+glab auth login
+
+# Self-hosted
+glab auth login --hostname gitlab.your-company.com
+```
+
+### Bitbucket (curl + App Password)
+
+No first-party CLI. Uses `curl` plus a Bitbucket App Password.
+
+1. Generate an App Password at <https://bitbucket.org/account/settings/app-passwords/>
+   - Required scopes: `repository:admin`, `project:admin`, `pullrequest:write`
+2. Export credentials:
+   ```bash
+   export BITBUCKET_USER="your-bitbucket-username"
+   export BITBUCKET_APP_PASSWORD="your-app-password"
+   # For org workspaces, also:
+   export BITBUCKET_WORKSPACE="org-name"
+   ```
+3. Add to your shell rc (`.bashrc` / `.zshrc`) for persistence. Ensure mode 600 if any secrets live in it.
+
+### Other hosts (Gitea, Codeberg, self-hosted)
+
+No CLI required. During intake, choose `other`; provide the HTTPS clone URL when prompted by `init.sh` and attest that branch protection is configured per the required bar. No CI template is laid down for `other` — supply your own.
