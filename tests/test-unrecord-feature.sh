@@ -134,6 +134,42 @@ case_5_testing_required_stays_true() {
   )
 }
 
+case_6_feature_not_found() {
+  local work
+  work=$(mktemp -d)
+  trap "rm -rf '$work'" RETURN
+  (
+    cd "$work"
+    mkdir -p .claude
+    seed_progress .claude/build-progress.json '["foo"]' 1 2 false 1
+    set +e
+    local output
+    output=$(_unrecord_feature_apply "bar" 2>&1)
+    local code=$?
+    set -e
+    assert_eq "1" "$code" "exit code 1 on not-found"
+    assert_contains "$output" "not found" "message mentions not found"
+    assert_contains "$output" "bar" "message mentions the specific name"
+  )
+}
+
+case_7_missing_progress_file() {
+  local work
+  work=$(mktemp -d)
+  trap "rm -rf '$work'" RETURN
+  (
+    cd "$work"
+    # No .claude directory, no build-progress.json
+    set +e
+    local output
+    output=$(_unrecord_feature_apply "anything" 2>&1)
+    local code=$?
+    set -e
+    assert_eq "1" "$code" "exit code 1 on missing file"
+    assert_contains "$output" "does not exist" "message mentions file missing"
+  )
+}
+
 # --- Run all cases and report ---
 echo "═══ test-unrecord-feature.sh ═══"
 run_case "case 1: happy path"                     case_1_happy_path
@@ -141,6 +177,8 @@ run_case "case 2: duplicates → first match"       case_2_duplicates_first_matc
 run_case "case 3: counter floor at 0"             case_3_counter_floor_at_zero
 run_case "case 4: testing_required flips false"   case_4_testing_required_flips_false
 run_case "case 5: testing_required stays true"    case_5_testing_required_stays_true
+run_case "case 6: feature not found"              case_6_feature_not_found
+run_case "case 7: missing build-progress.json"    case_7_missing_progress_file
 
 echo ""
 echo "═══════════════════════════════════════════"
