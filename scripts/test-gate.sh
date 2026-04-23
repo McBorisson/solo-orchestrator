@@ -122,6 +122,39 @@ record_feature() {
   fi
 }
 
+# _unrecord_feature_apply <name>
+# Pure state transform; no tty check, no prompt, no audit log.
+# Inverse of record_feature: removes first occurrence of $name from
+# features_completed, decrements both counters floored at 0, re-evaluates
+# testing_required. Errors if name is not present or build-progress.json
+# is missing. Unit-testable via source.
+_unrecord_feature_apply() {
+  local name="${1:?_unrecord_feature_apply: name required}"
+
+  if [ ! -f "$BUILD_PROGRESS" ]; then
+    echo "_unrecord_feature_apply: $BUILD_PROGRESS does not exist" >&2
+    return 1
+  fi
+
+  # Presence check — errors if name not in features_completed
+  if ! jq --arg name "$name" -e '.features_completed | index($name) != null' "$BUILD_PROGRESS" >/dev/null; then
+    echo "_unrecord_feature_apply: feature '$name' not found in features_completed" >&2
+    return 1
+  fi
+
+  local tmp
+  tmp=$(mktemp)
+  jq --arg name "$name" '
+    (.features_completed
+      | (. | index($name)) as $i
+      | .[0:$i] + .[$i+1:]) as $new_arr |
+    .features_completed = $new_arr |
+    .features_since_last_test = ([.features_since_last_test - 1, 0] | max) |
+    .features_since_last_health_check = ([(.features_since_last_health_check // 0) - 1, 0] | max) |
+    .testing_required = (.features_since_last_test >= .test_interval)
+  ' "$BUILD_PROGRESS" > "$tmp" && mv "$tmp" "$BUILD_PROGRESS"
+}
+
 reset_counter() {
   ensure_progress_file
 
