@@ -1,0 +1,19 @@
+<div class="fixture-ref">
+  <strong>System under test:</strong> MCP server process, invoked via an MCP client. The scenarios below assume the MCP Inspector tool (<code>npx @modelcontextprotocol/inspector</code>) for reproducible JSON-RPC interaction. Claude Desktop or Claude Code are also valid clients — scenario output shape is the same, only the invocation wrapper differs.<br>
+  <strong>Server command:</strong> <code>python -m your_mcp_server</code> (or the exact command the Orchestrator specified — it's in the project's <code>mcp.json</code> or equivalent). Run it in one terminal; Inspector in another.<br>
+  <strong>Transport:</strong> stdio (default) OR HTTP (if the server is configured for it — scenarios that are HTTP-specific will say so).<br>
+  <strong>Auth / environment:</strong> Export any required env vars before starting the server. Typically <code>MCP_API_KEY=test-key</code> and/or <code>MCP_DB_URL=sqlite:///tmp/mcp-uat.db</code>. The Orchestrator will list the exact set in the dispatch email.<br>
+  <strong>Required tools:</strong> <code>node</code> (for MCP Inspector), <code>python</code> (or the server's runtime), <code>jq</code> (for inspecting JSON output).<br>
+  <br>
+  <strong>One-time setup before any scenario:</strong><br>
+  1. Export the required env vars in the server terminal: <code>export MCP_API_KEY=test-key</code> (plus whatever else is specified).<br>
+  2. Start MCP Inspector against the server: <code>npx @modelcontextprotocol/inspector python -m your_mcp_server</code>.<br>
+  3. The Inspector UI opens in your browser. Confirm the server's tools and resources list loads without errors.<br>
+  <br>
+  Every scenario below assumes:<br>
+  1. The server is running (as in the setup).<br>
+  2. MCP Inspector is open and connected.<br>
+  3. If a scenario mutates server-side state (database rows, files), it includes cleanup steps.<br>
+  <br>
+  <strong>How to run a scenario:</strong> click "details" on the scenario card, invoke the specified tool call or resource read in MCP Inspector, compare the JSON-RPC response to the "Expected" block, then click Pass / Fail / Skip. Paste the full response JSON into the Notes field if the scenario fails — that's the most useful thing to capture.
+</div>

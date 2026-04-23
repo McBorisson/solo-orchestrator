@@ -1,0 +1,21 @@
+<div class="fixture-ref">
+  <strong>System under test:</strong> Mobile app running on a device OR an OS-level simulator/emulator. Specify below which one you're using.<br>
+  <strong>Device / simulator:</strong> _fill in one_: iPhone 15 (iOS 17.x), Pixel 8 (Android 14), or the specific simulator configuration the Orchestrator provided.<br>
+  <strong>App build:</strong> Install build <code>__BUILD_ID__</code> from the Orchestrator-provided source: TestFlight (iOS) / Internal Test track (Android) / local Xcode / Android Studio run. The About screen should show version <code>__VERSION__</code> build <code>__BUILD_NUMBER__</code> — confirm before starting.<br>
+  <strong>Required accounts:</strong> Sign in with the test account <code>testuser@example.com</code> / <code>testpass123</code>. For multi-user scenarios, additional credentials are listed inline.<br>
+  <em>Optional:</em> Screen recording software (scenarios 6, 8 benefit from capturing the tap sequence for bug reports).<br>
+  <br>
+  <strong>One-time setup before any scenario:</strong><br>
+  1. Install and launch the specified build on your device/simulator.<br>
+  2. Complete any first-run onboarding if shown; use "Skip" where available.<br>
+  3. Sign in with the test credentials above.<br>
+  4. Confirm you land on the app's home screen with no blocking errors or permission prompts.<br>
+  <br>
+  Every scenario below assumes:<br>
+  1. The app is installed and launched on the device/simulator.<br>
+  2. You are signed in as the test user.<br>
+  3. Device network is on (WiFi or cellular). Scenarios that test offline behavior will say so explicitly.<br>
+  4. Permissions (location, camera, notifications) are in their default initial state unless a prior scenario changed them.<br>
+  <br>
+  <strong>How to run a scenario:</strong> click "details" on the scenario card, follow the numbered tap/swipe/gesture steps on the device, compare observed behavior and any on-screen feedback to the "Expected" block, then click Pass / Fail / Skip in this browser. Use the Notes field for anything surprising, and consider attaching a screenshot for UI bugs.
+</div>
