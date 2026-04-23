@@ -147,7 +147,7 @@ Possibly pair with tooling enforcement in BL-006 that cross-references commit me
 **Logged:** 2026-04-22
 **Category:** Debt
 **Severity:** Medium
-**Status:** Open
+**Status:** Resolved (2026-04-23, PR #12)
 
 Surfaced during the lancache project audit. When a feature gets recorded incorrectly (e.g., `--record-feature` called for a commit that shouldn't have been treated as a feature) or a UAT session is started but needs to be aborted, there's no sanctioned workflow. On lancache, the user is about to correct via direct `jq` edit of `build-progress.json` + `--reset uat_session` — workable but undocumented.
 
@@ -156,3 +156,5 @@ Surfaced during the lancache project audit. When a feature gets recorded incorre
 **Trigger:** Most immediate follow-up of the three — user is doing the manual fix via jq today. Smallest scope (new subcommand + docs); good quick-win to tackle first.
 
 **Related:** lancache project Phase 2 audit, 2026-04-22. Tackling first per path-forward ordering.
+
+**Resolution:** Implemented via spec `docs/superpowers/specs/2026-04-23-unrecord-feature-design.md` and plan `docs/superpowers/plans/2026-04-23-unrecord-feature-implementation.md`. Shipped in PR #12 (merged 2026-04-23 at `8550e82`). `scripts/test-gate.sh --unrecord-feature NAME` is the new subcommand; `--reset uat_session` / `--reset build_loop` are documented in CLAUDE.md's Testing & Bug Workflow section. 7 unit tests in `tests/test-unrecord-feature.sh` covering state transform + error paths; interactive wrapper verified via bash harness.
