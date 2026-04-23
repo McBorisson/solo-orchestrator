@@ -1071,9 +1071,26 @@ create_project() {
   cp "$SCRIPT_DIR/templates/tool-matrix/"*.json templates/tool-matrix/
 
   # Copy UAT template and create session directory structure
-  mkdir -p tests/uat/templates tests/uat/sessions
-  cp "$SCRIPT_DIR/templates/uat-test-template.md" tests/uat/templates/test-session-template.md
-  cp "$SCRIPT_DIR/templates/uat-test-session.html" tests/uat/templates/test-session-template.html
+  mkdir -p tests/uat/templates tests/uat/sessions tests/uat/examples
+  cp "$SCRIPT_DIR/templates/uat/test-session-template.md"   tests/uat/templates/test-session-template.md
+  cp "$SCRIPT_DIR/templates/uat/test-session-template.html" tests/uat/templates/test-session-template.html
+
+  # Per-platform reference copy (spec 2026-04-23-uat-template-quality-design.md § Flow A)
+  if [ "$PLATFORM" != "other" ] && \
+     [ -f "$SCRIPT_DIR/templates/uat/references/${PLATFORM}-pre-flight.html" ] && \
+     [ -f "$SCRIPT_DIR/templates/uat/references/${PLATFORM}-scenario.json" ]; then
+    cp "$SCRIPT_DIR/templates/uat/references/${PLATFORM}-pre-flight.html" \
+       tests/uat/examples/pre-flight-reference.html
+    cp "$SCRIPT_DIR/templates/uat/references/${PLATFORM}-scenario.json" \
+       tests/uat/examples/scenario-reference.json
+    print_ok "UAT platform reference copied for $PLATFORM"
+  elif [ "$PLATFORM" = "other" ]; then
+    print_info "Platform is 'other' — no UAT canned reference copied."
+    print_info "When starting a UAT session, the agent will run the co-build Q&A"
+    print_info "protocol with you per docs/uat-authoring-guide.md § 5."
+  else
+    print_warn "UAT reference files not found for platform '$PLATFORM'. Falling back to 'other'-style co-build protocol; see docs/uat-authoring-guide.md § 5."
+  fi
 
   # Copy the correct platform module (auto-discovered)
   local platform_module="$SCRIPT_DIR/docs/platform-modules/${PLATFORM}.md"

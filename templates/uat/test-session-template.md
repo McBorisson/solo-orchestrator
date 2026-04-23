@@ -16,6 +16,20 @@
 
 ---
 
+## Before you start
+
+_Every UAT test must begin with a clear statement of the test environment and one-time setup. Fill this in before running any scenario:_
+
+- **System under test:** _describe the environment (OS + arch for desktop/CLI; browser + URL for web; device + OS for mobile; MCP client + server command for mcp-server; other context for 'other' platforms)_
+- **Project root / app location:** _absolute path, URL, or device identifier_
+- **Runtime / tooling:** _language + version, browser, or device OS_
+- **Required tools:** _list._ Optional: _list, with scenario numbers that require each_
+- **One-time setup:** _the commands or steps you ran once before starting_
+
+For richer per-platform guidance — including quality checklist, anti-patterns, reference examples, and the co-build protocol for 'other' platforms — see `templates/uat/test-session-template.html` and `docs/uat-authoring-guide.md`.
+
+---
+
 ## Test Scenarios
 
 <!-- Agent pre-populates this section with feature-specific scenarios from the User Journey -->
