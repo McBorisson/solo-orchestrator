@@ -20,33 +20,39 @@ BUILD_PROGRESS=".claude/build-progress.json"
 ACTION=""
 FEATURE_NAME=""
 
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --check-batch)        ACTION="check-batch";        shift ;;
-    --check-phase-gate)   ACTION="check-phase-gate";   shift ;;
-    --reset-counter)      ACTION="reset-counter";       shift ;;
-    --reset-health-check) ACTION="reset-health-check"; shift ;;
-    --record-feature)     ACTION="record-feature"; FEATURE_NAME="$2"; shift 2 ;;
-    --help|-h)
-      echo "Usage: scripts/test-gate.sh [--check-batch] [--check-phase-gate] [--reset-counter] [--record-feature NAME]"
-      echo ""
-      echo "Commands:"
-      echo "  --check-batch       Check if testing session is due (exit 0=continue, 1=testing required)"
-      echo "  --check-phase-gate  Check if Phase 2→3 transition is clear (exit 0=clear, 1=blocked, 2=warnings)"
-      echo "  --reset-counter     Reset feature counter after testing session completes"
-      echo "  --record-feature N  Record a completed feature and increment counter"
-      exit 0
-      ;;
-    *)
-      echo "Unknown argument: $1" >&2
-      exit 1
-      ;;
-  esac
-done
+# Source-guard: the argument parser, "no action" check, and dispatch run only
+# when this script is executed directly. When sourced by tests (to call
+# _unrecord_feature_apply or other internal functions in isolation), these
+# blocks are skipped so the test process isn't killed by "No action specified".
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --check-batch)        ACTION="check-batch";        shift ;;
+      --check-phase-gate)   ACTION="check-phase-gate";   shift ;;
+      --reset-counter)      ACTION="reset-counter";       shift ;;
+      --reset-health-check) ACTION="reset-health-check"; shift ;;
+      --record-feature)     ACTION="record-feature"; FEATURE_NAME="$2"; shift 2 ;;
+      --help|-h)
+        echo "Usage: scripts/test-gate.sh [--check-batch] [--check-phase-gate] [--reset-counter] [--record-feature NAME]"
+        echo ""
+        echo "Commands:"
+        echo "  --check-batch       Check if testing session is due (exit 0=continue, 1=testing required)"
+        echo "  --check-phase-gate  Check if Phase 2→3 transition is clear (exit 0=clear, 1=blocked, 2=warnings)"
+        echo "  --reset-counter     Reset feature counter after testing session completes"
+        echo "  --record-feature N  Record a completed feature and increment counter"
+        exit 0
+        ;;
+      *)
+        echo "Unknown argument: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
 
-if [ -z "$ACTION" ]; then
-  echo "No action specified. Use --help for usage." >&2
-  exit 1
+  if [ -z "$ACTION" ]; then
+    echo "No action specified. Use --help for usage." >&2
+    exit 1
+  fi
 fi
 
 # --- Ensure build-progress.json exists ---
@@ -293,16 +299,18 @@ check_phase_gate() {
   fi
 }
 
-# --- Dispatch ---
-case "$ACTION" in
-  check-batch)        check_batch ;;
-  check-phase-gate)   check_phase_gate ;;
-  reset-counter)      reset_counter ;;
-  record-feature)     record_feature "$FEATURE_NAME" ;;
-  reset-health-check)
-    ensure_progress_file
-    jq '.features_since_last_health_check = 0' "$BUILD_PROGRESS" > "$BUILD_PROGRESS.tmp" && mv "$BUILD_PROGRESS.tmp" "$BUILD_PROGRESS"
-    echo "Context health check counter reset."
-    exit 0
-    ;;
-esac
+# --- Dispatch (source-guarded to match the argument parser above) ---
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  case "$ACTION" in
+    check-batch)        check_batch ;;
+    check-phase-gate)   check_phase_gate ;;
+    reset-counter)      reset_counter ;;
+    record-feature)     record_feature "$FEATURE_NAME" ;;
+    reset-health-check)
+      ensure_progress_file
+      jq '.features_since_last_health_check = 0' "$BUILD_PROGRESS" > "$BUILD_PROGRESS.tmp" && mv "$BUILD_PROGRESS.tmp" "$BUILD_PROGRESS"
+      echo "Context health check counter reset."
+      exit 0
+      ;;
+  esac
+fi
