@@ -1,0 +1,3092 @@
+[
+  {
+    "agent": 1,
+    "phase": 0,
+    "platform": "desktop",
+    "language": "csharp",
+    "scenario": "private_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "status_at_phase0",
+        "passed": true,
+        "details": "process-checklist.sh --status runs cleanly at phase 0"
+      },
+      {
+        "name": "phase_gate_check_phase0",
+        "passed": true,
+        "details": "check-phase-gate.sh passes at phase 0"
+      },
+      {
+        "name": "phase_state_fields",
+        "passed": true,
+        "details": "phase-state.json has correct project and phase"
+      },
+      {
+        "name": "commit_allowed_phase0",
+        "passed": true,
+        "details": "Commits allowed at Phase 0 (no enforcement before Phase 2)"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "missing_manifesto_detected",
+        "passed": true,
+        "details": "Phase gate detects missing PRODUCT_MANIFESTO.md"
+      },
+      {
+        "name": "placeholder_approval_detected",
+        "passed": true,
+        "details": "Phase gate detects placeholder approval entries"
+      },
+      {
+        "name": "no_verify_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --no-verify"
+      },
+      {
+        "name": "force_push_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --force push"
+      },
+      {
+        "name": "process_reset_blocked_by_hook",
+        "passed": true,
+        "details": "pre-commit-gate blocks agent process resets"
+      },
+      {
+        "name": "force_step_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_FORCE_STEP"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "10/10 tests passed"
+  },
+  {
+    "agent": 10,
+    "phase": 1,
+    "platform": "desktop",
+    "language": "csharp",
+    "scenario": "private_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "phase0to1_gate_validated",
+        "passed": true,
+        "details": "Phase 0→1 gate validated with approval log entry"
+      },
+      {
+        "name": "manifesto_exists_check",
+        "passed": true,
+        "details": "PRODUCT_MANIFESTO.md existence verified"
+      },
+      {
+        "name": "phase0_intermediates_detected",
+        "passed": false,
+        "details": "Phase 0 intermediate files not detected"
+      },
+      {
+        "name": "start_phase1_works",
+        "passed": true,
+        "details": "process-checklist --start-phase1 initializes Phase 1 architecture tracking"
+      },
+      {
+        "name": "phase1_sequential_steps",
+        "passed": true,
+        "details": "Phase 1 architecture steps complete in order"
+      },
+      {
+        "name": "status_at_phase1",
+        "passed": true,
+        "details": "Status command works at Phase 1"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 1 architecture steps"
+      },
+      {
+        "name": "missing_bible_detected",
+        "passed": false,
+        "details": "Phase gate does NOT detect missing PROJECT_BIBLE.md"
+      },
+      {
+        "name": "p1to2_placeholder_detected",
+        "passed": true,
+        "details": "Phase 1→2 approval log placeholders detected"
+      },
+      {
+        "name": "phase_gates_override_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_PHASE_GATES override by agent"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/check-phase-gate.sh",
+        "description": "Does not detect missing PROJECT_BIBLE.md at Phase 2",
+        "severity": "major"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "8/10 tests passed"
+  },
+  {
+    "agent": 11,
+    "phase": 1,
+    "platform": "desktop",
+    "language": "python",
+    "scenario": "sponsored_poc",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "phase0to1_gate_validated",
+        "passed": true,
+        "details": "Phase 0→1 gate validated with approval log entry"
+      },
+      {
+        "name": "manifesto_exists_check",
+        "passed": true,
+        "details": "PRODUCT_MANIFESTO.md existence verified"
+      },
+      {
+        "name": "phase0_intermediates_detected",
+        "passed": false,
+        "details": "Phase 0 intermediate files not detected"
+      },
+      {
+        "name": "start_phase1_works",
+        "passed": true,
+        "details": "process-checklist --start-phase1 initializes Phase 1 architecture tracking"
+      },
+      {
+        "name": "phase1_sequential_steps",
+        "passed": true,
+        "details": "Phase 1 architecture steps complete in order"
+      },
+      {
+        "name": "status_at_phase1",
+        "passed": true,
+        "details": "Status command works at Phase 1"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 1 architecture steps"
+      },
+      {
+        "name": "missing_bible_detected",
+        "passed": false,
+        "details": "Phase gate does NOT detect missing PROJECT_BIBLE.md"
+      },
+      {
+        "name": "p1to2_placeholder_detected",
+        "passed": true,
+        "details": "Phase 1→2 approval log placeholders detected"
+      },
+      {
+        "name": "phase_gates_override_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_PHASE_GATES override by agent"
+      },
+      {
+        "name": "self_approval_detection_skipped",
+        "passed": true,
+        "details": "Self-approval check ran (names differ, so no alert expected)"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/check-phase-gate.sh",
+        "description": "Does not detect missing PROJECT_BIBLE.md at Phase 2",
+        "severity": "major"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "9/11 tests passed"
+  },
+  {
+    "agent": 12,
+    "phase": 1,
+    "platform": "desktop",
+    "language": "java",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "phase0to1_gate_validated",
+        "passed": true,
+        "details": "Phase 0→1 gate validated with approval log entry"
+      },
+      {
+        "name": "manifesto_exists_check",
+        "passed": true,
+        "details": "PRODUCT_MANIFESTO.md existence verified"
+      },
+      {
+        "name": "phase0_intermediates_detected",
+        "passed": false,
+        "details": "Phase 0 intermediate files not detected"
+      },
+      {
+        "name": "start_phase1_works",
+        "passed": true,
+        "details": "process-checklist --start-phase1 initializes Phase 1 architecture tracking"
+      },
+      {
+        "name": "phase1_sequential_steps",
+        "passed": true,
+        "details": "Phase 1 architecture steps complete in order"
+      },
+      {
+        "name": "status_at_phase1",
+        "passed": true,
+        "details": "Status command works at Phase 1"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 1 architecture steps"
+      },
+      {
+        "name": "missing_bible_detected",
+        "passed": false,
+        "details": "Phase gate does NOT detect missing PROJECT_BIBLE.md"
+      },
+      {
+        "name": "p1to2_placeholder_detected",
+        "passed": true,
+        "details": "Phase 1→2 approval log placeholders detected"
+      },
+      {
+        "name": "phase_gates_override_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_PHASE_GATES override by agent"
+      },
+      {
+        "name": "self_approval_detection_skipped",
+        "passed": true,
+        "details": "Self-approval check ran (names differ, so no alert expected)"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/check-phase-gate.sh",
+        "description": "Does not detect missing PROJECT_BIBLE.md at Phase 2",
+        "severity": "major"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "9/11 tests passed"
+  },
+  {
+    "agent": 13,
+    "phase": 1,
+    "platform": "mobile",
+    "language": "kotlin",
+    "scenario": "private_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "phase0to1_gate_validated",
+        "passed": true,
+        "details": "Phase 0→1 gate validated with approval log entry"
+      },
+      {
+        "name": "manifesto_exists_check",
+        "passed": true,
+        "details": "PRODUCT_MANIFESTO.md existence verified"
+      },
+      {
+        "name": "phase0_intermediates_detected",
+        "passed": false,
+        "details": "Phase 0 intermediate files not detected"
+      },
+      {
+        "name": "start_phase1_works",
+        "passed": true,
+        "details": "process-checklist --start-phase1 initializes Phase 1 architecture tracking"
+      },
+      {
+        "name": "phase1_sequential_steps",
+        "passed": true,
+        "details": "Phase 1 architecture steps complete in order"
+      },
+      {
+        "name": "status_at_phase1",
+        "passed": true,
+        "details": "Status command works at Phase 1"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 1 architecture steps"
+      },
+      {
+        "name": "missing_bible_detected",
+        "passed": false,
+        "details": "Phase gate does NOT detect missing PROJECT_BIBLE.md"
+      },
+      {
+        "name": "p1to2_placeholder_detected",
+        "passed": true,
+        "details": "Phase 1→2 approval log placeholders detected"
+      },
+      {
+        "name": "phase_gates_override_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_PHASE_GATES override by agent"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/check-phase-gate.sh",
+        "description": "Does not detect missing PROJECT_BIBLE.md at Phase 2",
+        "severity": "major"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "8/10 tests passed"
+  },
+  {
+    "agent": 14,
+    "phase": 1,
+    "platform": "mobile",
+    "language": "swift",
+    "scenario": "sponsored_poc",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "phase0to1_gate_validated",
+        "passed": true,
+        "details": "Phase 0→1 gate validated with approval log entry"
+      },
+      {
+        "name": "manifesto_exists_check",
+        "passed": true,
+        "details": "PRODUCT_MANIFESTO.md existence verified"
+      },
+      {
+        "name": "phase0_intermediates_detected",
+        "passed": false,
+        "details": "Phase 0 intermediate files not detected"
+      },
+      {
+        "name": "start_phase1_works",
+        "passed": true,
+        "details": "process-checklist --start-phase1 initializes Phase 1 architecture tracking"
+      },
+      {
+        "name": "phase1_sequential_steps",
+        "passed": true,
+        "details": "Phase 1 architecture steps complete in order"
+      },
+      {
+        "name": "status_at_phase1",
+        "passed": true,
+        "details": "Status command works at Phase 1"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 1 architecture steps"
+      },
+      {
+        "name": "missing_bible_detected",
+        "passed": false,
+        "details": "Phase gate does NOT detect missing PROJECT_BIBLE.md"
+      },
+      {
+        "name": "p1to2_placeholder_detected",
+        "passed": true,
+        "details": "Phase 1→2 approval log placeholders detected"
+      },
+      {
+        "name": "phase_gates_override_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_PHASE_GATES override by agent"
+      },
+      {
+        "name": "self_approval_detection_skipped",
+        "passed": true,
+        "details": "Self-approval check ran (names differ, so no alert expected)"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/check-phase-gate.sh",
+        "description": "Does not detect missing PROJECT_BIBLE.md at Phase 2",
+        "severity": "major"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "9/11 tests passed"
+  },
+  {
+    "agent": 15,
+    "phase": 1,
+    "platform": "mobile",
+    "language": "dart",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "phase0to1_gate_validated",
+        "passed": true,
+        "details": "Phase 0→1 gate validated with approval log entry"
+      },
+      {
+        "name": "manifesto_exists_check",
+        "passed": true,
+        "details": "PRODUCT_MANIFESTO.md existence verified"
+      },
+      {
+        "name": "phase0_intermediates_detected",
+        "passed": false,
+        "details": "Phase 0 intermediate files not detected"
+      },
+      {
+        "name": "start_phase1_works",
+        "passed": true,
+        "details": "process-checklist --start-phase1 initializes Phase 1 architecture tracking"
+      },
+      {
+        "name": "phase1_sequential_steps",
+        "passed": true,
+        "details": "Phase 1 architecture steps complete in order"
+      },
+      {
+        "name": "status_at_phase1",
+        "passed": true,
+        "details": "Status command works at Phase 1"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 1 architecture steps"
+      },
+      {
+        "name": "missing_bible_detected",
+        "passed": false,
+        "details": "Phase gate does NOT detect missing PROJECT_BIBLE.md"
+      },
+      {
+        "name": "p1to2_placeholder_detected",
+        "passed": true,
+        "details": "Phase 1→2 approval log placeholders detected"
+      },
+      {
+        "name": "phase_gates_override_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_PHASE_GATES override by agent"
+      },
+      {
+        "name": "self_approval_detection_skipped",
+        "passed": true,
+        "details": "Self-approval check ran (names differ, so no alert expected)"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/check-phase-gate.sh",
+        "description": "Does not detect missing PROJECT_BIBLE.md at Phase 2",
+        "severity": "major"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "9/11 tests passed"
+  },
+  {
+    "agent": 16,
+    "phase": 1,
+    "platform": "web",
+    "language": "python",
+    "scenario": "private_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "phase0to1_gate_validated",
+        "passed": true,
+        "details": "Phase 0→1 gate validated with approval log entry"
+      },
+      {
+        "name": "manifesto_exists_check",
+        "passed": true,
+        "details": "PRODUCT_MANIFESTO.md existence verified"
+      },
+      {
+        "name": "phase0_intermediates_detected",
+        "passed": false,
+        "details": "Phase 0 intermediate files not detected"
+      },
+      {
+        "name": "start_phase1_works",
+        "passed": true,
+        "details": "process-checklist --start-phase1 initializes Phase 1 architecture tracking"
+      },
+      {
+        "name": "phase1_sequential_steps",
+        "passed": true,
+        "details": "Phase 1 architecture steps complete in order"
+      },
+      {
+        "name": "status_at_phase1",
+        "passed": true,
+        "details": "Status command works at Phase 1"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 1 architecture steps"
+      },
+      {
+        "name": "missing_bible_detected",
+        "passed": false,
+        "details": "Phase gate does NOT detect missing PROJECT_BIBLE.md"
+      },
+      {
+        "name": "p1to2_placeholder_detected",
+        "passed": true,
+        "details": "Phase 1→2 approval log placeholders detected"
+      },
+      {
+        "name": "phase_gates_override_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_PHASE_GATES override by agent"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/check-phase-gate.sh",
+        "description": "Does not detect missing PROJECT_BIBLE.md at Phase 2",
+        "severity": "major"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "8/10 tests passed"
+  },
+  {
+    "agent": 17,
+    "phase": 1,
+    "platform": "web",
+    "language": "typescript",
+    "scenario": "sponsored_poc",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "phase0to1_gate_validated",
+        "passed": true,
+        "details": "Phase 0→1 gate validated with approval log entry"
+      },
+      {
+        "name": "manifesto_exists_check",
+        "passed": true,
+        "details": "PRODUCT_MANIFESTO.md existence verified"
+      },
+      {
+        "name": "phase0_intermediates_detected",
+        "passed": false,
+        "details": "Phase 0 intermediate files not detected"
+      },
+      {
+        "name": "start_phase1_works",
+        "passed": true,
+        "details": "process-checklist --start-phase1 initializes Phase 1 architecture tracking"
+      },
+      {
+        "name": "phase1_sequential_steps",
+        "passed": true,
+        "details": "Phase 1 architecture steps complete in order"
+      },
+      {
+        "name": "status_at_phase1",
+        "passed": true,
+        "details": "Status command works at Phase 1"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 1 architecture steps"
+      },
+      {
+        "name": "missing_bible_detected",
+        "passed": false,
+        "details": "Phase gate does NOT detect missing PROJECT_BIBLE.md"
+      },
+      {
+        "name": "p1to2_placeholder_detected",
+        "passed": true,
+        "details": "Phase 1→2 approval log placeholders detected"
+      },
+      {
+        "name": "phase_gates_override_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_PHASE_GATES override by agent"
+      },
+      {
+        "name": "self_approval_detection_skipped",
+        "passed": true,
+        "details": "Self-approval check ran (names differ, so no alert expected)"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/check-phase-gate.sh",
+        "description": "Does not detect missing PROJECT_BIBLE.md at Phase 2",
+        "severity": "major"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "9/11 tests passed"
+  },
+  {
+    "agent": 18,
+    "phase": 1,
+    "platform": "web",
+    "language": "typescript",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "phase0to1_gate_validated",
+        "passed": true,
+        "details": "Phase 0→1 gate validated with approval log entry"
+      },
+      {
+        "name": "manifesto_exists_check",
+        "passed": true,
+        "details": "PRODUCT_MANIFESTO.md existence verified"
+      },
+      {
+        "name": "phase0_intermediates_detected",
+        "passed": false,
+        "details": "Phase 0 intermediate files not detected"
+      },
+      {
+        "name": "start_phase1_works",
+        "passed": true,
+        "details": "process-checklist --start-phase1 initializes Phase 1 architecture tracking"
+      },
+      {
+        "name": "phase1_sequential_steps",
+        "passed": true,
+        "details": "Phase 1 architecture steps complete in order"
+      },
+      {
+        "name": "status_at_phase1",
+        "passed": true,
+        "details": "Status command works at Phase 1"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 1 architecture steps"
+      },
+      {
+        "name": "missing_bible_detected",
+        "passed": false,
+        "details": "Phase gate does NOT detect missing PROJECT_BIBLE.md"
+      },
+      {
+        "name": "p1to2_placeholder_detected",
+        "passed": true,
+        "details": "Phase 1→2 approval log placeholders detected"
+      },
+      {
+        "name": "phase_gates_override_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_PHASE_GATES override by agent"
+      },
+      {
+        "name": "self_approval_detection_skipped",
+        "passed": true,
+        "details": "Self-approval check ran (names differ, so no alert expected)"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/check-phase-gate.sh",
+        "description": "Does not detect missing PROJECT_BIBLE.md at Phase 2",
+        "severity": "major"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "9/11 tests passed"
+  },
+  {
+    "agent": 19,
+    "phase": 2,
+    "platform": "desktop",
+    "language": "csharp",
+    "scenario": "private_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "start_feature",
+        "passed": true,
+        "details": "start-feature initializes build loop"
+      },
+      {
+        "name": "build_loop_all_steps",
+        "passed": true,
+        "details": "All 6 build loop steps complete in order"
+      },
+      {
+        "name": "commit_ready_after_build_loop",
+        "passed": true,
+        "details": "Commit allowed after build loop completes"
+      },
+      {
+        "name": "uat_session_complete",
+        "passed": true,
+        "details": "All 9 UAT session steps complete in order"
+      },
+      {
+        "name": "status_shows_all_processes",
+        "passed": true,
+        "details": "Status shows all process sections"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_build_loop_step",
+        "passed": true,
+        "details": "Correctly blocks skipping build loop steps"
+      },
+      {
+        "name": "source_commit_blocked_incomplete_loop",
+        "passed": true,
+        "details": "Source commit correctly blocked with incomplete build loop"
+      },
+      {
+        "name": "commit_during_uat_blocked",
+        "passed": true,
+        "details": "Commit correctly blocked during active UAT session"
+      },
+      {
+        "name": "doc_commit_during_uat_allowed",
+        "passed": true,
+        "details": "Doc-only commit correctly allowed during UAT"
+      },
+      {
+        "name": "uat_skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping UAT steps"
+      },
+      {
+        "name": "amend_warning",
+        "passed": true,
+        "details": "pre-commit-gate warns about git commit --amend"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "11/11 tests passed"
+  },
+  {
+    "agent": 2,
+    "phase": 0,
+    "platform": "desktop",
+    "language": "python",
+    "scenario": "sponsored_poc",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "status_at_phase0",
+        "passed": true,
+        "details": "process-checklist.sh --status runs cleanly at phase 0"
+      },
+      {
+        "name": "phase_gate_check_phase0",
+        "passed": true,
+        "details": "check-phase-gate.sh passes at phase 0"
+      },
+      {
+        "name": "phase_state_fields",
+        "passed": true,
+        "details": "phase-state.json has correct project and phase"
+      },
+      {
+        "name": "commit_allowed_phase0",
+        "passed": true,
+        "details": "Commits allowed at Phase 0 (no enforcement before Phase 2)"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "missing_manifesto_detected",
+        "passed": true,
+        "details": "Phase gate detects missing PRODUCT_MANIFESTO.md"
+      },
+      {
+        "name": "placeholder_approval_detected",
+        "passed": true,
+        "details": "Phase gate detects placeholder approval entries"
+      },
+      {
+        "name": "no_verify_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --no-verify"
+      },
+      {
+        "name": "force_push_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --force push"
+      },
+      {
+        "name": "process_reset_blocked_by_hook",
+        "passed": true,
+        "details": "pre-commit-gate blocks agent process resets"
+      },
+      {
+        "name": "force_step_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_FORCE_STEP"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "10/10 tests passed"
+  },
+  {
+    "agent": 20,
+    "phase": 2,
+    "platform": "desktop",
+    "language": "python",
+    "scenario": "sponsored_poc",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "start_feature",
+        "passed": true,
+        "details": "start-feature initializes build loop"
+      },
+      {
+        "name": "build_loop_all_steps",
+        "passed": true,
+        "details": "All 6 build loop steps complete in order"
+      },
+      {
+        "name": "commit_ready_after_build_loop",
+        "passed": true,
+        "details": "Commit allowed after build loop completes"
+      },
+      {
+        "name": "uat_session_complete",
+        "passed": true,
+        "details": "All 9 UAT session steps complete in order"
+      },
+      {
+        "name": "status_shows_all_processes",
+        "passed": true,
+        "details": "Status shows all process sections"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_build_loop_step",
+        "passed": true,
+        "details": "Correctly blocks skipping build loop steps"
+      },
+      {
+        "name": "source_commit_blocked_incomplete_loop",
+        "passed": true,
+        "details": "Source commit correctly blocked with incomplete build loop"
+      },
+      {
+        "name": "commit_during_uat_blocked",
+        "passed": true,
+        "details": "Commit correctly blocked during active UAT session"
+      },
+      {
+        "name": "doc_commit_during_uat_allowed",
+        "passed": true,
+        "details": "Doc-only commit correctly allowed during UAT"
+      },
+      {
+        "name": "uat_skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping UAT steps"
+      },
+      {
+        "name": "amend_warning",
+        "passed": true,
+        "details": "pre-commit-gate warns about git commit --amend"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "11/11 tests passed"
+  },
+  {
+    "agent": 21,
+    "phase": 2,
+    "platform": "desktop",
+    "language": "java",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "start_feature",
+        "passed": true,
+        "details": "start-feature initializes build loop"
+      },
+      {
+        "name": "build_loop_all_steps",
+        "passed": true,
+        "details": "All 6 build loop steps complete in order"
+      },
+      {
+        "name": "commit_ready_after_build_loop",
+        "passed": true,
+        "details": "Commit allowed after build loop completes"
+      },
+      {
+        "name": "uat_session_complete",
+        "passed": true,
+        "details": "All 9 UAT session steps complete in order"
+      },
+      {
+        "name": "status_shows_all_processes",
+        "passed": true,
+        "details": "Status shows all process sections"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_build_loop_step",
+        "passed": true,
+        "details": "Correctly blocks skipping build loop steps"
+      },
+      {
+        "name": "source_commit_blocked_incomplete_loop",
+        "passed": true,
+        "details": "Source commit correctly blocked with incomplete build loop"
+      },
+      {
+        "name": "commit_during_uat_blocked",
+        "passed": true,
+        "details": "Commit correctly blocked during active UAT session"
+      },
+      {
+        "name": "doc_commit_during_uat_allowed",
+        "passed": true,
+        "details": "Doc-only commit correctly allowed during UAT"
+      },
+      {
+        "name": "uat_skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping UAT steps"
+      },
+      {
+        "name": "amend_warning",
+        "passed": true,
+        "details": "pre-commit-gate warns about git commit --amend"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "11/11 tests passed"
+  },
+  {
+    "agent": 22,
+    "phase": 2,
+    "platform": "mobile",
+    "language": "kotlin",
+    "scenario": "private_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "start_feature",
+        "passed": true,
+        "details": "start-feature initializes build loop"
+      },
+      {
+        "name": "build_loop_all_steps",
+        "passed": true,
+        "details": "All 6 build loop steps complete in order"
+      },
+      {
+        "name": "commit_ready_after_build_loop",
+        "passed": true,
+        "details": "Commit allowed after build loop completes"
+      },
+      {
+        "name": "uat_session_complete",
+        "passed": true,
+        "details": "All 9 UAT session steps complete in order"
+      },
+      {
+        "name": "status_shows_all_processes",
+        "passed": true,
+        "details": "Status shows all process sections"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_build_loop_step",
+        "passed": true,
+        "details": "Correctly blocks skipping build loop steps"
+      },
+      {
+        "name": "source_commit_blocked_incomplete_loop",
+        "passed": true,
+        "details": "Source commit correctly blocked with incomplete build loop"
+      },
+      {
+        "name": "commit_during_uat_blocked",
+        "passed": true,
+        "details": "Commit correctly blocked during active UAT session"
+      },
+      {
+        "name": "doc_commit_during_uat_allowed",
+        "passed": true,
+        "details": "Doc-only commit correctly allowed during UAT"
+      },
+      {
+        "name": "uat_skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping UAT steps"
+      },
+      {
+        "name": "amend_warning",
+        "passed": true,
+        "details": "pre-commit-gate warns about git commit --amend"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "11/11 tests passed"
+  },
+  {
+    "agent": 23,
+    "phase": 2,
+    "platform": "mobile",
+    "language": "swift",
+    "scenario": "sponsored_poc",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "start_feature",
+        "passed": true,
+        "details": "start-feature initializes build loop"
+      },
+      {
+        "name": "build_loop_all_steps",
+        "passed": true,
+        "details": "All 6 build loop steps complete in order"
+      },
+      {
+        "name": "commit_ready_after_build_loop",
+        "passed": true,
+        "details": "Commit allowed after build loop completes"
+      },
+      {
+        "name": "uat_session_complete",
+        "passed": true,
+        "details": "All 9 UAT session steps complete in order"
+      },
+      {
+        "name": "status_shows_all_processes",
+        "passed": true,
+        "details": "Status shows all process sections"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_build_loop_step",
+        "passed": true,
+        "details": "Correctly blocks skipping build loop steps"
+      },
+      {
+        "name": "source_commit_blocked_incomplete_loop",
+        "passed": true,
+        "details": "Source commit correctly blocked with incomplete build loop"
+      },
+      {
+        "name": "commit_during_uat_blocked",
+        "passed": true,
+        "details": "Commit correctly blocked during active UAT session"
+      },
+      {
+        "name": "doc_commit_during_uat_allowed",
+        "passed": true,
+        "details": "Doc-only commit correctly allowed during UAT"
+      },
+      {
+        "name": "uat_skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping UAT steps"
+      },
+      {
+        "name": "amend_warning",
+        "passed": true,
+        "details": "pre-commit-gate warns about git commit --amend"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "11/11 tests passed"
+  },
+  {
+    "agent": 24,
+    "phase": 2,
+    "platform": "mobile",
+    "language": "dart",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "start_feature",
+        "passed": true,
+        "details": "start-feature initializes build loop"
+      },
+      {
+        "name": "build_loop_all_steps",
+        "passed": true,
+        "details": "All 6 build loop steps complete in order"
+      },
+      {
+        "name": "commit_ready_after_build_loop",
+        "passed": true,
+        "details": "Commit allowed after build loop completes"
+      },
+      {
+        "name": "uat_session_complete",
+        "passed": true,
+        "details": "All 9 UAT session steps complete in order"
+      },
+      {
+        "name": "status_shows_all_processes",
+        "passed": true,
+        "details": "Status shows all process sections"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_build_loop_step",
+        "passed": true,
+        "details": "Correctly blocks skipping build loop steps"
+      },
+      {
+        "name": "source_commit_blocked_incomplete_loop",
+        "passed": true,
+        "details": "Source commit correctly blocked with incomplete build loop"
+      },
+      {
+        "name": "commit_during_uat_blocked",
+        "passed": true,
+        "details": "Commit correctly blocked during active UAT session"
+      },
+      {
+        "name": "doc_commit_during_uat_allowed",
+        "passed": true,
+        "details": "Doc-only commit correctly allowed during UAT"
+      },
+      {
+        "name": "uat_skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping UAT steps"
+      },
+      {
+        "name": "amend_warning",
+        "passed": true,
+        "details": "pre-commit-gate warns about git commit --amend"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "11/11 tests passed"
+  },
+  {
+    "agent": 25,
+    "phase": 2,
+    "platform": "web",
+    "language": "python",
+    "scenario": "private_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "start_feature",
+        "passed": true,
+        "details": "start-feature initializes build loop"
+      },
+      {
+        "name": "build_loop_all_steps",
+        "passed": true,
+        "details": "All 6 build loop steps complete in order"
+      },
+      {
+        "name": "commit_ready_after_build_loop",
+        "passed": true,
+        "details": "Commit allowed after build loop completes"
+      },
+      {
+        "name": "uat_session_complete",
+        "passed": true,
+        "details": "All 9 UAT session steps complete in order"
+      },
+      {
+        "name": "status_shows_all_processes",
+        "passed": true,
+        "details": "Status shows all process sections"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_build_loop_step",
+        "passed": true,
+        "details": "Correctly blocks skipping build loop steps"
+      },
+      {
+        "name": "source_commit_blocked_incomplete_loop",
+        "passed": true,
+        "details": "Source commit correctly blocked with incomplete build loop"
+      },
+      {
+        "name": "commit_during_uat_blocked",
+        "passed": true,
+        "details": "Commit correctly blocked during active UAT session"
+      },
+      {
+        "name": "doc_commit_during_uat_allowed",
+        "passed": true,
+        "details": "Doc-only commit correctly allowed during UAT"
+      },
+      {
+        "name": "uat_skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping UAT steps"
+      },
+      {
+        "name": "amend_warning",
+        "passed": true,
+        "details": "pre-commit-gate warns about git commit --amend"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "11/11 tests passed"
+  },
+  {
+    "agent": 26,
+    "phase": 2,
+    "platform": "web",
+    "language": "typescript",
+    "scenario": "sponsored_poc",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "start_feature",
+        "passed": true,
+        "details": "start-feature initializes build loop"
+      },
+      {
+        "name": "build_loop_all_steps",
+        "passed": true,
+        "details": "All 6 build loop steps complete in order"
+      },
+      {
+        "name": "commit_ready_after_build_loop",
+        "passed": true,
+        "details": "Commit allowed after build loop completes"
+      },
+      {
+        "name": "uat_session_complete",
+        "passed": true,
+        "details": "All 9 UAT session steps complete in order"
+      },
+      {
+        "name": "status_shows_all_processes",
+        "passed": true,
+        "details": "Status shows all process sections"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_build_loop_step",
+        "passed": true,
+        "details": "Correctly blocks skipping build loop steps"
+      },
+      {
+        "name": "source_commit_blocked_incomplete_loop",
+        "passed": true,
+        "details": "Source commit correctly blocked with incomplete build loop"
+      },
+      {
+        "name": "commit_during_uat_blocked",
+        "passed": true,
+        "details": "Commit correctly blocked during active UAT session"
+      },
+      {
+        "name": "doc_commit_during_uat_allowed",
+        "passed": true,
+        "details": "Doc-only commit correctly allowed during UAT"
+      },
+      {
+        "name": "uat_skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping UAT steps"
+      },
+      {
+        "name": "amend_warning",
+        "passed": true,
+        "details": "pre-commit-gate warns about git commit --amend"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "11/11 tests passed"
+  },
+  {
+    "agent": 27,
+    "phase": 2,
+    "platform": "web",
+    "language": "typescript",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "start_feature",
+        "passed": true,
+        "details": "start-feature initializes build loop"
+      },
+      {
+        "name": "build_loop_all_steps",
+        "passed": true,
+        "details": "All 6 build loop steps complete in order"
+      },
+      {
+        "name": "commit_ready_after_build_loop",
+        "passed": true,
+        "details": "Commit allowed after build loop completes"
+      },
+      {
+        "name": "uat_session_complete",
+        "passed": true,
+        "details": "All 9 UAT session steps complete in order"
+      },
+      {
+        "name": "status_shows_all_processes",
+        "passed": true,
+        "details": "Status shows all process sections"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_build_loop_step",
+        "passed": true,
+        "details": "Correctly blocks skipping build loop steps"
+      },
+      {
+        "name": "source_commit_blocked_incomplete_loop",
+        "passed": true,
+        "details": "Source commit correctly blocked with incomplete build loop"
+      },
+      {
+        "name": "commit_during_uat_blocked",
+        "passed": true,
+        "details": "Commit correctly blocked during active UAT session"
+      },
+      {
+        "name": "doc_commit_during_uat_allowed",
+        "passed": true,
+        "details": "Doc-only commit correctly allowed during UAT"
+      },
+      {
+        "name": "uat_skip_step_blocked",
+        "passed": true,
+        "details": "Correctly blocks skipping UAT steps"
+      },
+      {
+        "name": "amend_warning",
+        "passed": true,
+        "details": "pre-commit-gate warns about git commit --amend"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "11/11 tests passed"
+  },
+  {
+    "agent": 28,
+    "phase": 3,
+    "platform": "desktop",
+    "language": "csharp",
+    "scenario": "private_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "start_phase3",
+        "passed": true,
+        "details": "Phase 3 validation started"
+      },
+      {
+        "name": "phase3_step_security_hardening",
+        "passed": false,
+        "details": "Phase 3 step failed: security_hardening"
+      },
+      {
+        "name": "status_at_phase3",
+        "passed": true,
+        "details": "Status works at Phase 3"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_phase3_step",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 3 steps"
+      },
+      {
+        "name": "force_step_noninteractive",
+        "passed": true,
+        "details": "SOIF_FORCE_STEP correctly blocked in non-interactive terminal"
+      },
+      {
+        "name": "handoff_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for HANDOFF.md"
+      },
+      {
+        "name": "incident_response_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for INCIDENT_RESPONSE.md"
+      },
+      {
+        "name": "sbom_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for sbom.json"
+      },
+      {
+        "name": "security_md_check",
+        "passed": false,
+        "details": "Phase gate does NOT check for SECURITY.md"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "4/9 tests passed"
+  },
+  {
+    "agent": 29,
+    "phase": 3,
+    "platform": "desktop",
+    "language": "python",
+    "scenario": "sponsored_poc",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "start_phase3",
+        "passed": true,
+        "details": "Phase 3 validation started"
+      },
+      {
+        "name": "phase3_step_security_hardening",
+        "passed": false,
+        "details": "Phase 3 step failed: security_hardening"
+      },
+      {
+        "name": "status_at_phase3",
+        "passed": true,
+        "details": "Status works at Phase 3"
+      },
+      {
+        "name": "poc_blocks_phase4",
+        "passed": false,
+        "details": "POC mode does NOT block Phase 4"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_phase3_step",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 3 steps"
+      },
+      {
+        "name": "force_step_noninteractive",
+        "passed": true,
+        "details": "SOIF_FORCE_STEP correctly blocked in non-interactive terminal"
+      },
+      {
+        "name": "handoff_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for HANDOFF.md"
+      },
+      {
+        "name": "incident_response_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for INCIDENT_RESPONSE.md"
+      },
+      {
+        "name": "sbom_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for sbom.json"
+      },
+      {
+        "name": "pentest_check_standard",
+        "passed": false,
+        "details": "Phase gate does NOT check for penetration test on standard track"
+      },
+      {
+        "name": "security_md_check",
+        "passed": false,
+        "details": "Phase gate does NOT check for SECURITY.md"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/check-phase-gate.sh",
+        "description": "POC mode does not block Phase 4 entry",
+        "severity": "critical"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "4/11 tests passed"
+  },
+  {
+    "agent": 3,
+    "phase": 0,
+    "platform": "desktop",
+    "language": "java",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "status_at_phase0",
+        "passed": true,
+        "details": "process-checklist.sh --status runs cleanly at phase 0"
+      },
+      {
+        "name": "phase_gate_check_phase0",
+        "passed": true,
+        "details": "check-phase-gate.sh passes at phase 0"
+      },
+      {
+        "name": "phase_state_fields",
+        "passed": true,
+        "details": "phase-state.json has correct project and phase"
+      },
+      {
+        "name": "commit_allowed_phase0",
+        "passed": true,
+        "details": "Commits allowed at Phase 0 (no enforcement before Phase 2)"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "missing_manifesto_detected",
+        "passed": true,
+        "details": "Phase gate detects missing PRODUCT_MANIFESTO.md"
+      },
+      {
+        "name": "placeholder_approval_detected",
+        "passed": true,
+        "details": "Phase gate detects placeholder approval entries"
+      },
+      {
+        "name": "org_preconditions_checked",
+        "passed": true,
+        "details": "Organizational pre-conditions checked"
+      },
+      {
+        "name": "no_verify_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --no-verify"
+      },
+      {
+        "name": "force_push_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --force push"
+      },
+      {
+        "name": "process_reset_blocked_by_hook",
+        "passed": true,
+        "details": "pre-commit-gate blocks agent process resets"
+      },
+      {
+        "name": "force_step_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_FORCE_STEP"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "11/11 tests passed"
+  },
+  {
+    "agent": 30,
+    "phase": 3,
+    "platform": "desktop",
+    "language": "java",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "start_phase3",
+        "passed": true,
+        "details": "Phase 3 validation started"
+      },
+      {
+        "name": "phase3_step_security_hardening",
+        "passed": false,
+        "details": "Phase 3 step failed: security_hardening"
+      },
+      {
+        "name": "status_at_phase3",
+        "passed": true,
+        "details": "Status works at Phase 3"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_phase3_step",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 3 steps"
+      },
+      {
+        "name": "force_step_noninteractive",
+        "passed": true,
+        "details": "SOIF_FORCE_STEP correctly blocked in non-interactive terminal"
+      },
+      {
+        "name": "handoff_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for HANDOFF.md"
+      },
+      {
+        "name": "incident_response_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for INCIDENT_RESPONSE.md"
+      },
+      {
+        "name": "sbom_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for sbom.json"
+      },
+      {
+        "name": "pentest_check_full",
+        "passed": false,
+        "details": "Phase gate does NOT check for penetration test on full track"
+      },
+      {
+        "name": "security_md_check",
+        "passed": false,
+        "details": "Phase gate does NOT check for SECURITY.md"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "4/10 tests passed"
+  },
+  {
+    "agent": 31,
+    "phase": 3,
+    "platform": "mobile",
+    "language": "kotlin",
+    "scenario": "private_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "start_phase3",
+        "passed": true,
+        "details": "Phase 3 validation started"
+      },
+      {
+        "name": "phase3_step_security_hardening",
+        "passed": false,
+        "details": "Phase 3 step failed: security_hardening"
+      },
+      {
+        "name": "status_at_phase3",
+        "passed": true,
+        "details": "Status works at Phase 3"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_phase3_step",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 3 steps"
+      },
+      {
+        "name": "force_step_noninteractive",
+        "passed": true,
+        "details": "SOIF_FORCE_STEP correctly blocked in non-interactive terminal"
+      },
+      {
+        "name": "handoff_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for HANDOFF.md"
+      },
+      {
+        "name": "incident_response_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for INCIDENT_RESPONSE.md"
+      },
+      {
+        "name": "sbom_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for sbom.json"
+      },
+      {
+        "name": "security_md_check",
+        "passed": false,
+        "details": "Phase gate does NOT check for SECURITY.md"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "4/9 tests passed"
+  },
+  {
+    "agent": 32,
+    "phase": 3,
+    "platform": "mobile",
+    "language": "swift",
+    "scenario": "sponsored_poc",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "start_phase3",
+        "passed": true,
+        "details": "Phase 3 validation started"
+      },
+      {
+        "name": "phase3_step_security_hardening",
+        "passed": false,
+        "details": "Phase 3 step failed: security_hardening"
+      },
+      {
+        "name": "status_at_phase3",
+        "passed": true,
+        "details": "Status works at Phase 3"
+      },
+      {
+        "name": "poc_blocks_phase4",
+        "passed": false,
+        "details": "POC mode does NOT block Phase 4"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_phase3_step",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 3 steps"
+      },
+      {
+        "name": "force_step_noninteractive",
+        "passed": true,
+        "details": "SOIF_FORCE_STEP correctly blocked in non-interactive terminal"
+      },
+      {
+        "name": "handoff_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for HANDOFF.md"
+      },
+      {
+        "name": "incident_response_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for INCIDENT_RESPONSE.md"
+      },
+      {
+        "name": "sbom_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for sbom.json"
+      },
+      {
+        "name": "pentest_check_standard",
+        "passed": false,
+        "details": "Phase gate does NOT check for penetration test on standard track"
+      },
+      {
+        "name": "security_md_check",
+        "passed": false,
+        "details": "Phase gate does NOT check for SECURITY.md"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/check-phase-gate.sh",
+        "description": "POC mode does not block Phase 4 entry",
+        "severity": "critical"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "4/11 tests passed"
+  },
+  {
+    "agent": 33,
+    "phase": 3,
+    "platform": "mobile",
+    "language": "dart",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "start_phase3",
+        "passed": true,
+        "details": "Phase 3 validation started"
+      },
+      {
+        "name": "phase3_step_security_hardening",
+        "passed": false,
+        "details": "Phase 3 step failed: security_hardening"
+      },
+      {
+        "name": "status_at_phase3",
+        "passed": true,
+        "details": "Status works at Phase 3"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_phase3_step",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 3 steps"
+      },
+      {
+        "name": "force_step_noninteractive",
+        "passed": true,
+        "details": "SOIF_FORCE_STEP correctly blocked in non-interactive terminal"
+      },
+      {
+        "name": "handoff_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for HANDOFF.md"
+      },
+      {
+        "name": "incident_response_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for INCIDENT_RESPONSE.md"
+      },
+      {
+        "name": "sbom_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for sbom.json"
+      },
+      {
+        "name": "pentest_check_full",
+        "passed": false,
+        "details": "Phase gate does NOT check for penetration test on full track"
+      },
+      {
+        "name": "security_md_check",
+        "passed": false,
+        "details": "Phase gate does NOT check for SECURITY.md"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "4/10 tests passed"
+  },
+  {
+    "agent": 34,
+    "phase": 3,
+    "platform": "web",
+    "language": "python",
+    "scenario": "private_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "start_phase3",
+        "passed": true,
+        "details": "Phase 3 validation started"
+      },
+      {
+        "name": "phase3_step_security_hardening",
+        "passed": false,
+        "details": "Phase 3 step failed: security_hardening"
+      },
+      {
+        "name": "status_at_phase3",
+        "passed": true,
+        "details": "Status works at Phase 3"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_phase3_step",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 3 steps"
+      },
+      {
+        "name": "force_step_noninteractive",
+        "passed": true,
+        "details": "SOIF_FORCE_STEP correctly blocked in non-interactive terminal"
+      },
+      {
+        "name": "handoff_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for HANDOFF.md"
+      },
+      {
+        "name": "incident_response_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for INCIDENT_RESPONSE.md"
+      },
+      {
+        "name": "sbom_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for sbom.json"
+      },
+      {
+        "name": "security_md_check",
+        "passed": false,
+        "details": "Phase gate does NOT check for SECURITY.md"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "4/9 tests passed"
+  },
+  {
+    "agent": 35,
+    "phase": 3,
+    "platform": "web",
+    "language": "typescript",
+    "scenario": "sponsored_poc",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "start_phase3",
+        "passed": true,
+        "details": "Phase 3 validation started"
+      },
+      {
+        "name": "phase3_step_security_hardening",
+        "passed": false,
+        "details": "Phase 3 step failed: security_hardening"
+      },
+      {
+        "name": "status_at_phase3",
+        "passed": true,
+        "details": "Status works at Phase 3"
+      },
+      {
+        "name": "poc_blocks_phase4",
+        "passed": false,
+        "details": "POC mode does NOT block Phase 4"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_phase3_step",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 3 steps"
+      },
+      {
+        "name": "force_step_noninteractive",
+        "passed": true,
+        "details": "SOIF_FORCE_STEP correctly blocked in non-interactive terminal"
+      },
+      {
+        "name": "handoff_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for HANDOFF.md"
+      },
+      {
+        "name": "incident_response_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for INCIDENT_RESPONSE.md"
+      },
+      {
+        "name": "sbom_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for sbom.json"
+      },
+      {
+        "name": "pentest_check_standard",
+        "passed": false,
+        "details": "Phase gate does NOT check for penetration test on standard track"
+      },
+      {
+        "name": "security_md_check",
+        "passed": false,
+        "details": "Phase gate does NOT check for SECURITY.md"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/check-phase-gate.sh",
+        "description": "POC mode does not block Phase 4 entry",
+        "severity": "critical"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "4/11 tests passed"
+  },
+  {
+    "agent": 36,
+    "phase": 3,
+    "platform": "web",
+    "language": "typescript",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "start_phase3",
+        "passed": true,
+        "details": "Phase 3 validation started"
+      },
+      {
+        "name": "phase3_step_security_hardening",
+        "passed": false,
+        "details": "Phase 3 step failed: security_hardening"
+      },
+      {
+        "name": "status_at_phase3",
+        "passed": true,
+        "details": "Status works at Phase 3"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_phase3_step",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 3 steps"
+      },
+      {
+        "name": "force_step_noninteractive",
+        "passed": true,
+        "details": "SOIF_FORCE_STEP correctly blocked in non-interactive terminal"
+      },
+      {
+        "name": "handoff_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for HANDOFF.md"
+      },
+      {
+        "name": "incident_response_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for INCIDENT_RESPONSE.md"
+      },
+      {
+        "name": "sbom_required",
+        "passed": false,
+        "details": "Phase gate does NOT check for sbom.json"
+      },
+      {
+        "name": "pentest_check_full",
+        "passed": false,
+        "details": "Phase gate does NOT check for penetration test on full track"
+      },
+      {
+        "name": "security_md_check",
+        "passed": false,
+        "details": "Phase gate does NOT check for SECURITY.md"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "4/10 tests passed"
+  },
+  {
+    "agent": 37,
+    "phase": 4,
+    "platform": "desktop",
+    "language": "java",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "start_phase4",
+        "passed": true,
+        "details": "Phase 4 release started"
+      },
+      {
+        "name": "phase4_all_steps",
+        "passed": true,
+        "details": "All 6 Phase 4 release steps complete"
+      },
+      {
+        "name": "commit_allowed_phase4",
+        "passed": true,
+        "details": "Commit allowed after all Phase 4 steps complete"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_phase4_step",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 4 steps"
+      },
+      {
+        "name": "commit_blocked_incomplete_p4",
+        "passed": true,
+        "details": "Commit blocked with incomplete Phase 4"
+      },
+      {
+        "name": "rollback_artifact_required",
+        "passed": true,
+        "details": "Rollback step correctly requires artifact"
+      },
+      {
+        "name": "handoff_artifact_required",
+        "passed": true,
+        "details": "handoff_written step correctly requires HANDOFF.md"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "7/7 tests passed"
+  },
+  {
+    "agent": 38,
+    "phase": 4,
+    "platform": "mobile",
+    "language": "dart",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "start_phase4",
+        "passed": true,
+        "details": "Phase 4 release started"
+      },
+      {
+        "name": "phase4_all_steps",
+        "passed": true,
+        "details": "All 6 Phase 4 release steps complete"
+      },
+      {
+        "name": "commit_allowed_phase4",
+        "passed": true,
+        "details": "Commit allowed after all Phase 4 steps complete"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_phase4_step",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 4 steps"
+      },
+      {
+        "name": "commit_blocked_incomplete_p4",
+        "passed": true,
+        "details": "Commit blocked with incomplete Phase 4"
+      },
+      {
+        "name": "rollback_artifact_required",
+        "passed": true,
+        "details": "Rollback step correctly requires artifact"
+      },
+      {
+        "name": "handoff_artifact_required",
+        "passed": true,
+        "details": "handoff_written step correctly requires HANDOFF.md"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "7/7 tests passed"
+  },
+  {
+    "agent": 39,
+    "phase": 4,
+    "platform": "web",
+    "language": "typescript",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "start_phase4",
+        "passed": true,
+        "details": "Phase 4 release started"
+      },
+      {
+        "name": "phase4_all_steps",
+        "passed": true,
+        "details": "All 6 Phase 4 release steps complete"
+      },
+      {
+        "name": "commit_allowed_phase4",
+        "passed": true,
+        "details": "Commit allowed after all Phase 4 steps complete"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "skip_phase4_step",
+        "passed": true,
+        "details": "Correctly blocks skipping Phase 4 steps"
+      },
+      {
+        "name": "commit_blocked_incomplete_p4",
+        "passed": true,
+        "details": "Commit blocked with incomplete Phase 4"
+      },
+      {
+        "name": "rollback_artifact_required",
+        "passed": true,
+        "details": "Rollback step correctly requires artifact"
+      },
+      {
+        "name": "handoff_artifact_required",
+        "passed": true,
+        "details": "handoff_written step correctly requires HANDOFF.md"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "7/7 tests passed"
+  },
+  {
+    "agent": 4,
+    "phase": 0,
+    "platform": "mobile",
+    "language": "kotlin",
+    "scenario": "private_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "status_at_phase0",
+        "passed": true,
+        "details": "process-checklist.sh --status runs cleanly at phase 0"
+      },
+      {
+        "name": "phase_gate_check_phase0",
+        "passed": true,
+        "details": "check-phase-gate.sh passes at phase 0"
+      },
+      {
+        "name": "phase_state_fields",
+        "passed": true,
+        "details": "phase-state.json has correct project and phase"
+      },
+      {
+        "name": "commit_allowed_phase0",
+        "passed": true,
+        "details": "Commits allowed at Phase 0 (no enforcement before Phase 2)"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "missing_manifesto_detected",
+        "passed": true,
+        "details": "Phase gate detects missing PRODUCT_MANIFESTO.md"
+      },
+      {
+        "name": "placeholder_approval_detected",
+        "passed": true,
+        "details": "Phase gate detects placeholder approval entries"
+      },
+      {
+        "name": "no_verify_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --no-verify"
+      },
+      {
+        "name": "force_push_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --force push"
+      },
+      {
+        "name": "process_reset_blocked_by_hook",
+        "passed": true,
+        "details": "pre-commit-gate blocks agent process resets"
+      },
+      {
+        "name": "force_step_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_FORCE_STEP"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "10/10 tests passed"
+  },
+  {
+    "agent": 46,
+    "phase": "upgrade",
+    "platform": "desktop",
+    "language": "csharp",
+    "scenario": "private_poc_to_sponsored_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "upgrade_to_sponsored",
+        "passed": true,
+        "details": "Upgrade to Sponsored POC executed"
+      },
+      {
+        "name": "process_state_preserved",
+        "passed": true,
+        "details": "process-state.json preserved during upgrade"
+      },
+      {
+        "name": "build_loop_post_upgrade",
+        "passed": true,
+        "details": "Build loop works after upgrade"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "no_redundant_upgrade",
+        "passed": true,
+        "details": "Correctly detects already at target state"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "4/4 tests passed"
+  },
+  {
+    "agent": 47,
+    "phase": "upgrade",
+    "platform": "mobile",
+    "language": "kotlin",
+    "scenario": "private_poc_to_sponsored_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "upgrade_to_sponsored",
+        "passed": true,
+        "details": "Upgrade to Sponsored POC executed"
+      },
+      {
+        "name": "process_state_preserved",
+        "passed": true,
+        "details": "process-state.json preserved during upgrade"
+      },
+      {
+        "name": "build_loop_post_upgrade",
+        "passed": true,
+        "details": "Build loop works after upgrade"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "no_redundant_upgrade",
+        "passed": true,
+        "details": "Correctly detects already at target state"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "4/4 tests passed"
+  },
+  {
+    "agent": 48,
+    "phase": "upgrade",
+    "platform": "web",
+    "language": "python",
+    "scenario": "private_poc_to_sponsored_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "upgrade_to_sponsored",
+        "passed": true,
+        "details": "Upgrade to Sponsored POC executed"
+      },
+      {
+        "name": "process_state_preserved",
+        "passed": true,
+        "details": "process-state.json preserved during upgrade"
+      },
+      {
+        "name": "build_loop_post_upgrade",
+        "passed": true,
+        "details": "Build loop works after upgrade"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "no_redundant_upgrade",
+        "passed": true,
+        "details": "Correctly detects already at target state"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "4/4 tests passed"
+  },
+  {
+    "agent": 49,
+    "phase": "upgrade",
+    "platform": "desktop",
+    "language": "python",
+    "scenario": "sponsored_poc_to_production",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "upgrade_to_production",
+        "passed": true,
+        "details": "Upgrade from Sponsored POC to Production executed"
+      },
+      {
+        "name": "poc_mode_removed",
+        "passed": false,
+        "details": "POC mode still present: sponsored_poc"
+      },
+      {
+        "name": "track_preserved",
+        "passed": true,
+        "details": "Track preserved/upgraded to standard"
+      },
+      {
+        "name": "process_state_preserved",
+        "passed": true,
+        "details": "Build loop state preserved"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "track_downgrade_blocked",
+        "passed": true,
+        "details": "Track downgrade correctly blocked"
+      },
+      {
+        "name": "poc_revert_blocked",
+        "passed": true,
+        "details": "Revert to POC correctly blocked"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/upgrade-project.sh",
+        "description": "POC mode not removed from phase-state.json during --to-production",
+        "severity": "major"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "5/6 tests passed"
+  },
+  {
+    "agent": 5,
+    "phase": 0,
+    "platform": "mobile",
+    "language": "swift",
+    "scenario": "sponsored_poc",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "status_at_phase0",
+        "passed": true,
+        "details": "process-checklist.sh --status runs cleanly at phase 0"
+      },
+      {
+        "name": "phase_gate_check_phase0",
+        "passed": true,
+        "details": "check-phase-gate.sh passes at phase 0"
+      },
+      {
+        "name": "phase_state_fields",
+        "passed": true,
+        "details": "phase-state.json has correct project and phase"
+      },
+      {
+        "name": "commit_allowed_phase0",
+        "passed": true,
+        "details": "Commits allowed at Phase 0 (no enforcement before Phase 2)"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "missing_manifesto_detected",
+        "passed": true,
+        "details": "Phase gate detects missing PRODUCT_MANIFESTO.md"
+      },
+      {
+        "name": "placeholder_approval_detected",
+        "passed": true,
+        "details": "Phase gate detects placeholder approval entries"
+      },
+      {
+        "name": "no_verify_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --no-verify"
+      },
+      {
+        "name": "force_push_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --force push"
+      },
+      {
+        "name": "process_reset_blocked_by_hook",
+        "passed": true,
+        "details": "pre-commit-gate blocks agent process resets"
+      },
+      {
+        "name": "force_step_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_FORCE_STEP"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "10/10 tests passed"
+  },
+  {
+    "agent": 50,
+    "phase": "upgrade",
+    "platform": "mobile",
+    "language": "swift",
+    "scenario": "sponsored_poc_to_production",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "upgrade_to_production",
+        "passed": true,
+        "details": "Upgrade from Sponsored POC to Production executed"
+      },
+      {
+        "name": "poc_mode_removed",
+        "passed": false,
+        "details": "POC mode still present: sponsored_poc"
+      },
+      {
+        "name": "track_preserved",
+        "passed": true,
+        "details": "Track preserved/upgraded to standard"
+      },
+      {
+        "name": "process_state_preserved",
+        "passed": true,
+        "details": "Build loop state preserved"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "track_downgrade_blocked",
+        "passed": true,
+        "details": "Track downgrade correctly blocked"
+      },
+      {
+        "name": "poc_revert_blocked",
+        "passed": true,
+        "details": "Revert to POC correctly blocked"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/upgrade-project.sh",
+        "description": "POC mode not removed from phase-state.json during --to-production",
+        "severity": "major"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "5/6 tests passed"
+  },
+  {
+    "agent": 51,
+    "phase": "upgrade",
+    "platform": "web",
+    "language": "typescript",
+    "scenario": "sponsored_poc_to_production",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "upgrade_to_production",
+        "passed": true,
+        "details": "Upgrade from Sponsored POC to Production executed"
+      },
+      {
+        "name": "poc_mode_removed",
+        "passed": false,
+        "details": "POC mode still present: sponsored_poc"
+      },
+      {
+        "name": "track_preserved",
+        "passed": true,
+        "details": "Track preserved/upgraded to standard"
+      },
+      {
+        "name": "process_state_preserved",
+        "passed": true,
+        "details": "Build loop state preserved"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "track_downgrade_blocked",
+        "passed": true,
+        "details": "Track downgrade correctly blocked"
+      },
+      {
+        "name": "poc_revert_blocked",
+        "passed": true,
+        "details": "Revert to POC correctly blocked"
+      }
+    ],
+    "framework_bugs": [
+      {
+        "file": "scripts/upgrade-project.sh",
+        "description": "POC mode not removed from phase-state.json during --to-production",
+        "severity": "major"
+      }
+    ],
+    "documentation_gaps": [],
+    "overall_pass": false,
+    "summary": "5/6 tests passed"
+  },
+  {
+    "agent": 52,
+    "phase": "upgrade",
+    "platform": "desktop",
+    "language": "java",
+    "scenario": "full_path",
+    "track": "light_to_standard",
+    "positive_tests": [
+      {
+        "name": "step1_private_to_sponsored",
+        "passed": true,
+        "details": "Step 1: Private POC → Sponsored POC succeeded"
+      },
+      {
+        "name": "phase_preserved_step1",
+        "passed": true,
+        "details": "Phase preserved after step 1"
+      },
+      {
+        "name": "step2_sponsored_to_production",
+        "passed": true,
+        "details": "Step 2: Sponsored POC → Production succeeded"
+      },
+      {
+        "name": "final_track_standard",
+        "passed": true,
+        "details": "Final track correctly set to standard"
+      },
+      {
+        "name": "process_state_survives_double_upgrade",
+        "passed": true,
+        "details": "Process state preserved through both upgrades"
+      },
+      {
+        "name": "build_loop_after_double_upgrade",
+        "passed": true,
+        "details": "Build loop works after double upgrade"
+      }
+    ],
+    "negative_tests": [],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "6/6 tests passed"
+  },
+  {
+    "agent": 53,
+    "phase": "upgrade",
+    "platform": "mobile",
+    "language": "dart",
+    "scenario": "full_path",
+    "track": "light_to_standard",
+    "positive_tests": [
+      {
+        "name": "step1_private_to_sponsored",
+        "passed": true,
+        "details": "Step 1: Private POC → Sponsored POC succeeded"
+      },
+      {
+        "name": "phase_preserved_step1",
+        "passed": true,
+        "details": "Phase preserved after step 1"
+      },
+      {
+        "name": "step2_sponsored_to_production",
+        "passed": true,
+        "details": "Step 2: Sponsored POC → Production succeeded"
+      },
+      {
+        "name": "final_track_standard",
+        "passed": true,
+        "details": "Final track correctly set to standard"
+      },
+      {
+        "name": "process_state_survives_double_upgrade",
+        "passed": true,
+        "details": "Process state preserved through both upgrades"
+      },
+      {
+        "name": "build_loop_after_double_upgrade",
+        "passed": true,
+        "details": "Build loop works after double upgrade"
+      }
+    ],
+    "negative_tests": [],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "6/6 tests passed"
+  },
+  {
+    "agent": 54,
+    "phase": "upgrade",
+    "platform": "web",
+    "language": "typescript",
+    "scenario": "full_path",
+    "track": "light_to_standard",
+    "positive_tests": [
+      {
+        "name": "step1_private_to_sponsored",
+        "passed": true,
+        "details": "Step 1: Private POC → Sponsored POC succeeded"
+      },
+      {
+        "name": "phase_preserved_step1",
+        "passed": true,
+        "details": "Phase preserved after step 1"
+      },
+      {
+        "name": "step2_sponsored_to_production",
+        "passed": true,
+        "details": "Step 2: Sponsored POC → Production succeeded"
+      },
+      {
+        "name": "final_track_standard",
+        "passed": true,
+        "details": "Final track correctly set to standard"
+      },
+      {
+        "name": "process_state_survives_double_upgrade",
+        "passed": true,
+        "details": "Process state preserved through both upgrades"
+      },
+      {
+        "name": "build_loop_after_double_upgrade",
+        "passed": true,
+        "details": "Build loop works after double upgrade"
+      }
+    ],
+    "negative_tests": [],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "6/6 tests passed"
+  },
+  {
+    "agent": 6,
+    "phase": 0,
+    "platform": "mobile",
+    "language": "dart",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "status_at_phase0",
+        "passed": true,
+        "details": "process-checklist.sh --status runs cleanly at phase 0"
+      },
+      {
+        "name": "phase_gate_check_phase0",
+        "passed": true,
+        "details": "check-phase-gate.sh passes at phase 0"
+      },
+      {
+        "name": "phase_state_fields",
+        "passed": true,
+        "details": "phase-state.json has correct project and phase"
+      },
+      {
+        "name": "commit_allowed_phase0",
+        "passed": true,
+        "details": "Commits allowed at Phase 0 (no enforcement before Phase 2)"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "missing_manifesto_detected",
+        "passed": true,
+        "details": "Phase gate detects missing PRODUCT_MANIFESTO.md"
+      },
+      {
+        "name": "placeholder_approval_detected",
+        "passed": true,
+        "details": "Phase gate detects placeholder approval entries"
+      },
+      {
+        "name": "org_preconditions_checked",
+        "passed": true,
+        "details": "Organizational pre-conditions checked"
+      },
+      {
+        "name": "no_verify_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --no-verify"
+      },
+      {
+        "name": "force_push_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --force push"
+      },
+      {
+        "name": "process_reset_blocked_by_hook",
+        "passed": true,
+        "details": "pre-commit-gate blocks agent process resets"
+      },
+      {
+        "name": "force_step_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_FORCE_STEP"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "11/11 tests passed"
+  },
+  {
+    "agent": 7,
+    "phase": 0,
+    "platform": "web",
+    "language": "python",
+    "scenario": "private_poc",
+    "track": "light",
+    "positive_tests": [
+      {
+        "name": "status_at_phase0",
+        "passed": true,
+        "details": "process-checklist.sh --status runs cleanly at phase 0"
+      },
+      {
+        "name": "phase_gate_check_phase0",
+        "passed": true,
+        "details": "check-phase-gate.sh passes at phase 0"
+      },
+      {
+        "name": "phase_state_fields",
+        "passed": true,
+        "details": "phase-state.json has correct project and phase"
+      },
+      {
+        "name": "commit_allowed_phase0",
+        "passed": true,
+        "details": "Commits allowed at Phase 0 (no enforcement before Phase 2)"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "missing_manifesto_detected",
+        "passed": true,
+        "details": "Phase gate detects missing PRODUCT_MANIFESTO.md"
+      },
+      {
+        "name": "placeholder_approval_detected",
+        "passed": true,
+        "details": "Phase gate detects placeholder approval entries"
+      },
+      {
+        "name": "no_verify_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --no-verify"
+      },
+      {
+        "name": "force_push_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --force push"
+      },
+      {
+        "name": "process_reset_blocked_by_hook",
+        "passed": true,
+        "details": "pre-commit-gate blocks agent process resets"
+      },
+      {
+        "name": "force_step_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_FORCE_STEP"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "10/10 tests passed"
+  },
+  {
+    "agent": 8,
+    "phase": 0,
+    "platform": "web",
+    "language": "typescript",
+    "scenario": "sponsored_poc",
+    "track": "standard",
+    "positive_tests": [
+      {
+        "name": "status_at_phase0",
+        "passed": true,
+        "details": "process-checklist.sh --status runs cleanly at phase 0"
+      },
+      {
+        "name": "phase_gate_check_phase0",
+        "passed": true,
+        "details": "check-phase-gate.sh passes at phase 0"
+      },
+      {
+        "name": "phase_state_fields",
+        "passed": true,
+        "details": "phase-state.json has correct project and phase"
+      },
+      {
+        "name": "commit_allowed_phase0",
+        "passed": true,
+        "details": "Commits allowed at Phase 0 (no enforcement before Phase 2)"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "missing_manifesto_detected",
+        "passed": true,
+        "details": "Phase gate detects missing PRODUCT_MANIFESTO.md"
+      },
+      {
+        "name": "placeholder_approval_detected",
+        "passed": true,
+        "details": "Phase gate detects placeholder approval entries"
+      },
+      {
+        "name": "no_verify_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --no-verify"
+      },
+      {
+        "name": "force_push_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --force push"
+      },
+      {
+        "name": "process_reset_blocked_by_hook",
+        "passed": true,
+        "details": "pre-commit-gate blocks agent process resets"
+      },
+      {
+        "name": "force_step_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_FORCE_STEP"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "10/10 tests passed"
+  },
+  {
+    "agent": 9,
+    "phase": 0,
+    "platform": "web",
+    "language": "typescript",
+    "scenario": "production",
+    "track": "full",
+    "positive_tests": [
+      {
+        "name": "status_at_phase0",
+        "passed": true,
+        "details": "process-checklist.sh --status runs cleanly at phase 0"
+      },
+      {
+        "name": "phase_gate_check_phase0",
+        "passed": true,
+        "details": "check-phase-gate.sh passes at phase 0"
+      },
+      {
+        "name": "phase_state_fields",
+        "passed": true,
+        "details": "phase-state.json has correct project and phase"
+      },
+      {
+        "name": "commit_allowed_phase0",
+        "passed": true,
+        "details": "Commits allowed at Phase 0 (no enforcement before Phase 2)"
+      }
+    ],
+    "negative_tests": [
+      {
+        "name": "missing_manifesto_detected",
+        "passed": true,
+        "details": "Phase gate detects missing PRODUCT_MANIFESTO.md"
+      },
+      {
+        "name": "placeholder_approval_detected",
+        "passed": true,
+        "details": "Phase gate detects placeholder approval entries"
+      },
+      {
+        "name": "org_preconditions_checked",
+        "passed": true,
+        "details": "Organizational pre-conditions checked"
+      },
+      {
+        "name": "no_verify_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --no-verify"
+      },
+      {
+        "name": "force_push_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks --force push"
+      },
+      {
+        "name": "process_reset_blocked_by_hook",
+        "passed": true,
+        "details": "pre-commit-gate blocks agent process resets"
+      },
+      {
+        "name": "force_step_blocked",
+        "passed": true,
+        "details": "pre-commit-gate blocks SOIF_FORCE_STEP"
+      }
+    ],
+    "framework_bugs": [],
+    "documentation_gaps": [],
+    "overall_pass": true,
+    "summary": "11/11 tests passed"
+  }
+]
