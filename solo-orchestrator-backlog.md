@@ -104,24 +104,24 @@ Driver-level test coverage varies: GitHub has 8 scenarios (full contract, both m
 
 ---
 
-## BL-006: Enforce Build Loop via pre-commit hook (warns-then-blocks)
+## BL-006: Enforce Build Loop via pre-commit hook (commit-message-triggered)
 
 **Logged:** 2026-04-22
 **Category:** Debt
 **Severity:** High
-**Status:** Open
+**Status:** promoted-to-spec (2026-04-23)
 
 Surfaced during the lancache project audit. `scripts/process-checklist.sh --start-feature` is advisory — a `feat(...)` commit can land without starting a Build Loop session, and `--record-feature` detects the drift only after the fact (post-commit audit). On lancache, ID1 and ID3 (MVP Cutline items per PRODUCT_MANIFESTO §5) were committed as `feat(init): ...` without going through the Build Loop; the drift was caught only when running `--record-feature` retroactively.
 
-**Scope:** add a pre-commit-gate check that inspects the staged commit message and blocks (or warns-then-blocks on repeat) when a `feat(...)` commit has no corresponding active Build Loop session in `.claude/build-progress.json` OR no matching recorded feature. Needs a design pass to nail down:
-- Warns-then-blocks progression semantics (e.g., first warning allowed, second blocks? or always blocks new feat commits without a session?)
-- False-positive handling: hotfixes (`fix:`, not `feat:`), refactors, docs-only changes, merge commits, amended commits, squash-merge scenarios
-- Escape hatch: is there a sanctioned bypass path for genuine init-era scaffolding (coupled to BL-007's Init vs Build Loop clarification)?
-- How to signal "I'm about to commit a feat, start a Build Loop first" vs. existing user flow
+**Scope (locked during brainstorm):** add a new trigger in `pre-commit-gate.sh` that extracts the commit message and delegates to a new `process-checklist.sh --check-commit-message "MSG"` subcommand. When the message subject starts with `feat`, `feat(scope)`, `feat!`, or `feat(scope)!`, enforce the same strict state check the existing file-heuristic path uses (feature started + first 5 build_loop steps done). Strict enforcement — no warns-then-blocks grace window, no `SOIF_*` bypass. Non-Cutline scaffolding must use `chore:`/`build:`/`ci:`/`docs:` instead. Derivative commits (amend, merge, revert, cherry-pick, squash-merge) are filtered and pass through. Editor-case commits (no `-m`) fall through to the existing file-heuristic path.
 
-**Trigger:** Before another MVP Cutline ID can drift past the Build Loop unnoticed. Coupled with BL-007 (the Init-vs-Build-Loop rule) — these should be designed together since the rule determines what the hook enforces.
+**Trigger:** Before another MVP Cutline ID can drift past the Build Loop unnoticed. Coupled with BL-007 (now shipped) — the doc rule defines what the hook enforces; this is the mechanical-enforcement companion.
 
-**Related:** lancache project Phase 2 audit, 2026-04-22; path-forward decision to use pre-commit (not post-commit) per technical constraint that post-commit hooks cannot block.
+**Related:** lancache project Phase 2 audit, 2026-04-22; path-forward decision to use pre-commit (not post-commit) per technical constraint that post-commit hooks cannot block. BL-007 (PR #14) shipped the doctrinal rule on 2026-04-23; BL-006 mechanically enforces it.
+
+**Spec:** `docs/superpowers/specs/2026-04-23-build-loop-precommit-enforcement-design.md` (committed 2026-04-23).
+
+**Follow-ups logged as optional:** BL-010 (commit-msg git hook for editor-case), BL-011 (Cutline-ID-aware enforcement), BL-012 (retroactive scanning), BL-013 (squash-merge CI enforcement), BL-014 (commit-type hygiene).
 
 ---
 
@@ -179,3 +179,88 @@ Surfaced during lancache project UAT Session 1 (2026-04-22 → 2026-04-23). The 
 **Spec:** `docs/superpowers/specs/2026-04-23-uat-template-quality-design.md` (committed 2026-04-23 at `7b3dfff`).
 
 **Resolution:** Implemented via spec above + plan `docs/superpowers/plans/2026-04-23-uat-template-quality-implementation.md`. Shipped in PR #13 (merged 2026-04-23 at `9f11c88`). Three-layer guardrail: universal HTML checklist + 4 per-platform reference pairs + `scripts/lint-uat-scenarios.sh` pattern linter. `other` platform handled via 5-question co-build protocol in `docs/uat-authoring-guide.md § 5`. Templates reorganized to `templates/uat/` subdirectory. `upgrade-project.sh` migration block for existing projects. 11 linter unit tests + 7 integration tests (E26–E32 in edge-cases-scripts.sh), all passing.
+
+---
+
+## BL-010: `.git/hooks/commit-msg` for editor-case & human-terminal coverage
+
+**Logged:** 2026-04-23
+**Category:** Proposal
+**Severity:** Low
+**Status:** Open — Optional (evaluate when a concrete need arises)
+
+Punted from BL-006. Install a local `commit-msg` git hook via `init.sh` that invokes `scripts/process-checklist.sh --check-commit-message "$(head -n1 "$1")"`. Extends enforcement to two populations the PreToolUse hook cannot reach: (a) `git commit` with no `-m` flag (editor opens), and (b) human-Orchestrator commits from the terminal. The BL-006 design was explicitly built so this is a pure addition — no refactor needed.
+
+**Trigger:** A concrete case where an editor-opened or human-typed `feat:` commit drifts past the Build Loop. Lancache pain was AI-agent authored only, so there is no current signal this matters.
+
+**Tradeoff:** adds a second enforcement site to keep in sync with the PreToolUse hook; meaningful surface-area increase on `init.sh`. Worth it only if the gap bites.
+
+**Related:** BL-006 spec § 10 (out-of-scope note); `pre-commit-gate.sh` architecture is Claude-only by design.
+
+---
+
+## BL-011: Cutline-ID-aware enforcement
+
+**Logged:** 2026-04-23
+**Category:** Proposal
+**Severity:** Low
+**Status:** Open — Optional (evaluate when a concrete need arises)
+
+Punted from BL-006. Parse `PRODUCT_MANIFESTO.md §5` for F-/ID- Cutline identifiers and require commits that touch Cutline work to explicitly reference the ID (e.g., `feat(ID1): ...`), cross-checking that each Cutline ID gets exactly one Build Loop. Catches drift where Cutline work masquerades as a bugfix (`fix(ID1): ...`) or doesn't mention the ID at all.
+
+**Trigger:** A concrete case where a Cutline item drifts under a non-`feat` commit prefix after BL-006 ships. BL-006 closes the `feat:` gap; BL-011 would close a hypothetical `fix:`/`refactor:` gap.
+
+**Tradeoff:** forces every project to adopt an F-/ID- prefix convention in their manifest. BL-007 deliberately kept the rule generic — no ID convention imposed. BL-011 would re-impose one.
+
+**Related:** BL-006 spec § 10; BL-007 doctrinal decision to keep the Cutline rule convention-free.
+
+---
+
+## BL-012: Retroactive scanning for drifted feature commits
+
+**Logged:** 2026-04-23
+**Category:** Proposal
+**Severity:** Low
+**Status:** Open — Optional (evaluate when a concrete need arises)
+
+Punted from BL-006. Scan git history for `feat:`-prefixed commits with no corresponding Build Loop recorded in `.claude/build-progress.json`. Report drift and optionally walk the user through `test-gate.sh --record-feature` reconciliation for each.
+
+**Trigger:** A project onboarding to solo-orchestrator mid-stream wants to audit its git history for past Cutline drift. Today, `test-gate.sh --record-feature` handles one-at-a-time post-hoc recording; BL-012 would batch it.
+
+**Tradeoff:** the hook enforces forward-only by design — the backlog's position is that historical commits don't need retroactive gating. BL-012 only matters if a user explicitly asks for history audit tooling.
+
+**Related:** BL-006 spec § 10; existing `test-gate.sh --record-feature` post-hoc path.
+
+---
+
+## BL-013: Squash-merge server-side enforcement via CI
+
+**Logged:** 2026-04-23
+**Category:** Proposal
+**Severity:** Low
+**Status:** Open — Optional (evaluate when a concrete need arises)
+
+Punted from BL-006. `gh pr merge --squash` runs on the remote host, outside the PreToolUse hook's reach. Any enforcement there needs CI — a GitHub Actions workflow (and GitLab CI / Bitbucket Pipelines equivalents) that reads the squash-merge commit message and rejects the merge if it's `feat:`-prefixed and the branch never recorded a Build Loop.
+
+**Trigger:** A concrete case where a Cutline item is merged via squash-merge without a matching Build Loop on the branch. Requires solo-orchestrator's host drivers to gain CI-workflow templates for all three hosts.
+
+**Tradeoff:** cross-host workflow parity is non-trivial; secrets and state-file access from CI add complexity. The pre-commit gate catches drift at authoring time, which is the more common failure mode.
+
+**Related:** BL-006 spec § 10; host driver architecture (`scripts/host-drivers/`).
+
+---
+
+## BL-014: Commit-type hygiene enforcement
+
+**Logged:** 2026-04-23
+**Category:** Proposal
+**Severity:** Low
+**Status:** Open — Optional (evaluate when a concrete need arises)
+
+Punted from BL-006. Prevent mis-typed commit types — e.g., a real feature disguised as `chore:` or `refactor:` to evade the BL-006 gate. Would require intent inference from the staged diff (lines added to `src/`, new public API surface, new test files asserting behavior) combined with the declared commit-type.
+
+**Trigger:** Observed abuse of the `chore:`/`build:`/`ci:`/`docs:` escape route in BL-006 — i.e., a Cutline feature committed as `chore:` to bypass the gate. Today this is reviewer/author judgment.
+
+**Tradeoff:** intent inference from diffs is brittle and prone to false positives. Likely better addressed by code review norms or an Agent-side lint rather than a pre-commit gate.
+
+**Related:** BL-006 spec § 3 (escape-route decision: Conventional Commits type) and § 10 (out-of-scope note).
