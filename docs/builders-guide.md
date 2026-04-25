@@ -986,6 +986,41 @@ During the Phase 2 initialization steps above, some scaffolding work produces co
 
 ---
 
+### Structured Decision Points: The Pending-Approval Sentinel
+
+During the Build Loop you occasionally face blocking decisions that need orchestrator input: commit structure (single vs. split), merge strategy, scope cuts. When those decisions are offered as structured options (A/B/C), write `.claude/pending-approval.json` via `scripts/pending-approval.sh --offer …` to signal that the agent is deliberately holding. Delete it via `--resolve` once the orchestrator picks.
+
+**Why this matters.** Observed on lancache (2026-04-24): an agent offered commit-structure options (A1/A2/A3), received an ambiguous response ("Complete these, then finish."), and rationalized the response as implicit approval for the recommended option — a unilateral commit without an explicit pick. Root cause: the stop-hook kept firing "Complete these, then finish" every turn, amplifying pressure until the agent broke its own rule. The fix is mechanical: a sentinel file that both enforcement points (CDF stop-hook, Solo pre-commit-gate) honor as "user is deciding — do not advance."
+
+**What the sentinel does.** When `.claude/pending-approval.json` exists:
+- The CDF stop-hook (4.2.3+) exits silently — no block JSON, no stderr advisory, no pressure loop.
+- Solo's `scripts/pre-commit-gate.sh` blocks `git commit` and `gh pr create` — no irreversible action slips through.
+
+Both enforcement points defer to the same file. The sentinel is the single source of truth for "user is deciding."
+
+**Lifecycle.**
+1. Agent offers structured options to the user.
+2. Agent writes the sentinel: `scripts/pending-approval.sh --offer "…" --options "…" --recommendation "…"`. Writes are atomic (tempfile + `mv`) so consumers never see a half-written file.
+3. File exists while the user deliberates. Both enforcement points hold.
+4. User picks. Agent deletes the sentinel: `scripts/pending-approval.sh --resolve` (user answered) or `--clear` (agent aborting the question). Both commands behave identically — the distinction is semantic, for audit readability.
+5. Enforcement points resume normal behavior.
+
+**Sub-command reference.** `scripts/pending-approval.sh --help` lists the full API: `--offer`, `--resolve`, `--clear`, `--status`, `--validate`. `--status` is useful after session recovery ("is there a live sentinel from before?"). `--validate` lints a sentinel path (default `.claude/pending-approval.json`) for CI or debugging use.
+
+**Double-offer is refused.** If a sentinel already exists, `--offer` refuses with an error listing the existing question. Resolve or clear first. This prevents memory-holing an earlier question that the user might still be deciding on.
+
+**Staleness.** Orphaned sentinels (from a crashed agent session) are not auto-cleaned. Run `scripts/pending-approval.sh --clear` or `rm .claude/pending-approval.json` if one is stuck. This matches the CDF stop-hook's behavior; both consumers share the same recovery path.
+
+**When NOT to use the sentinel.** Simple confirm-y/n questions (e.g., "Proceed with the refactor?") don't need the sentinel — just ask. The sentinel is for *structured* decisions where a specific pick is required and an accidental advance would be harmful. Overuse dilutes its signal; under-use causes incidents like lancache.
+
+**Upgrading existing projects.** `scripts/upgrade-project.sh` copies the new `scripts/pending-approval.sh` and the updated `scripts/pre-commit-gate.sh` into existing projects, so the **enforcement** (reader + helper) goes live immediately on upgrade. However, the new `claude-md.tmpl` bullet does NOT replace existing populated `CLAUDE.md` files — those keep their original content. So existing-project agents won't *know* to use the sentinel until either (a) the orchestrator manually adds the bullet to their `CLAUDE.md`, or (b) the project is re-initialized.
+
+This asymmetry is intentional and acceptable: even without the instruction, the enforcement still prevents the livelock (stop-hook side) and the commit slippage (reader side) — those failure modes are caught regardless of agent awareness. The full benefit (agents proactively writing sentinels when offering options) accrues on new or re-initialized projects.
+
+If you maintain an existing project that should fully adopt the mechanism, copy the bullet from `templates/generated/claude-md.tmpl` (Construction Rules section) into your project's `CLAUDE.md`.
+
+---
+
 ### The Build Loop
 
 **For each feature in the MVP Cutline, execute this cycle. Start with the highest-risk or most foundational feature (often authentication or core data handling).**
