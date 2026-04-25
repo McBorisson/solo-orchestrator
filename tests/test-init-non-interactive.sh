@@ -235,6 +235,28 @@ JSON
   pass "N19: --config without --non-interactive → warn + fall through"
 }
 
+n24_default_track() {
+  local out; out=$(run_validate --project p --platform web --deployment personal --language typescript)
+  local stdout="${out#*|}"; stdout="${stdout%%|*}"
+  [[ "$stdout" == *'"track": "standard"'* ]] || { fail_ "N24" "default track should be 'standard': $stdout"; return; }
+  pass "N24: --track defaults to 'standard' when not specified"
+}
+
+n25_default_git_host_visibility() {
+  local out; out=$(run_validate --project p --platform web --deployment personal --language typescript)
+  local stdout="${out#*|}"; stdout="${stdout%%|*}"
+  [[ "$stdout" == *'"git_host": "github"'* ]] || { fail_ "N25" "default git_host should be 'github': $stdout"; return; }
+  [[ "$stdout" == *'"visibility": "private"'* ]] || { fail_ "N25" "default visibility should be 'private': $stdout"; return; }
+  pass "N25: --git-host defaults to 'github', --visibility defaults to 'private'"
+}
+
+n26_default_project_dir() {
+  local out; out=$(run_validate --project mytestproj --platform web --deployment personal --language typescript)
+  local stdout="${out#*|}"; stdout="${stdout%%|*}"
+  [[ "$stdout" == *'"project_dir": "'$HOME'/Code/mytestproj"'* ]] || { fail_ "N26" "default project_dir should be \$HOME/Code/PROJECT: $stdout"; return; }
+  pass "N26: --project-dir defaults to \$HOME/Code/\$PROJECT"
+}
+
 n23_dir_exists_no_allow_flag() {
   local existing cwd_for_run
   existing=$(mktemp -d)
@@ -274,6 +296,9 @@ n20_validate_only_success
 n21_validate_only_failure
 n22_allow_existing_dir
 n23_dir_exists_no_allow_flag
+n24_default_track
+n25_default_git_host_visibility
+n26_default_project_dir
 
 echo ""
 echo "== Total: $((PASSED + FAILED)) | Passed: $PASSED | Failed: $FAILED =="
