@@ -2773,8 +2773,114 @@ collect_inputs_non_interactive() {
     fi
   fi
 
-  # ----- Pass 2 + Pass 3 + defaults + JSON output go in subsequent tasks -----
-  # For now: emit a minimal JSON if --validate-only so N1 can pass.
+  # ----- Pass 2: context-required validation -----
+
+  # Always-required: project, platform, deployment, language
+  if [ -z "$ARG_PROJECT" ]; then
+    fail "--project is required" \
+         "every non-interactive invocation must specify a project name." \
+         "re-run with --project NAME." \
+         "(--project unset)"
+    return 1
+  fi
+  if [ -z "$ARG_PLATFORM" ]; then
+    fail "--platform is required" \
+         "every non-interactive invocation must specify a platform." \
+         "re-run with --platform {desktop|mobile|web|mcp_server}." \
+         "(--platform unset)"
+    return 1
+  fi
+  if [ -z "$ARG_DEPLOYMENT" ]; then
+    fail "--deployment is required" \
+         "every non-interactive invocation must specify a deployment kind." \
+         "re-run with --deployment {personal|organizational}." \
+         "(--deployment unset)"
+    return 1
+  fi
+  if [ -z "$ARG_LANGUAGE" ]; then
+    fail "--language is required" \
+         "every non-interactive invocation must specify a primary language." \
+         "re-run with --language NAME (use --help-non-interactive to see supported languages per platform)." \
+         "(--language unset)"
+    return 1
+  fi
+
+  # gov-mode required iff deployment=organizational
+  if [ "$ARG_DEPLOYMENT" = "organizational" ] && [ -z "$ARG_GOV_MODE" ]; then
+    fail "--gov-mode is required when --deployment=organizational" \
+         "organizational projects must specify a governance mode." \
+         "re-run with one of: --gov-mode production, --gov-mode sponsored_poc, --gov-mode private_poc." \
+         "--deployment=organizational, --gov-mode=(unset)"
+    return 1
+  fi
+  if [ "$ARG_DEPLOYMENT" = "personal" ] && [ -n "$ARG_GOV_MODE" ]; then
+    fail "--gov-mode is not valid for --deployment=personal" \
+         "personal projects do not have a governance mode." \
+         "remove --gov-mode and re-run." \
+         "--deployment=personal, --gov-mode='$ARG_GOV_MODE'"
+    return 1
+  fi
+
+  # remote-url required when git-host=other
+  if [ "$ARG_GIT_HOST" = "other" ] && [ -z "$ARG_REMOTE_URL" ]; then
+    fail "--remote-url is required when --git-host=other" \
+         "the 'other' host has no API to create a repo; you must paste the URL of an existing remote." \
+         "re-run with --remote-url URL." \
+         "--git-host=other, --remote-url=(unset)"
+    return 1
+  fi
+
+  # branch-protection-attested required when git-host=other
+  if [ "$ARG_GIT_HOST" = "other" ] && [ "$ARG_BRANCH_PROTECTION_ATTESTED" != true ]; then
+    fail "--branch-protection-attested is required when --git-host=other" \
+         "the 'other' host cannot be API-verified; you must attest branch protection is configured." \
+         "verify branch protection on the remote, then re-run with --branch-protection-attested." \
+         "--git-host=other, --branch-protection-attested=false"
+    return 1
+  fi
+
+  # visibility=public not allowed for organizational
+  if [ "$ARG_DEPLOYMENT" = "organizational" ] && [ "$ARG_VISIBILITY" = "public" ]; then
+    fail "--visibility=public is not allowed for --deployment=organizational" \
+         "organizational projects must be private (force-private rule from init.sh:1713)." \
+         "remove --visibility=public (or change to --visibility=private) and re-run." \
+         "--deployment=organizational, --visibility=public"
+    return 1
+  fi
+
+  # track=full + deployment=personal: warn, continue (matches interactive confirm-then-proceed)
+  if [ "$ARG_TRACK" = "full" ] && [ "$ARG_DEPLOYMENT" = "personal" ]; then
+    print_warn "Full track on a personal project is unusual; the interactive flow normally asks to confirm."
+    print_warn "Proceeding because non-interactive mode treats explicit flags as confirmation."
+  fi
+
+  # language validity for platform — look up the platform's allowed languages list
+  local lang_list_file=""
+  if [ -f "$SCRIPT_DIR/templates/intake-suggestions/${ARG_PLATFORM}.json" ]; then
+    lang_list_file="$SCRIPT_DIR/templates/intake-suggestions/${ARG_PLATFORM}.json"
+  elif [ -f "$SCRIPT_DIR/templates/intake-suggestions/common.json" ]; then
+    lang_list_file="$SCRIPT_DIR/templates/intake-suggestions/common.json"
+  fi
+  if [ -n "$lang_list_file" ] && command -v jq &>/dev/null; then
+    # Look for "languages" arrays at known schema paths.
+    # Fall back to skipping this check if the schema doesn't expose a list.
+    local supported
+    supported=$(jq -r '.. | objects | select(has("languages")) | .languages[]?' "$lang_list_file" 2>/dev/null | sort -u || true)
+    if [ -n "$supported" ]; then
+      if ! echo "$supported" | grep -qx "$ARG_LANGUAGE"; then
+        local supported_csv
+        supported_csv=$(echo "$supported" | tr '\n' ',' | sed 's/,$//; s/,/, /g')
+        fail "language '$ARG_LANGUAGE' is not supported for platform '$ARG_PLATFORM'" \
+             "the platform's intake suggestions list a different language set." \
+             "re-run with one of: $supported_csv (or pick a different platform)." \
+             "--platform='$ARG_PLATFORM', --language='$ARG_LANGUAGE'"
+        return 1
+      fi
+    fi
+  fi
+
+  # ----- Pass 3 + defaults + full JSON output go in subsequent tasks -----
+  # For now: emit a minimal JSON if --validate-only so N1 still passes.
   if [ "$VALIDATE_ONLY" = true ]; then
     cat <<JSONEOF
 {
