@@ -1687,7 +1687,21 @@ Framework: Solo Orchestrator v1.0"
   # intake-wizard.sh). If absent, prompts inline. Creates remote, registers
   # origin, pushes initial commit, configures branch protection, verifies.
   # Writes host/mode/remote_url to .claude/manifest.json.
-  create_and_protect_remote
+  #
+  # UAT 2026-04-25 fix (U-B): if remote creation fails (push to fake URL,
+  # missing CLI, API 403, etc.) DO NOT abort init.sh via set -e. Continue
+  # to verify-install + print_next_steps so the project is still usable
+  # and the orchestrator gets clear remediation guidance via check-gate.sh.
+  if ! create_and_protect_remote; then
+    echo ""
+    print_warn "Remote setup did not complete cleanly."
+    print_info "Project files are in place; remote push/protection is the gap."
+    print_info "Remediate when ready:"
+    print_info "  scripts/check-gate.sh --backfill-host    # if .claude/manifest.json lacks 'host'"
+    print_info "  scripts/check-gate.sh --repair           # to re-create remote and protection"
+    print_info "  scripts/check-gate.sh --preflight        # to verify the remote is correctly set up"
+    echo ""
+  fi
 
   echo ""
   print_ok "Project created at $PROJECT_DIR"
@@ -2566,6 +2580,14 @@ main() {
   done
 
   print_header "$VERSION"
+
+  # UAT 2026-04-25 fix (U-N): refuse to scaffold a project inside the
+  # framework repo itself. (--dry-run is allowed for inspection.)
+  if [ "$DRY_RUN" != true ]; then
+    if ! guard_not_in_framework; then
+      exit 1
+    fi
+  fi
 
   if [ "$DRY_RUN" = true ]; then
     echo -e "${YELLOW}${BOLD}DRY RUN MODE — no changes will be made${NC}"
