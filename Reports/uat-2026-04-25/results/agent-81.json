@@ -1,0 +1,99 @@
+{
+  "agent_id": 81,
+  "config": {
+    "kind": "upgrade",
+    "scenario": "production",
+    "platform": "web",
+    "track": "full",
+    "upgrade_from": "sponsored_poc"
+  },
+  "framework_head": "9b38911e01c78a7daa4a649878fd68e2a283409f",
+  "started_at": "2026-04-25T10:55:00Z",
+  "completed_at": "2026-04-25T11:10:00Z",
+  "phases": [
+    {
+      "phase": 0,
+      "tests": [
+        {"name": "init_sh_exits_zero", "pass": false, "details": "init.sh hung in an Invalid choice loop after the project skeleton + tool plan + repo creation prompts; was killed manually. Project skeleton and phase-state.json were written before the hang, so subsequent tests proceeded. Heredoc driver fragility per runbook expectation."},
+        {"name": "claude_md_created", "pass": true, "details": "CLAUDE.md present (~18895 bytes)"},
+        {"name": "project_intake_created", "pass": true, "details": "PROJECT_INTAKE.md present (~29036 bytes)"},
+        {"name": "approval_log_created", "pass": true, "details": "APPROVAL_LOG.md present"},
+        {"name": "gitignore_created", "pass": true, "details": ".gitignore present"},
+        {"name": "phase_state_json_phase_zero", "pass": true, "details": "current_phase=0 in .claude/phase-state.json"},
+        {"name": "phase_state_project_set", "pass": true, "details": "project=uat-agent-81"},
+        {"name": "ci_workflow_created", "pass": true, "details": ".github/workflows/ci.yml present"},
+        {"name": "release_workflow_created", "pass": true, "details": ".github/workflows/release.yml present"},
+        {"name": "framework_clone_present", "pass": true, "details": ".claude/framework/ directory present"},
+        {"name": "context7_detection", "pass": true, "details": "verify-install.sh reports [OK] Context7 MCP installed and configured"},
+        {"name": "platform_module_present", "pass": true, "details": "docs/platform-modules/web.md present"},
+        {"name": "no_residual_backup_dir", "pass": true, "details": ".claude-backup/ absent (BUG-002 regression OK)"},
+        {"name": "pre_commit_gate_registered", "pass": true, "details": ".claude/settings.json includes pre-commit-gate.sh"},
+        {"name": "stop_checklist_registered", "pass": true, "details": ".claude/settings.json includes stop-checklist.sh"}
+      ],
+      "framework_bugs": [
+        {
+          "severity": "High",
+          "summary": "init.sh has no scriptable mode for UAT; heredoc driver fragile",
+          "reproduction": "Pipe canned answers via heredoc to bash init.sh — at some point past the post-create prompts the script enters a 'Invalid choice. Enter a number between 1 and 2.' loop that never receives further input and never exits.",
+          "expected": "init.sh should accept --non-interactive flag with config (project name/platform/track/deployment/governance/language/dir/host/visibility) so UAT can drive deterministically; or at minimum prompt count and option counts should match the documented sequence.",
+          "actual": "init.sh hung indefinitely on a 2-option prompt; only --dry-run and --help flags exist. Project skeleton was created before the hang, but completion never reported and no exit code captured."
+        }
+      ],
+      "documentation_gaps": [
+        {"gap": "init.sh prompt sequence not documented for UAT/automation; heredoc consumers must read source to derive answer order, including conditional branches (governance, full-track-personal confirm, host-aware repo creation visibility/URL/attestation).", "where": "init.sh:266-500, 1697-1750"},
+        {"gap": "init.sh does not write .claude/intake-progress.json, but downstream scripts (upgrade-project.sh) require it as the canonical poc_mode source; the only writer is intake-wizard.sh. No documented requirement that wizard be run after init before upgrade.", "where": "init.sh (no writer); scripts/upgrade-project.sh:189-205; scripts/intake-wizard.sh:16"}
+      ]
+    },
+    {
+      "phase": 2,
+      "tests": [
+        {"name": "baseline_built", "pass": true, "details": "Sponsored POC baseline = phase-state.json poc_mode=sponsored_poc, deployment=organizational, track=full. Skipped feature recording for upgrade test (runbook permits Phase 2 minimum but does not strictly require a recorded feature for upgrade-project.sh --to-production execution)."}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": []
+    },
+    {
+      "phase": "F-upgrade",
+      "tests": [
+        {"name": "upgrade_command_exits_zero", "pass": true, "details": "After workaround (writing .claude/intake-progress.json with poc_mode=sponsored_poc), 'bash scripts/upgrade-project.sh --to-production </dev/null' exited 0. First attempt without workaround failed with 'Project is not in POC mode' because upgrade-project.sh does not consult .claude/phase-state.json for poc_mode."},
+        {"name": "phase_state_preserved", "pass": true, "details": "current_phase=0 unchanged; project name unchanged across upgrade; track=full preserved; deployment=organizational preserved"},
+        {"name": "process_state_preserved", "pass": true, "details": ".claude/process-state.json (build_loop, uat_session, phase3/4, phase2_init) byte-identical pre/post upgrade"},
+        {"name": "new_required_artifacts_listed", "pass": true, "details": "Upgrade output listed POC mode removal, phase-state update, intake-progress.json update, and ran verify-install.sh which warned about ~276 blank PROJECT_INTAKE.md fields and listed required pre-Phase-0 work"},
+        {"name": "pending_approval_sentinel_respected", "pass": false, "details": "upgrade-project.sh does not check .claude/pending-approval.json. Source has no reference to the sentinel except a one-line comment in the changelog header."},
+        {"name": "upgrade_changelog_present_in_script", "pass": true, "details": "upgrade-project.sh header lines 11-21 reference both BL-006 (2026-04-24) and BL-015 (2026-04-25); 2 grep matches confirmed"}
+      ],
+      "framework_bugs": [
+        {
+          "severity": "High",
+          "summary": "upgrade-project.sh requires intake-progress.json that init.sh never creates",
+          "reproduction": "1) bash init.sh and let it create a sponsored_poc project (phase-state.json has poc_mode='sponsored_poc'); 2) without running intake-wizard.sh, run 'bash scripts/upgrade-project.sh --to-production </dev/null'. Result: '[FAIL] Project is not in POC mode. Use --track and/or --deployment for non-POC upgrades.' Exit 1.",
+          "expected": "upgrade-project.sh should fall back to .claude/phase-state.json's poc_mode field when intake-progress.json is missing or has empty/null poc_mode (mirroring how it falls back for CURRENT_TRACK).",
+          "actual": "Lines 188-205 only read poc_mode from intake-progress.json; no fallback to phase-state.json. Workaround for this UAT was to hand-write .claude/intake-progress.json, after which the upgrade succeeded cleanly."
+        },
+        {
+          "severity": "Medium",
+          "summary": "upgrade-project.sh does not honor BL-015 pending-approval sentinel",
+          "reproduction": "Touch .claude/pending-approval.json with a valid schema in a sponsored_poc project, then run 'bash scripts/upgrade-project.sh --to-production'. Script proceeds (or fails for unrelated reasons) without acknowledging the sentinel.",
+          "expected": "Per the runbook's pending_approval_sentinel_respected assertion and the spirit of BL-015, structural changes (deployment/track/POC removal) should refuse-or-warn while a pending-approval sentinel is active.",
+          "actual": "No sentinel check anywhere in scripts/upgrade-project.sh; only a one-line comment in the script header references BL-015."
+        }
+      ],
+      "documentation_gaps": [
+        {"gap": "Builder's Guide / upgrade docs do not mention that intake-progress.json is required for upgrade-project.sh to detect POC mode, nor that intake-wizard.sh must be run between init.sh and any upgrade.", "where": "scripts/upgrade-project.sh (no inline note); docs/reference/builders-guide.md (search for 'upgrade')"},
+        {"gap": "BL-015 sentinel scope is unclear: only pre-commit-gate enforces it. If the intent is broader 'no structural mutations during pending approval', upgrade-project.sh, intake-wizard.sh, and process-checklist.sh should all consult it.", "where": "scripts/pending-approval.sh; scripts/upgrade-project.sh"}
+      ]
+    },
+    {
+      "phase": "G-postflight",
+      "tests": [
+        {"name": "no_uncommitted_secrets", "pass": true, "details": "5 grep matches in project files but all are legitimate: web.md mentions 'token strategy (JWT vs sessions)' and 'hardcoded passwords' (Bandit description); .github/workflows/release.yml has commented-out '${{ secrets.VERCEL_TOKEN }}' template comments; .github/workflows/ci.yml uses 'GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}' which is the standard Actions placeholder, not a committed secret."},
+        {"name": "log_files_consistent", "pass": true, "details": "N/A — .claude/process-audit.log absent and no FORCE/reset events occurred during this UAT run"},
+        {"name": "no_orphaned_tempfiles", "pass": true, "details": "find .claude -name '*.tmp' returns nothing"}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": []
+    }
+  ],
+  "overall_pass": false,
+  "summary": "Upgrade from sponsored_poc to production succeeded only after a manual workaround; init.sh hangs late in interactive flow and upgrade-project.sh fails to detect poc_mode without intake-wizard's intake-progress.json."
+}

@@ -1,0 +1,92 @@
+{
+  "agent_id": 80,
+  "config": {
+    "kind": "upgrade",
+    "scenario": "production",
+    "platform": "web",
+    "track": "standard",
+    "upgrade_from": "sponsored_poc"
+  },
+  "framework_head": "9b38911e01c78a7daa4a649878fd68e2a283409f",
+  "language_chosen": "typescript",
+  "started_at": "2026-04-25T16:55:08Z",
+  "completed_at": "2026-04-25T16:58:19Z",
+  "workdir": "/var/folders/35/40h2stxn1c7fnq3zlbmg8kjr0000gn/T/soluat-agent80-XXXXXX.J96B4G1Mgt",
+  "stubs_used": [
+    "Semgrep findings — created docs/security-audits/uat-feat-baseline-security-audit.md with Open=false; no real Semgrep run.",
+    "Stub TypeScript source/test — only `// stub` files in src/ and tests/; no Node/tsc/jest build was run.",
+    "GitHub remote — used https://example.com/fake.git via host=other (option 4); push failed (expected, no real network).",
+    "Phase advancement — manually bumped current_phase from 1->2 via jq because check-phase-gate.sh is consistency-only and does not advance phase.",
+    "WORKAROUND for upgrade-project.sh poc_mode detection bug: stubbed .claude/intake-progress.json with poc_mode=sponsored_poc so the script could proceed (see Critical bug below).",
+    "Pending-approval sentinel — wrote real sentinel via scripts/pending-approval.sh --offer ... to test whether upgrade respects it (it does not — see High bug below)."
+  ],
+  "init_driver": "Heredoc with canned answers fed to bash init.sh: project name 'uat-agent-80', description, platform=4 (web; alphabetical desktop=1, mcp-server=2, mobile=3, web=4), track=2 (standard), deployment=2 (organizational), governance=2 (Sponsored POC), language=7 (typescript), project_dir, Y for confirm, Y for proceed plan, host_choice=4 (other; first attempt mis-numbered triggered Invalid choice warning then accepted on retry), visibility=1 (private), https://example.com/fake.git, attest=yes. init.sh exited non-zero because create_and_protect_remote git push to fake.git failed under set -euo pipefail; project skeleton was nonetheless fully created and usable for downstream tests (same behavior as agent-1 and agent-14).",
+  "scenario_specific_notes": [
+    "Sponsored POC mode wired correctly at init: phase-state.json reports poc_mode='sponsored_poc', deployment='organizational', track='standard', compliance_ready=false. init.sh emitted the warning 'POC MODE: sponsored poc — Phase 4 (production release) is blocked until you upgrade.'",
+    "Sponsored POC + Standard track was accepted (no track upgrade prompt fired because Standard is the minimum acceptable track for Sponsored POC).",
+    "Upgrade --to-production correctly removed poc_mode, set last_upgrade=2026-04-25, preserved current_phase=2, preserved track=standard, preserved deployment=organizational, preserved build_loop history (uat-feat-baseline still recorded).",
+    "Upgrade output explicitly stated 'POC constraints removed. This project is now production-ready' and prompted to review CLAUDE.md/PROJECT_INTAKE.md governance fields. Auto-committed via 'chore(upgrade): POC -> production'.",
+    "Upgrade did NOT respect the .claude/pending-approval.json sentinel — it ran through to completion without warning or refusal (see High bug below)."
+  ],
+  "phases": [
+    {
+      "phase": 0,
+      "tests": [
+        {"name": "init_sh_exits_zero", "pass": false, "details": "init.sh exited 1 (same root cause as agent-1 / agent-14): create_and_protect_remote() git push to fake.git fails; with set -euo pipefail the script aborts after project creation but before verify-install/print_next_steps. The on-disk project is otherwise complete and usable."},
+        {"name": "claude_md_created", "pass": true, "details": "CLAUDE.md present (18899 bytes)."},
+        {"name": "project_intake_created", "pass": true, "details": "PROJECT_INTAKE.md present."},
+        {"name": "approval_log_created", "pass": true, "details": "APPROVAL_LOG.md present (6467 bytes); sponsored-POC variant."},
+        {"name": "gitignore_created", "pass": true, "details": ".gitignore present."},
+        {"name": "phase_state_json_phase_zero", "pass": true, "details": ".current_phase = 0 immediately after init."},
+        {"name": "phase_state_project_set", "pass": true, "details": ".project='uat-agent-80', .poc_mode='sponsored_poc', .deployment='organizational', .track='standard', .compliance_ready=false."},
+        {"name": "ci_workflow_created", "pass": true, "details": ".github/workflows/ci.yml created (host: github, language: typescript)."},
+        {"name": "release_workflow_created", "pass": true, "details": ".github/workflows/release.yml created (platform: web)."},
+        {"name": "framework_clone_present", "pass": true, "details": ".claude/framework/ exists with 20 hooks and 14 rules (CDF 4.2.3)."},
+        {"name": "context7_detection", "pass": true, "details": "verify-install.sh reports `[OK] Context7 MCP installed` and `[OK] Context7 MCP configured`."},
+        {"name": "platform_module_present", "pass": true, "details": "docs/platform-modules/web.md present (12549 bytes)."},
+        {"name": "no_residual_backup_dir", "pass": true, "details": ".claude-backup absent. init.sh logs `Removed CDF migration backup`. BL-002 regression intact."},
+        {"name": "pre_commit_gate_registered", "pass": true, "details": "settings.json PreToolUse hooks include `bash $CLAUDE_PROJECT_DIR/scripts/pre-commit-gate.sh` for matcher Bash."},
+        {"name": "stop_checklist_registered", "pass": true, "details": "settings.json Stop hooks include the framework's stop-checklist.sh and scripts/session-end-qdrant-reminder.sh."}
+      ],
+      "framework_bugs": [
+        {"severity": "High", "summary": "init.sh exits non-zero on documented happy path when remote push fails", "reproduction": "Run init.sh selecting host=other and pasting https://example.com/fake.git as the remote URL (per runbook Setup constraint). git push to fake.git fails; create_and_protect_remote returns 1; set -euo pipefail aborts main() before verify-install and print_next_steps. Exit code = 1.", "expected": "init.sh either tolerates a remote-push failure (prints remediation guidance and finishes) or exits with a documented BLOCKED code that survives set -e gracefully.", "actual": "Bare `[FAIL] Push failed — verify URL and credentials` then immediate non-zero exit. (Confirms agent-1 and agent-14 finding for sponsored_poc/standard/web/typescript config.)"},
+        {"severity": "High", "summary": "init.sh has no scriptable mode for UAT — heredoc driver fragile", "reproduction": "Pipe canned answers via stdin to bash init.sh; only --dry-run/--help flags exist. Number/order of prompts depends on installed-tool state. Host prompt fires on a separate stdin read after project creation, which mis-aligned my answer pool and produced 'Invalid choice. Enter a number between 1 and 4.' before accepting on the retry.", "expected": "A non-interactive flag (or --answers-from FILE) so UAT and CI can drive init.sh deterministically without per-environment prompt drift.", "actual": "Same brittleness as agents 1 and 14; the Git host prompt is particularly sensitive because it lives outside collect_project_info()."}
+      ],
+      "documentation_gaps": [
+        {"gap": "init.sh advertises only --dry-run and --help; runbook documents --non-interactive/--project/--platform/--track/--scenario/--upgrade-from flags that do not exist.", "where": "init.sh main() flag parser vs Reports/uat-2026-04-25/RUNBOOK.md Section A example."},
+        {"gap": "Number/order of init.sh prompts is undocumented and varies with installed-tool state and per-platform conditional branches; the host/visibility prompts fire after project creation and are read separately.", "where": "init.sh collect_project_info / resolve_and_install_tools / create_and_protect_remote — no consolidated prompt-sequence doc."}
+      ]
+    },
+    {
+      "phase": "F_upgrade",
+      "tests": [
+        {"name": "upgrade_command_exits_zero", "pass": true, "details": "After workaround stub of .claude/intake-progress.json (see Critical bug), `bash scripts/upgrade-project.sh --to-production </dev/null` exits 0. Output: 'Upgrade Complete', 'POC constraints removed', auto-commit 'chore(upgrade): POC -> production'. Without the workaround the script fails with `[FAIL] Project is not in POC mode.` even though phase-state.json clearly reports poc_mode='sponsored_poc'."},
+        {"name": "phase_state_preserved", "pass": true, "details": "Pre: current_phase=2, project='uat-agent-80', track='standard', deployment='organizational'. Post: current_phase=2 (unchanged), project='uat-agent-80' (unchanged), track='standard' (unchanged), deployment='organizational' (unchanged). poc_mode key was correctly removed and last_upgrade='2026-04-25' was added."},
+        {"name": "process_state_preserved", "pass": true, "details": ".build_loop unchanged across upgrade: feature='uat-feat-baseline', step=6, all 6 steps_completed preserved, started_at='2026-04-25T16:56:45Z' preserved. .claude/build-progress.json .features_completed = ['uat-feat-baseline'] preserved."},
+        {"name": "new_required_artifacts_listed", "pass": false, "details": "Upgrade output enumerates the FILES it will rewrite (.claude/phase-state.json, tool-preferences.json, CLAUDE.md, PROJECT_INTAKE.md, intake-progress.json) but does NOT list any NEW required artifacts/checks the project must now satisfy as a production scenario (e.g., pen-test report, legal review attestation, PROJECT_BIBLE.md, PRODUCT_MANIFESTO.md). It only generically advises 'Review CLAUDE.md / PROJECT_INTAKE.md Section 8 governance fields'. The post-upgrade verify-install run did surface PRODUCT_MANIFESTO.md and PROJECT_BIBLE.md as warnings, but those are pre-existing Phase-2 expectations, not production-specific deltas."},
+        {"name": "pending_approval_sentinel_respected", "pass": false, "details": "Wrote a valid sentinel via `scripts/pending-approval.sh --offer 'Pre-upgrade approval test?' --options 'A1: Proceed' 'A2: Abort' --recommendation A1` BEFORE running the upgrade. upgrade-project.sh ran to completion without ever consulting the sentinel — no warn, no refuse, no block. The sentinel file was still present after the upgrade. grep for `pending-approval` in scripts/upgrade-project.sh finds only the comment in the changelog header (line 17), no runtime check."},
+        {"name": "upgrade_changelog_present_in_script", "pass": true, "details": "scripts/upgrade-project.sh header (lines 11-19) explicitly mentions both BL-006 (2026-04-24) and BL-015 (2026-04-25) changelog entries describing what the upgrade picks up."}
+      ],
+      "framework_bugs": [
+        {"severity": "Critical", "summary": "upgrade-project.sh cannot detect poc_mode after init.sh — wrong source file", "reproduction": "Run a stock init.sh in any POC scenario (private_poc OR sponsored_poc); confirm `.claude/phase-state.json` has `poc_mode='sponsored_poc'` (or 'private_poc') and `.claude/intake-progress.json` does NOT exist. Then run `bash scripts/upgrade-project.sh --to-production`. Script prints `[FAIL] Project is not in POC mode. Use --track and/or --deployment for non-POC upgrades.` and exits 1, even though the project IS in POC mode.", "expected": "upgrade-project.sh should read poc_mode from `.claude/phase-state.json` (where init.sh writes it) — either as a primary source or as a fallback when intake-progress.json is missing. Today it reads poc_mode ONLY from `.claude/intake-progress.json` (scripts/upgrade-project.sh:194-198), which init.sh does NOT create on the happy path.", "actual": "Documented happy-path command `--to-production` is broken end-to-end for every project that ran init.sh. The only way past it is to manually create a stub `.claude/intake-progress.json` containing poc_mode (which is the workaround I used to complete this UAT)."}
+      ],
+      "documentation_gaps": [
+        {"gap": "Upgrade output should enumerate new artifact requirements introduced by the target deployment (production: pen test, legal review, PROJECT_BIBLE.md, PRODUCT_MANIFESTO.md, etc.) rather than just listing the files it rewrote. The runbook's `new_required_artifacts_listed` assertion has no implementation in upgrade-project.sh today.", "where": "scripts/upgrade-project.sh — completion summary (Upgrade Complete block); RUNBOOK.md Section F row 4."},
+        {"gap": "The upgrade-project.sh changelog (header lines 11-19) claims BL-015 is picked up by the upgrade, but the script never actually checks for or warns about a pre-existing pending-approval sentinel. The runbook's `pending_approval_sentinel_respected` assertion has no implementation.", "where": "scripts/upgrade-project.sh:17 (changelog claim) vs no runtime check; RUNBOOK.md Section F row 5."},
+        {"gap": "Where init.sh writes poc_mode (.claude/phase-state.json) vs where upgrade-project.sh reads it (.claude/intake-progress.json) is not documented or aligned. This is the root cause of the Critical bug above.", "where": "scripts/init.sh (writes phase-state.json with poc_mode) vs scripts/upgrade-project.sh:194-198 (reads only from intake-progress.json)."}
+      ]
+    },
+    {
+      "phase": "G_postflight",
+      "tests": [
+        {"name": "no_uncommitted_secrets", "pass": true, "details": "grep hits in .claude/framework/hooks/known-stdlib.txt, .github/workflows/*.yml, scripts/*.sh, docs/platform-modules/*.md, docs/reference/*.md, templates/generated/*.tmpl are framework template/documentation files mentioning the WORDS password/api_key/secret/token in security-evaluation prose, not actual credentials. No real secrets in workdir. (gitleaks ran clean during the feature commit and the upgrade auto-commit.)"},
+        {"name": "log_files_consistent", "pass": true, "details": "N/A — .claude/process-audit.log does not exist because no FORCE/reset events occurred during the run. Per runbook this is the expected condition."},
+        {"name": "no_orphaned_tempfiles", "pass": true, "details": "find .claude -name '*.tmp' returns nothing."}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": []
+    }
+  ],
+  "overall_pass": false,
+  "summary": "Upgrade agent (sponsored_poc -> production / web / standard / typescript) found a Critical bug: scripts/upgrade-project.sh reads poc_mode only from .claude/intake-progress.json but init.sh writes it only to .claude/phase-state.json, so the documented `--to-production` happy path fails on every project until the user manually stubs intake-progress.json. Also confirmed agents 1/14 init.sh push-failure and heredoc-fragility findings, and surfaced two new High-severity gaps (upgrade output does not list new production artifact requirements; upgrade does not respect the BL-015 pending-approval sentinel)."
+}

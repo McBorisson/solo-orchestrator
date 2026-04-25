@@ -1,0 +1,98 @@
+{
+  "agent_id": 82,
+  "config": {
+    "kind": "upgrade",
+    "scenario": "production",
+    "platform": "mcp_server",
+    "track": "light",
+    "upgrade_from": "sponsored_poc"
+  },
+  "framework_head": "9b38911e01c78a7daa4a649878fd68e2a283409f",
+  "started_at": "2026-04-25T10:55:00Z",
+  "completed_at": "2026-04-25T11:10:00Z",
+  "phases": [
+    {
+      "phase": 0,
+      "tests": [
+        {"name": "init_sh_exits_zero", "pass": false, "details": "init.sh hung repeatedly on non-numeric input loops ('Invalid choice. Enter a number between 1 and 4.') before reaching project info prompts. Heredoc driver could not pass through the prereq/docker installer prompts. Used fallback per runbook: manually composed project skeleton from $FRAMEWORK/templates/generated/* and synthetic .claude/*.json. Note: init.sh did partially produce a project layout despite the loop, suggesting it eventually exited; treated as init-driver failure."},
+        {"name": "claude_md_created", "pass": true, "details": "CLAUDE.md present (rendered from claude-md.tmpl)"},
+        {"name": "project_intake_created", "pass": true, "details": "PROJECT_INTAKE.md present"},
+        {"name": "approval_log_created", "pass": true, "details": "APPROVAL_LOG.md present (org template)"},
+        {"name": "gitignore_created", "pass": true, "details": ".gitignore present"},
+        {"name": "phase_state_json_phase_zero", "pass": true, "details": "phase-state.json .current_phase = 0 (baseline before manual advance to 2)"},
+        {"name": "phase_state_project_set", "pass": true, "details": ".project = uat-agent-82"},
+        {"name": "ci_workflow_created", "pass": true, "details": ".github/workflows/ci.yml present (python pipeline)"},
+        {"name": "release_workflow_created", "pass": true, "details": ".github/workflows/release.yml present (mcp-server pipeline)"},
+        {"name": "framework_clone_present", "pass": true, "details": ".claude/framework/ directory present (CDF clone produced by partial init.sh run)"},
+        {"name": "context7_detection", "pass": false, "details": "verify-install.sh not invoked because init.sh did not run cleanly; cannot assert detection ran. Recorded as gap rather than bug since the script exists at scripts/verify-install.sh."},
+        {"name": "platform_module_present", "pass": true, "details": "docs/platform-modules/mcp-server.md present"},
+        {"name": "no_residual_backup_dir", "pass": true, "details": "No .claude-backup directory (BUG-002 regression OK)"},
+        {"name": "pre_commit_gate_registered", "pass": true, "details": ".claude/settings.json PreToolUse[].hooks[].command points to .claude/framework/scripts/pre-commit-gate.sh"},
+        {"name": "stop_checklist_registered", "pass": true, "details": ".claude/settings.json Stop[].hooks[].command points to .claude/framework/scripts/stop-checklist.sh"}
+      ],
+      "framework_bugs": [
+        {
+          "severity": "High",
+          "summary": "init.sh has no scriptable mode for UAT — heredoc driver fragile",
+          "reproduction": "bash $FRAMEWORK/init.sh <<EOF ... canned answers ... EOF — gets stuck on prereq Docker prompt (only --dry-run/--help flags exist; no --non-interactive)",
+          "expected": "init.sh should accept canned answers via stdin OR provide a --non-interactive/--config-file mode for automated setup and CI/UAT",
+          "actual": "init.sh emitted 'Invalid choice. Enter a number between 1 and 4.' in a tight loop on the prereq prompt and never advanced to project name. Required full manual fallback per runbook."
+        }
+      ],
+      "documentation_gaps": [
+        {"gap": "No documented machine-readable init driver; runbook expects heredoc but init.sh's prereq prompts vary by host so canned answers are brittle. Document a stable `--non-interactive --answers <file>` mode.", "where": "init.sh (entire driver), runbook 'Init driver' subsection"},
+        {"gap": "No reference doc enumerating the canonical .claude/*.json shape (phase-state, process-state, build-progress, intake-progress, manifest) that fallback authors can target", "where": "docs/ (no schema reference) and templates/generated/"}
+      ]
+    },
+    {
+      "phase": "F",
+      "tests": [
+        {"name": "upgrade_command_exits_zero", "pass": true, "details": "bash $FRAMEWORK/scripts/upgrade-project.sh --to-production exited 0 once .claude/intake-progress.json contained poc_mode=sponsored_poc. First attempt failed with 'Project is not in POC mode' because phase-state.json carries poc_mode but upgrade-project.sh only reads intake-progress.json and tool-preferences.json — see bug below."},
+        {"name": "phase_state_preserved", "pass": true, "details": "current_phase 2 preserved across upgrade; .project unchanged. Diff vs pre: poc_mode removed (expected for production), last_upgrade=2026-04-25 added."},
+        {"name": "process_state_preserved", "pass": true, "details": "process-state.json byte-identical post-upgrade; build_loop.history with uat-feat-1 preserved."},
+        {"name": "new_required_artifacts_listed", "pass": true, "details": "Post-upgrade validation reports missing PRODUCT_MANIFESTO.md and PROJECT_BIBLE.md (expected for Phase 2), and prompts to run scripts/check-gate.sh --preflight before next Phase 1->2 transition."},
+        {"name": "pending_approval_sentinel_respected", "pass": false, "details": "Wrote .claude/pending-approval.json with sentinel/reason fields and re-ran upgrade-project.sh --to-production. Script proceeded with full upgrade, did not warn or refuse, did not mention pending-approval. The pending-approval gate appears to be enforced by pre-commit-gate.sh on commits, but upgrade-project.sh itself bypasses it. Recorded as High bug below."},
+        {"name": "upgrade_changelog_present_in_script", "pass": true, "details": "scripts/upgrade-project.sh header has explicit Changelog with both BL-006 (2026-04-24, pre-commit gate blocks feat: w/o Build Loop) and BL-015 (2026-04-25, sentinel blocking + new pending-approval.sh)."}
+      ],
+      "framework_bugs": [
+        {
+          "severity": "High",
+          "summary": "upgrade-project.sh ignores .claude/pending-approval.json sentinel",
+          "reproduction": "In a project mid-upgrade, write {\"sentinel\":\"pending\",\"reason\":\"awaiting governance\"} to .claude/pending-approval.json, then run bash $FRAMEWORK/scripts/upgrade-project.sh --to-production",
+          "expected": "Per BL-015 spirit (pending-approval blocks state-changing operations), upgrade-project.sh should refuse-or-warn when pending-approval.json exists, mirroring pre-commit-gate behavior. Runbook Section F asserts: 'if a sentinel exists, upgrade refuses or warns rather than blasting through.'",
+          "actual": "Upgrade ran end-to-end with no mention of pending-approval. Output contained zero matches for pending|approval|sentinel|refuse|abort related to the sentinel itself (only the routine 'APPROVAL_LOG.md exists' lines)."
+        },
+        {
+          "severity": "Medium",
+          "summary": "upgrade-project.sh state-source mismatch with phase-state.json",
+          "reproduction": "Project where phase-state.json has poc_mode=sponsored_poc but no .claude/intake-progress.json: bash scripts/upgrade-project.sh --to-production -> '[FAIL] Project is not in POC mode'",
+          "expected": "upgrade-project.sh should fall back to phase-state.json when intake-progress.json is missing (init.sh writes both; recovery/manual repair scenarios may have only phase-state.json).",
+          "actual": "Script reads poc_mode only from intake-progress.json (lines 195-198) and tool-preferences.json. phase-state.json is ignored even though it is the canonical phase tracker for the rest of the framework."
+        },
+        {
+          "severity": "Medium",
+          "summary": "Post-upgrade validation report shows literal __PROJECT_NAME__ / __PLATFORM__ / __LANGUAGE__",
+          "reproduction": "After upgrade-project.sh --to-production, the embedded validation block prints: 'Project:  __PROJECT_NAME__' and 'Platform: __PLATFORM__ | Track: Standard | Language: __LANGUAGE__'",
+          "expected": "Placeholder tokens should be substituted with real project/platform/language values (already known in scope).",
+          "actual": "Raw __PROJECT_NAME__, __PLATFORM__, __LANGUAGE__ tokens are emitted to the terminal."
+        }
+      ],
+      "documentation_gaps": [
+        {"gap": "upgrade-project.sh --help / header should call out that intake-progress.json is the canonical source of truth for poc_mode (or, conversely, fix the script to also accept phase-state.json)", "where": "scripts/upgrade-project.sh:177-205"},
+        {"gap": "No documentation of how upgrade-project.sh interacts with the pending-approval sentinel (BL-015) — README/CLAUDE.md should clarify whether the sentinel blocks upgrades", "where": "scripts/upgrade-project.sh changelog comment lines 17-21 and BL-015 spec"}
+      ]
+    },
+    {
+      "phase": "G",
+      "tests": [
+        {"name": "no_uncommitted_secrets", "pass": true, "details": "git ls-files | xargs grep -l -E for password|api_key|secret|token followed by quoted 16+ char value: 0 hits. Word matches in evaluation-prompts/* are template/doc text, not secrets."},
+        {"name": "log_files_consistent", "pass": true, "details": "N/A — no FORCE/reset events occurred during this UAT; .claude/process-audit.log absent (correct behavior, append-only on bypass)."},
+        {"name": "no_orphaned_tempfiles", "pass": true, "details": "find $WORKDIR/.claude -name '*.tmp' returned nothing"}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": []
+    }
+  ],
+  "overall_pass": false,
+  "summary": "Upgrade flow (sponsored_poc -> production, mcp-server, light track) preserves phase/process state and lists required artifacts, but ignores BL-015 pending-approval sentinel and reads poc_mode only from intake-progress.json (not phase-state.json); init.sh remains non-scriptable forcing manual fallback."
+}

@@ -1,0 +1,133 @@
+{
+  "agent_id": 46,
+  "config": {
+    "kind": "base",
+    "scenario": "production",
+    "platform": "mcp_server",
+    "track": "light",
+    "upgrade_from": null
+  },
+  "framework_head": "9b38911e01c78a7daa4a649878fd68e2a283409f",
+  "started_at": "2026-04-25T16:51:33Z",
+  "completed_at": "2026-04-25T17:01:19Z",
+  "config_notes": "Runbook config requested track=light, but Solo Orchestrator init.sh enforces a Production-Build governance constraint that rejects 'light' (Production requires standard or full). Test was completed with track=standard as the closest valid track for the scenario. mcp_server platform appears as 'mcp-server' in init.sh (hyphenated). Heredoc-driven init was killed on the Git host prompt; manual fake remote was added per runbook constraint.",
+  "phases": [
+    {
+      "phase": 0,
+      "tests": [
+        {"name": "init_sh_exits_zero", "pass": false, "details": "init.sh hung on the 'Git host:' prompt after the heredoc was exhausted; killed at 120s. Project skeleton WAS produced before the hang (CLAUDE.md, PROJECT_INTAKE.md, .claude/, workflows, etc.). Post-init wiring (host repo creation, branch protection, phase2_init markings 2-4) had to be performed manually."},
+        {"name": "claude_md_created", "pass": true, "details": "CLAUDE.md present in project root."},
+        {"name": "project_intake_created", "pass": true, "details": "PROJECT_INTAKE.md present."},
+        {"name": "approval_log_created", "pass": true, "details": "APPROVAL_LOG.md present."},
+        {"name": "gitignore_created", "pass": true, "details": ".gitignore present."},
+        {"name": "phase_state_json_phase_zero", "pass": true, "details": "phase-state.json .current_phase = 0 immediately post-init."},
+        {"name": "phase_state_project_set", "pass": true, "details": ".project = 'uat-agent-46'."},
+        {"name": "ci_workflow_created", "pass": true, "details": ".github/workflows/ci.yml present (host=github, language=typescript)."},
+        {"name": "release_workflow_created", "pass": true, "details": ".github/workflows/release.yml present (platform=mcp-server)."},
+        {"name": "framework_clone_present", "pass": true, "details": ".claude/framework directory present (CDF v4.2.3, profile=web-api, 14 rules, 15 hooks)."},
+        {"name": "context7_detection", "pass": true, "details": "verify-install.sh reports 'Context7 MCP installed' and 'Context7 MCP configured'."},
+        {"name": "platform_module_present", "pass": true, "details": "docs/platform-modules/mcp-server.md present; only mcp-server.md (no extras) — UAT-platform reference also copied."},
+        {"name": "no_residual_backup_dir", "pass": true, "details": ".claude-backup/ removed by init.sh ('Removed CDF migration backup' log line confirms BUG-002 regression check)."},
+        {"name": "pre_commit_gate_registered", "pass": true, "details": ".claude/settings.json PreToolUse Bash hooks include 'bash $CLAUDE_PROJECT_DIR/scripts/pre-commit-gate.sh'."},
+        {"name": "stop_checklist_registered", "pass": true, "details": ".claude/settings.json Stop hooks include $CLAUDE_PROJECT_DIR/.claude/framework/hooks/stop-checklist.sh."}
+      ],
+      "framework_bugs": [
+        {
+          "severity": "High",
+          "summary": "init.sh has no scriptable mode for UAT — heredoc driver fragile",
+          "reproduction": "Pipe canned answers into bash init.sh; the prompt order shifts based on conditional branches (e.g., light+production triggers an extra track re-prompt; Git host + visibility prompts appear AFTER project creation when no intake-progress.json exists).",
+          "expected": "init.sh accepts --non-interactive plus structured flags (--project, --platform, --track, --deployment, --governance, --language, --dir, --git-host, --visibility) so UAT and CI can drive deterministically.",
+          "actual": "Only --dry-run and --help flags exist. Heredoc driver silently mis-aligns when conditional re-prompts fire; init.sh hangs on the post-creation Git host prompt once the heredoc is exhausted, leaving phase2_init steps 2-4 unmarked even though the project itself is usable."
+        },
+        {
+          "severity": "Medium",
+          "summary": "check-phase-gate.sh emits 'integer expression expected' for organizational deployments",
+          "reproduction": "bash scripts/check-phase-gate.sh in a fresh organizational/Production project with current_phase=0.",
+          "expected": "Clean output, single-line precond_count value.",
+          "actual": "scripts/check-phase-gate.sh: line 204: [: 0\\n0: integer expression expected. The grep -c | wc-style chained pipeline returns a multi-line count when APPROVAL_LOG.md has the expected sectioning, breaking the [ -lt 6 ] integer test."
+        }
+      ],
+      "documentation_gaps": [
+        {"gap": "Runbook says platform identifier is 'mcp_server' but the actual filename / init.sh prompt label is 'mcp-server' (hyphen). Either rename platform module to mcp_server.md or document the substitution.", "where": "docs/platform-modules/mcp-server.md vs Reports/uat-2026-04-25/RUNBOOK.md (platform enumeration)"},
+        {"gap": "Production-Build governance silently up-converts track=light to standard/full but the 'config' table in the runbook treats light/standard/full as freely combinable with any scenario. Either pre-validate the matrix and drop production+light as a config, or document the up-convert.", "where": "init.sh:328-378 (TRACK re-prompt under organizational + non-private POC)"},
+        {"gap": "process-checklist.sh --start-phase1 is a real action but is missing from --help output.", "where": "scripts/process-checklist.sh:60-70 (--help text)"},
+        {"gap": "No script advances .claude/phase-state.json .current_phase from 0→1, 1→2, 2→3, or 3→4. The runbook test 'phase_state_advances_to_2' is described as 'after gate passes and approval is logged' but check-phase-gate.sh only consistency-checks; advancement is implicit/manual.", "where": "scripts/check-phase-gate.sh + docs/reference/builders-guide.md (no documented procedure to flip current_phase)"}
+      ]
+    },
+    {
+      "phase": 1,
+      "tests": [
+        {"name": "start_phase1_exits_zero", "pass": true, "details": "scripts/process-checklist.sh --start-phase1 → RC=0; phase1_architecture object created in process-state.json."},
+        {"name": "phase1_steps_array_present", "pass": true, "details": "jq '.phase1_architecture.steps_completed' returns []."},
+        {"name": "each_phase1_step_completes", "pass": true, "details": "All 5 PHASE1_STEPS (architecture_selected, threat_model_complete, data_model_defined, ui_scaffolding_done, bible_synthesized) accepted via --complete-step in order."},
+        {"name": "phase1_to_phase2_gate_passes", "pass": true, "details": "check-phase-gate.sh prints 'Phase gates consistent.' RC=0 (despite cosmetic shell-arithmetic warning noted as Phase 0 bug)."},
+        {"name": "phase_state_advances_to_2", "pass": false, "details": "No script advances current_phase. Updated phase-state.json manually (current_phase=2, gates.phase_0_to_1 + phase_1_to_2 dated) so the rest of the test could proceed. See Phase 0 documentation gap."}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": []
+    },
+    {
+      "phase": 2,
+      "tests": [
+        {"name": "start_feature_records_state", "pass": true, "details": "scripts/process-checklist.sh --start-feature 'uat-feat-1' set .build_loop.feature='uat-feat-1' and started_at."},
+        {"name": "each_step_completes_in_order", "pass": true, "details": "All 5 build_loop steps + feature_recorded accepted; security_audit artifact gate enforced (forced creation of docs/security-audits/uat-feat-1-security-audit.md)."},
+        {"name": "pre_commit_passes_after_loop", "pass": true, "details": "git commit -m 'feat(uat-1): stub feature for UAT' succeeded with all 5 steps complete; .git/hooks/pre-commit (gitleaks + Semgrep + TDD) ran and passed."},
+        {"name": "bl006_blocks_feat_without_loop", "pass": false, "details": "BL-006 ENFORCEMENT GAP: After feature_recorded completes, .build_loop.feature stays set to the prior feature name and all 5 steps remain marked complete. A subsequent feat: commit without --start-feature is therefore ALLOWED by both the shell git pre-commit path and the PreToolUse pre-commit-gate.sh path. require_build_loop_state_for_commit only blocks when feature is null OR a step is incomplete; neither is true after a successful loop. Reproduced: 'git commit --allow-empty -m \"feat(bl006-trigger): no loop\"' returned RC=0; PreToolUse hook returned RC=0 with no deny output."},
+        {"name": "bl015_sentinel_blocks_commit", "pass": true, "details": "scripts/pending-approval.sh --offer wrote .claude/pending-approval.json; PreToolUse pre-commit-gate.sh emitted permissionDecision=deny with the pending question + remediation."},
+        {"name": "bl015_sentinel_resolves", "pass": true, "details": "scripts/pending-approval.sh --resolve removed the sentinel; subsequent gate invocation returned RC=0 with no output (allow)."},
+        {"name": "recorded_feature_appears_in_progress", "pass": true, "details": "jq '.features_completed' .claude/build-progress.json returns ['uat-feat-1']."}
+      ],
+      "framework_bugs": [
+        {
+          "severity": "Critical",
+          "summary": "BL-006 fails to block feat: commits after a completed Build Loop",
+          "reproduction": "1) Complete a Build Loop end-to-end including feature_recorded. 2) Without calling --start-feature for a new feature, run: git commit --allow-empty -m 'feat(other): no loop'. The commit is permitted; the PreToolUse pre-commit-gate.sh path also returns RC=0 with no deny.",
+          "expected": "After feature_recorded completes, the prior loop's state should not satisfy require_build_loop_state_for_commit for a NEW feat: commit. Either reset .build_loop.feature to null on feature_recorded completion, or compare the commit message's feat scope to the active feature, or require feature_recorded to clear steps_completed.",
+          "actual": "process-checklist.sh:require_build_loop_state_for_commit returns 0 because feature != null and all 5 required steps are still marked complete from the prior loop. Result: a single completed loop unlocks unlimited subsequent feat: commits with no Build Loop work."
+        }
+      ],
+      "documentation_gaps": [
+        {"gap": "Runbook 'each_step_completes_in_order' assumes process-checklist sequential enforcement is documented; phase2_init steps 2-4 (branch_protection_configured, project_scaffolded, data_model_applied) have no auto-marking outside init.sh's host-repo flow, so a partial init leaves the project unable to commit without manual --complete-step calls.", "where": "scripts/process-checklist.sh:verify_init + init.sh:create_and_protect_remote"}
+      ]
+    },
+    {
+      "phase": 3,
+      "tests": [
+        {"name": "start_phase3_exits_zero", "pass": true, "details": "scripts/process-checklist.sh --start-phase3 ran phase 2→3 bug gate (no open SEV-1/2/3) and warned 'feature(s) since last UAT session'; RC=0."},
+        {"name": "start_uat_creates_session", "pass": true, "details": "--start-uat 1 set .uat_session.session_id=1 and started_at."},
+        {"name": "uat_template_lints_clean", "pass": false, "details": "scripts/lint-uat-scenarios.sh requires a populated HTML file argument and prints usage when called with no args (RC=0). No 'generated UAT scenario' was actually emitted by --start-uat — the runbook assertion has no canonical artifact to lint against. Marking partial: lint script exists and prints clean usage but is not exercised end-to-end."},
+        {"name": "each_uat_step_completes", "pass": true, "details": "All 9 UAT_STEPS (agents_dispatched through gate_passed) accepted via --complete-step."},
+        {"name": "phase3_to_phase4_gate", "pass": true, "details": "All 9 PHASE3_STEPS accepted; no failure on legal_review (added 'Attorney / Legal Review — N/A' entry to APPROVAL_LOG.md to satisfy the conditional check)."}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": [
+        {"gap": "scripts/lint-uat-scenarios.sh requires a populated HTML file but neither --start-uat nor any other script generates one; the runbook 'uat_template_lints_clean' assertion has no source artifact path documented.", "where": "scripts/lint-uat-scenarios.sh + scripts/process-checklist.sh:start_uat"},
+        {"gap": "Phase 3 'legal_review' artifact check warns when no PRIVACY_POLICY.md / TERMS_OF_SERVICE.md exist but offers no clean N/A path for server-side mcp-server projects without user data — work-around required (manual APPROVAL_LOG entry).", "where": "scripts/process-checklist.sh:phase3_validation:legal_review case (line ~390)"}
+      ]
+    },
+    {
+      "phase": 4,
+      "tests": [
+        {"name": "start_phase4_exits_zero", "pass": true, "details": "scripts/process-checklist.sh --start-phase4 RC=0."},
+        {"name": "each_phase4_step_completes", "pass": true, "details": "All 6 PHASE4_STEPS accepted (production_build, rollback_tested, go_live_verified, monitoring_configured, handoff_written, handoff_tested)."},
+        {"name": "handoff_md_required", "pass": true, "details": "monitoring_configured BLOCKED with 'HANDOFF.md not found' until HANDOFF.md was created with a Section 8 monitoring entry. After creation the step succeeded."},
+        {"name": "release_notes_required", "pass": true, "details": "RELEASE_NOTES.md was generated by init.sh; go_live_verified passed without re-prompt."},
+        {"name": "phase4_completion_state", "pass": true, "details": "phase-state.json .current_phase = 4 after walking all phase4_release steps. (Manual advancement was required per Phase 1 doc gap.)"}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": []
+    },
+    {
+      "phase": 5,
+      "tests": [
+        {"name": "no_uncommitted_secrets", "pass": true, "details": "git ls-files | xargs grep -liE 'password|api[_-]?key|secret|token' returned only framework documentation/templates/CI workflow files that legitimately reference these tokens (no values). No secrets in committed payload."},
+        {"name": "log_files_consistent", "pass": true, "details": "N/A — .claude/process-audit.log does not exist; no FORCE/reset events occurred during the test run (matches runbook expectation)."},
+        {"name": "no_orphaned_tempfiles", "pass": true, "details": "find .claude -name '*.tmp' returned nothing."}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": []
+    }
+  ],
+  "overall_pass": false,
+  "summary": "Production / mcp-server / typescript walk-through completes Phases 0-4 but uncovers one Critical BL-006 enforcement gap (completed Build Loops permanently unlock subsequent feat: commits) plus the expected init.sh non-scriptability High finding; init.sh succeeds at producing the project skeleton but hangs on the post-creation Git host prompt when driven by heredoc."
+}

@@ -1,0 +1,127 @@
+{
+  "agent_id": 57,
+  "config": {
+    "kind": "upgrade",
+    "scenario": "private_poc",
+    "platform": "web",
+    "track": "full",
+    "upgrade_from": "personal"
+  },
+  "framework_head": "9b38911e01c78a7daa4a649878fd68e2a283409f",
+  "started_at": "2026-04-25T16:52:38Z",
+  "completed_at": "2026-04-25T16:59:47Z",
+  "phases": [
+    {
+      "phase": 0,
+      "tests": [
+        {"name": "init_sh_exits_zero", "pass": false, "details": "init.sh hung in an infinite 'Invalid choice. Enter a number between 1 and 4.' loop after the heredoc fed answers; falling back to manual project-skeleton stubbing per runbook lines 113-116. Heredoc fed (project_name, desc, platform=4, track=3, deployment=1, y, language=7, dir, y) but the first prompt evidently expected a 1-4 choice (likely Docker install or another pre-collect_project_info prompt)."},
+        {"name": "claude_md_created", "pass": true, "details": "Copied templates/generated/claude-md.tmpl manually."},
+        {"name": "project_intake_created", "pass": true, "details": "Copied templates/project-intake.md manually."},
+        {"name": "approval_log_created", "pass": true, "details": "Copied templates/generated/approval-log-personal.tmpl manually."},
+        {"name": "gitignore_created", "pass": true, "details": "Copied templates/generated/gitignore-base.tmpl manually."},
+        {"name": "phase_state_json_phase_zero", "pass": true, "details": "Manually wrote .claude/phase-state.json with current_phase=0 (then advanced to 2 to satisfy upgrade prerequisite)."},
+        {"name": "phase_state_project_set", "pass": true, "details": ".project = uat-agent-57"},
+        {"name": "ci_workflow_created", "pass": true, "details": "Copied templates/pipelines/ci/github/typescript.yml."},
+        {"name": "release_workflow_created", "pass": true, "details": "Copied templates/pipelines/release/github/web.yml."},
+        {"name": "framework_clone_present", "pass": true, "details": "Symlinked .claude/framework -> $FRAMEWORK to mimic install."},
+        {"name": "context7_detection", "pass": true, "details": "verify-install.sh reports Context7 MCP: INSTALLED."},
+        {"name": "platform_module_present", "pass": true, "details": "Copied docs/platform-modules/web.md."},
+        {"name": "no_residual_backup_dir", "pass": true, "details": "[ ! -d .claude-backup ] holds."},
+        {"name": "pre_commit_gate_registered", "pass": true, "details": "settings.json PreToolUse hook references scripts/pre-commit-gate.sh."},
+        {"name": "stop_checklist_registered", "pass": true, "details": "settings.json Stop hook references scripts/stop-checklist.sh."}
+      ],
+      "framework_bugs": [
+        {
+          "severity": "High",
+          "summary": "init.sh has no scriptable mode for UAT (no --non-interactive flag, prompt-order undocumented)",
+          "reproduction": "bash $FRAMEWORK/init.sh <<EOF\\nuat-agent-57\\nUAT agent 57 test project\\n4\\n3\\n1\\ny\\n7\\n<dir>\\ny\\nEOF",
+          "expected": "init.sh accepts a flagged non-interactive driver, OR documents the exact prompt sequence so heredocs work reliably across hosts.",
+          "actual": "init.sh enters an infinite 'Invalid choice. Enter a number between 1 and 4.' loop because the heredoc answers misalign with an early choice prompt (likely Docker-install or platform). Required falling back to manual skeleton creation per runbook lines 113-116."
+        }
+      ],
+      "documentation_gaps": [
+        {
+          "gap": "Runbook acknowledges the init.sh-non-scriptable gap (lines 113-116) but there is still no canonical prompt-sequence reference in init.sh itself nor in docs; agents must reverse-engineer it each run.",
+          "where": "init.sh:240-500 / RUNBOOK.md:97-117"
+        }
+      ]
+    },
+    {
+      "phase": 2,
+      "tests": [
+        {"name": "baseline_phase_set", "pass": true, "details": "Manually advanced phase-state.json current_phase=2 to satisfy 'Phase 2 minimum' upgrade prerequisite (no script automates this)."},
+        {"name": "baseline_feature_recorded", "pass": true, "details": "build-progress.json features_completed=[\"uat-baseline-feat\"] manually written."}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": []
+    },
+    {
+      "phase": "F-upgrade",
+      "tests": [
+        {"name": "intake_wizard_upgrade_deployment_works", "pass": false, "details": "Per agent prompt: bash scripts/intake-wizard.sh --upgrade-deployment organizational. Result: 'Error: PROJECT_INTAKE.md not found.' even though PWD has PROJECT_INTAKE.md. Root cause: intake-wizard.sh:15 sets PROJECT_ROOT=\"$SCRIPT_DIR/..\" (the framework dir) and never honors PWD."},
+        {"name": "upgrade_command_exits_zero", "pass": true, "details": "Workaround: ran scripts/upgrade-project.sh --deployment organizational (which DOES use cwd-walking find_project_root). Exit 0, completed cleanly after providing tool-preferences.json + intake-progress.json (otherwise CURRENT_TRACK is empty/unreadable from phase-state alone)."},
+        {"name": "phase_state_preserved", "pass": false, "details": ".current_phase preserved (2 -> 2) and .project preserved (uat-agent-57). However .deployment in phase-state.json was NOT updated — still says 'personal' after a deployment upgrade. intake-progress.json correctly shows 'organizational'. Documents diverged. See bug below."},
+        {"name": "process_state_preserved", "pass": true, "details": ".build_loop unchanged; build-progress.json features_completed=[\"uat-baseline-feat\"] preserved."},
+        {"name": "new_required_artifacts_listed", "pass": true, "details": "Upgrade output lists: fill Pre-Phase 0 organizational pre-conditions, complete PROJECT_INTAKE.md Section 8, assign approval authorities."},
+        {"name": "pending_approval_sentinel_respected", "pass": false, "details": "Wrote .claude/pending-approval.json with valid schema, re-ran upgrade. Script proceeded to validation step ('No changes needed — already organizational') without warning or refusing on the sentinel. Upgrade does not consult the BL-015 sentinel."},
+        {"name": "upgrade_changelog_present_in_script", "pass": true, "details": "scripts/upgrade-project.sh header lines 11-19 reference both BL-006 and BL-015 changelog entries."}
+      ],
+      "framework_bugs": [
+        {
+          "severity": "High",
+          "summary": "intake-wizard.sh --upgrade-deployment unusable: PROJECT_ROOT hardcoded to framework dir",
+          "reproduction": "cd <project>; bash $FRAMEWORK/scripts/intake-wizard.sh --upgrade-deployment organizational",
+          "expected": "Script detects project via cwd (like upgrade-project.sh does via find_project_root walking up for .claude/phase-state.json) and runs the upgrade in the project context.",
+          "actual": "Errors with 'PROJECT_INTAKE.md not found. Run this script from a Solo Orchestrator project directory.' even when PWD is the project. intake-wizard.sh:15 sets PROJECT_ROOT=\"$(cd \"$SCRIPT_DIR/..\" && pwd)\" — always the framework dir, never PWD. Both the runbook (Section F) and the agent prompt direct UAT agents to use this command for deployment upgrades; it is broken on the documented happy path."
+        },
+        {
+          "severity": "Medium",
+          "summary": "upgrade-project.sh leaves phase-state.json deployment field stale after --deployment upgrade",
+          "reproduction": "Personal project at phase 2; bash $FRAMEWORK/scripts/upgrade-project.sh --deployment organizational. After exit, jq .deployment .claude/phase-state.json still returns 'personal'; intake-progress.json correctly reports 'organizational'.",
+          "expected": "Both phase-state.json and intake-progress.json reflect the new deployment after a --deployment upgrade, since phase-state.json is the canonical phase/deployment record.",
+          "actual": "scripts/upgrade-project.sh:475-507 (the python3 PYEOF block that updates phase-state.json) sets only data['track'] and data['last_upgrade'] — never data['deployment']. Subsequent reads that prefer phase-state.json will see the stale value."
+        },
+        {
+          "severity": "Medium",
+          "summary": "upgrade-project.sh refuses to read track from phase-state.json (only tool-preferences/intake-progress)",
+          "reproduction": "Project with .claude/phase-state.json containing valid track but no .claude/tool-preferences.json or .claude/intake-progress.json. Run scripts/upgrade-project.sh --deployment organizational. Output: 'Current track:  __TRACK__' (placeholder leakage; the script reads through CLAUDE.md fallback). Validation aborts: 'Invalid target track:  __TRACK__'.",
+          "expected": "Script falls back to phase-state.json's .track field when tool-preferences/intake-progress are missing — phase-state.json is described in script comments and runbook as the authoritative state file.",
+          "actual": "scripts/upgrade-project.sh:182-205 reads track only from tool-preferences.json and intake-progress.json. No phase-state fallback. When neither file exists, CURRENT_TRACK ends up empty or polluted with the unfilled __TRACK__ placeholder from CLAUDE.md."
+        },
+        {
+          "severity": "Medium",
+          "summary": "upgrade-project.sh does not check .claude/pending-approval.json before proceeding",
+          "reproduction": "Create .claude/pending-approval.json with valid schema, then bash $FRAMEWORK/scripts/upgrade-project.sh --deployment organizational.",
+          "expected": "BL-015 sentinel should block (or at minimum warn loudly about) framework-mutating operations like upgrades, mirroring the pre-commit-gate behavior. Runbook Section F explicitly tests this assertion (pending_approval_sentinel_respected).",
+          "actual": "Script proceeds normally with no mention of the pending-approval sentinel."
+        }
+      ],
+      "documentation_gaps": [
+        {
+          "gap": "Runbook Section F prescribes 'intake-wizard.sh --upgrade-deployment {TARGET_DEPLOYMENT}' as the upgrade entry point, and the agent prompt repeats this. The script does not work from a project directory (see High bug). The runbook should either fix the script or redirect agents to scripts/upgrade-project.sh --deployment <target>.",
+          "where": "RUNBOOK.md:222-233 / agent prompt"
+        },
+        {
+          "gap": "Runbook says 'private_poc|sponsored_poc) ... --upgrade-deployment {TARGET_DEPLOYMENT}' but --upgrade-deployment only accepts 'personal|organizational' (per intake-wizard.sh:1533 and upgrade-project.sh:23). Going from personal to private_poc requires a separate flag/action that is not documented in Section F.",
+          "where": "RUNBOOK.md:225-230 vs scripts/intake-wizard.sh:1533 / scripts/upgrade-project.sh"
+        },
+        {
+          "gap": "phase-state.json is described as canonical in many places (e.g. find_project_root in upgrade-project.sh:35-46) but track and deployment are read from other files. There is no documented rule for which file is authoritative for which field.",
+          "where": "scripts/upgrade-project.sh:174-220, scripts/intake-wizard.sh:17"
+        }
+      ]
+    },
+    {
+      "phase": "G-postflight",
+      "tests": [
+        {"name": "no_uncommitted_secrets", "pass": true, "details": "Grep matches in git ls-files are all from CI workflow templates (e.g. 'secrets.GITHUB_TOKEN' references) and platform-modules/web.md — no actual credentials."},
+        {"name": "log_files_consistent", "pass": true, "details": "N/A — no FORCE/reset events occurred during the run, .claude/process-audit.log absent as expected."},
+        {"name": "no_orphaned_tempfiles", "pass": true, "details": "find .claude -name '*.tmp' returns nothing."}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": []
+    }
+  ],
+  "overall_pass": false,
+  "summary": "Upgrade flow personal->organizational succeeded via scripts/upgrade-project.sh, but the runbook-prescribed entry point intake-wizard.sh --upgrade-deployment is broken (PROJECT_ROOT wired to framework dir), phase-state.json's deployment field is left stale after upgrade, the upgrade script ignores phase-state.json for track lookup, and the BL-015 pending-approval sentinel is not consulted by the upgrade path."
+}

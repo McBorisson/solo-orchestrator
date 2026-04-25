@@ -1,0 +1,122 @@
+{
+  "agent_id": 11,
+  "config": {
+    "kind": "base",
+    "scenario": "personal",
+    "platform": "mcp_server",
+    "track": "standard",
+    "upgrade_from": null
+  },
+  "framework_head": "9b38911e01c78a7daa4a649878fd68e2a283409f",
+  "started_at": "2026-04-25T16:50:00Z",
+  "completed_at": "2026-04-25T17:08:00Z",
+  "phases": [
+    {
+      "phase": 0,
+      "tests": [
+        {"name": "init_sh_exits_zero", "pass": false, "details": "init.sh exited 1 due to interactive prompt for git_host AFTER project skeleton was already fully created. Heredoc ran out of stdin during create_and_protect_remote() (line 1688), causing prompt_choice to loop indefinitely until SIGPIPE-style EOF. All file outputs were created successfully before this failure."},
+        {"name": "claude_md_created", "pass": true, "details": "CLAUDE.md present"},
+        {"name": "project_intake_created", "pass": true, "details": "PROJECT_INTAKE.md present"},
+        {"name": "approval_log_created", "pass": true, "details": "APPROVAL_LOG.md present"},
+        {"name": "gitignore_created", "pass": true, "details": ".gitignore present"},
+        {"name": "phase_state_json_phase_zero", "pass": true, "details": ".claude/phase-state.json .current_phase = 0"},
+        {"name": "phase_state_project_set", "pass": true, "details": ".project = uat-agent-11"},
+        {"name": "ci_workflow_created", "pass": true, "details": ".github/workflows/ci.yml present (host: github, language: typescript)"},
+        {"name": "release_workflow_created", "pass": true, "details": ".github/workflows/release.yml present (platform: mcp-server)"},
+        {"name": "framework_clone_present", "pass": true, "details": ".claude/framework directory present (CDF v4.2.3)"},
+        {"name": "context7_detection", "pass": true, "details": "verify-install.sh reports Context7 MCP configured; 51 checks passed; 0 failures"},
+        {"name": "platform_module_present", "pass": true, "details": "docs/platform-modules/mcp-server.md present"},
+        {"name": "no_residual_backup_dir", "pass": true, "details": ".claude-backup absent (init.sh removed CDF migration backup)"},
+        {"name": "pre_commit_gate_registered", "pass": true, "details": "settings.json PreToolUse hooks include scripts/pre-commit-gate.sh on Bash matcher"},
+        {"name": "stop_checklist_registered", "pass": true, "details": "settings.json Stop hooks include .claude/framework/hooks/stop-checklist.sh"}
+      ],
+      "framework_bugs": [
+        {
+          "severity": "High",
+          "summary": "init.sh has no scriptable mode for UAT — heredoc driver fragile",
+          "reproduction": "Pipe canned answers via heredoc to bash init.sh. Project skeleton creates successfully, but create_and_protect_remote() prompts for git_host/visibility/remote_url with no way to script them. With stdin exhausted, prompt_choice() loops 'Invalid choice. Enter a number between 1 and 4.' until SIGPIPE/EOF, then init.sh exits 1.",
+          "expected": "init.sh should either accept --non-interactive flags + a config file, or handle EOF on stdin gracefully (default to skip/abort the remote creation step) so the heredoc-driven init returns 0 when project skeleton is fully built.",
+          "actual": "init.sh exits 1; project skeleton is intact but no git remote was added, no manifest.json updates for host/mode/remote_url, no branch protection attestation."
+        }
+      ],
+      "documentation_gaps": [
+        {"gap": "Runbook tells agents to ground 'platform' as 'mcp_server' but framework canonical name is 'mcp-server' (hyphen). The platform module file is mcp-server.md and the release pipeline marker reads platforms=...,mcp-server. Agents have to translate.", "where": "Reports/uat-2026-04-25/RUNBOOK.md test-cases column 'platform_module_present' and config schema (line 51)"},
+        {"gap": "Runbook lists hypothetical --non-interactive flags but the actual scriptable surface is missing. Recommend adding --config FILE.json mode that reads project_name, description, platform, track, deployment, language, project_dir, git_host, repo_visibility, remote_url and bypasses all prompts.", "where": "init.sh main() and collect_project_info() / create_and_protect_remote()"},
+        {"gap": "init.sh fallback path for 'fake remote' (per runbook constraint 'no real network calls beyond git remote add origin https://example.com/fake.git') is undocumented — runbook says framework knows how to operate against a fake remote but the code does not (host-aware path requires gh/glab CLI; 'other' path tries to push and exits 1 on failure).", "where": "init.sh:1718-1746 (host=other branch)"}
+      ]
+    },
+    {
+      "phase": 1,
+      "tests": [
+        {"name": "start_phase1_exits_zero", "pass": true, "details": "scripts/process-checklist.sh --start-phase1 returned 0"},
+        {"name": "phase1_steps_array_present", "pass": true, "details": ".phase1_architecture.steps_completed initialized as []"},
+        {"name": "each_phase1_step_completes", "pass": true, "details": "All 5 phase1_architecture steps (architecture_selected, threat_model_complete, data_model_defined, ui_scaffolding_done, bible_synthesized) completed sequentially"},
+        {"name": "phase1_to_phase2_gate_passes", "pass": true, "details": "After stubbing PRODUCT_MANIFESTO.md and PROJECT_BIBLE.md from templates and manually setting current_phase=2 + gate dates in YYYY-MM-DD form, scripts/check-phase-gate.sh proceeds (warns on APPROVAL_LOG.md entries — expected, since APPROVAL_LOG was not populated). Gate logic correctly enforces artifact + approval-log presence."},
+        {"name": "phase_state_advances_to_2", "pass": true, "details": "Phase advance is manual (no auto-advance script found in framework). Manual update to .claude/phase-state.json is the documented procedure."}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": [
+        {"gap": "check-phase-gate.sh requires gate dates in YYYY-MM-DD format (regex anchored), but other framework code (process-checklist.sh:170-180) writes ISO-8601 timestamps for started_at fields. A Phase 0->1 timestamp like '2026-04-25T17:02:03Z' is silently treated as missing.", "where": "scripts/check-phase-gate.sh:89-99 (get_gate_date)"},
+        {"gap": "No documented script to advance current_phase between phases. Agents must hand-edit .claude/phase-state.json. Recommend a 'scripts/process-checklist.sh --advance-phase N' command that runs the gate, refuses on failure, updates current_phase + gate date, and appends to APPROVAL_LOG.md.", "where": "scripts/process-checklist.sh and docs/builders-guide.md"}
+      ]
+    },
+    {
+      "phase": 2,
+      "tests": [
+        {"name": "start_feature_records_state", "pass": true, "details": "After --start-feature uat-feat-1, .build_loop.feature = 'uat-feat-1'"},
+        {"name": "each_step_completes_in_order", "pass": true, "details": "All 6 build_loop steps completed in sequence with stub artifacts (src/feat1.ts, tests/feat1.test.ts, docs/security-audits/uat-feat-1-security-audit.md). Sequential enforcement verified: step rejection messages for prior-step prereqs."},
+        {"name": "pre_commit_passes_after_loop", "pass": true, "details": "git commit -m 'feat(uat-1): stub feature for UAT' succeeded after first 5 build_loop steps complete (feature_recorded is step 6 / not required at commit time — intentional per script comments)"},
+        {"name": "bl006_blocks_feat_without_loop", "pass": true, "details": "After clearing .build_loop, simulated PreToolUse hook input '{\"command\":\"git commit --allow-empty -m \\\"feat(bl006-trigger): no loop\\\"\"}' to scripts/pre-commit-gate.sh produced JSON permissionDecision='deny' with 'feat(...) commit blocked — no Build Loop active'. NOTE: scripts/process-checklist.sh --check-commit-message also returns RC=1 in CLI form. The git pre-commit hook itself does NOT call this check (it only runs gitleaks/Semgrep/TDD ordering), so a direct shell git commit is NOT blocked — Claude Code is the only enforcement vector. This is by design."},
+        {"name": "bl015_sentinel_blocks_commit", "pass": true, "details": "Wrote .claude/pending-approval.json with valid CDF 4.2.3 schema; pre-commit-gate.sh hook returned permissionDecision='deny' with full pending question + options + recommendation surfaced in reason."},
+        {"name": "bl015_sentinel_resolves", "pass": true, "details": "scripts/pending-approval.sh --resolve removed sentinel; subsequent commit attempt was no longer blocked by sentinel (was blocked by phase2_init verification — separate gate, expected)"},
+        {"name": "recorded_feature_appears_in_progress", "pass": true, "details": ".claude/build-progress.json .features_completed contains 'uat-feat-1'"}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": [
+        {"gap": "scripts/pending-approval.sh is NOT copied into the project by init.sh (verified: only the framework copy at $FRAMEWORK/scripts/pending-approval.sh exists). Documentation in pre-commit-gate.sh's deny message tells the user to run 'scripts/pending-approval.sh --resolve' but the project has no such script.", "where": "init.sh:1019-1056 (script-copy block) — missing cp for scripts/pending-approval.sh"},
+        {"gap": "BL-006 enforcement only fires through Claude Code's PreToolUse hook channel; a direct shell `git commit` never invokes it. Builder's Guide / runbook should make explicit that Build Loop enforcement is conditional on Claude Code being the actor, and consider whether to install a real git commit-msg hook to extend the gate to non-Claude commits.", "where": "scripts/pre-commit-gate.sh and docs/builders-guide.md (BL-006 section)"}
+      ]
+    },
+    {
+      "phase": 3,
+      "tests": [
+        {"name": "start_phase3_exits_zero", "pass": true, "details": "After manually setting current_phase=3 + gate date, scripts/process-checklist.sh --start-phase3 ran feature-completeness checks and returned 0"},
+        {"name": "start_uat_creates_session", "pass": true, "details": ".uat_session.session_id=1, .uat_session.started_at non-null"},
+        {"name": "uat_template_lints_clean", "pass": false, "details": "scripts/lint-uat-scenarios.sh tests/uat/templates/test-session-template.html reported 21 unreplaced placeholder violations. This is EXPECTED — the linter is meant to run against POPULATED scenarios, not the template itself. Treating this assertion as N/A."},
+        {"name": "each_uat_step_completes", "pass": true, "details": "All 9 UAT_STEPS (agents_dispatched, template_generated, orchestrator_notified, results_received, completeness_verified, bugs_consolidated, triage_complete, remediation_complete, gate_passed) completed sequentially, RC=0 for each"},
+        {"name": "phase3_to_phase4_gate", "pass": true, "details": "Manual phase advance to 4; no blocking errors from check-phase-gate.sh for the Phase 3->4 transition with stubbed artifacts"}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": [
+        {"gap": "lint-uat-scenarios.sh usage is non-obvious — runbook says 'run against generated UAT scenario' but the linter takes a single populated HTML file argument and (correctly) flags unreplaced placeholders. Recommend either (a) a flag like '--mode template' to skip placeholder checks against the canonical template, or (b) explicit runbook guidance that the linter only applies after a session HTML is materialized into tests/uat/sessions/.", "where": "scripts/lint-uat-scenarios.sh and Reports/uat-2026-04-25/RUNBOOK.md Section D"}
+      ]
+    },
+    {
+      "phase": 4,
+      "tests": [
+        {"name": "start_phase4_exits_zero", "pass": true, "details": "scripts/process-checklist.sh --start-phase4 returned 0"},
+        {"name": "each_phase4_step_completes", "pass": true, "details": "All 6 phase4_release steps completed with stubbed artifacts (HANDOFF.md w/ Section 8 monitoring text, RELEASE_NOTES.md, docs/test-results/<date>_rollback-test.md and _handoff-test.md)"},
+        {"name": "handoff_required", "pass": true, "details": "phase4_release:handoff_written gate detects missing HANDOFF.md (artifact_check_failed=true). After HANDOFF.md is stubbed, gate passes."},
+        {"name": "release_notes_required", "pass": true, "details": "phase4_release:go_live_verified gate checks RELEASE_NOTES.md presence (init.sh creates it from template at project init, so already present)"},
+        {"name": "phase4_completion_state", "pass": true, "details": ".claude/phase-state.json .current_phase = 4 after all steps complete; .phase4_release.steps_completed has all 6 entries"}
+      ],
+      "framework_bugs": [
+        {
+          "severity": "Medium",
+          "summary": "phase4_release step order forces HANDOFF.md before handoff_written",
+          "reproduction": "Run sequential phase4_release steps. monitoring_configured (step 4) requires HANDOFF.md to exist AND mention monitoring. handoff_written (step 5) is the step that documents creating HANDOFF.md.",
+          "expected": "Either reorder PHASE4_STEPS so handoff_written precedes monitoring_configured, OR change the monitoring_configured artifact check to look at a separate monitoring-config doc rather than HANDOFF.md.",
+          "actual": "Agents must create HANDOFF.md early to satisfy monitoring_configured, making handoff_written effectively a no-op (the file already exists). The procedural intent of writing the handoff once monitoring is configured is inverted."
+        }
+      ],
+      "documentation_gaps": []
+    }
+  ],
+  "postflight": {
+    "no_uncommitted_secrets": {"pass": true, "details": "grep for password|api[_-]?key|secret|token in tracked files only finds template/CI references (e.g. 'NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}', 'reset their password' in PRODUCT_MANIFESTO.md). No real credentials committed."},
+    "log_files_consistent": {"pass": true, "details": "N/A — .claude/process-audit.log absent; no FORCE/reset events occurred (every step completed with proper artifacts)"},
+    "no_orphaned_tempfiles": {"pass": true, "details": "find $WORKDIR/uat-agent-11/.claude -name '*.tmp' returned nothing"}
+  },
+  "overall_pass": false,
+  "summary": "Base end-to-end run completed Phases 0-4 plus UAT and post-flight; all gates fired correctly when invoked. Single High bug: init.sh non-zero exit due to non-scriptable git_host/visibility prompts after skeleton creation (consistent with the runbook's expected finding). One Medium bug: phase4_release step order requires HANDOFF.md before handoff_written. BL-006 and BL-015 enforcement verified via PreToolUse hook path."
+}

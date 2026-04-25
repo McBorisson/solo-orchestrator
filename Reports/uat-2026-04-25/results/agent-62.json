@@ -1,0 +1,132 @@
+{
+  "agent_id": 62,
+  "config": {
+    "kind": "upgrade",
+    "scenario": "sponsored_poc",
+    "platform": "desktop",
+    "track": "standard",
+    "upgrade_from": "private_poc"
+  },
+  "framework_head": "9b38911e01c78a7daa4a649878fd68e2a283409f",
+  "language_chosen": "typescript",
+  "started_at": "2026-04-25T16:53:00Z",
+  "completed_at": "2026-04-25T16:59:00Z",
+  "workdir": "/var/folders/35/40h2stxn1c7fnq3zlbmg8kjr0000gn/T/soluat-62-XXXXXX.Hw3ulz4Jgb",
+  "stubs_used": [
+    "GitHub remote — used https://example.com/fake.git via host=other; push failed (expected, no real network).",
+    "TypeScript source — none authored; project skeleton only.",
+    "intake-progress.json — manually created to work around init.sh not writing it (see Bug-3 below)."
+  ],
+  "init_driver": "Heredoc piped into bash init.sh with: project_name=uat-agent-62, description, platform=1 (desktop), track=2 (standard), deployment=2 (organizational), governance=1 (Private POC), language=8 (typescript), project_dir=<abs>, blank for Continue?, no Proceed-plan prompt (everything pre-installed), host=4 (other), visibility=1 (private), https://example.com/fake.git, attest=yes. init.sh exited 1 because git push to fake.git failed in create_and_protect_remote (same root cause as agent-1's first High bug). Project skeleton was fully created, .claude/* state present, settings.json hooks registered.",
+  "phases": [
+    {
+      "phase": 0,
+      "tests": [
+        {"name": "init_sh_exits_zero", "pass": false, "details": "init.sh exit code = 1 (push to fake remote fails; set -euo pipefail propagates). Same root cause as agent-1 High bug. Project skeleton complete and usable."},
+        {"name": "claude_md_created", "pass": true, "details": "CLAUDE.md present (18903 bytes)."},
+        {"name": "project_intake_created", "pass": true, "details": "PROJECT_INTAKE.md present (29101 bytes)."},
+        {"name": "approval_log_created", "pass": true, "details": "APPROVAL_LOG.md present (6467 bytes)."},
+        {"name": "gitignore_created", "pass": true, "details": ".gitignore present."},
+        {"name": "phase_state_json_phase_zero", "pass": true, "details": ".current_phase = 0 immediately after init."},
+        {"name": "phase_state_project_set", "pass": true, "details": ".project = 'uat-agent-62'; .deployment = 'organizational'; .poc_mode = 'private_poc'."},
+        {"name": "ci_workflow_created", "pass": true, "details": ".github/workflows/ci.yml created (host=github, language=typescript)."},
+        {"name": "release_workflow_created", "pass": true, "details": ".github/workflows/release.yml created (platform=desktop)."},
+        {"name": "framework_clone_present", "pass": true, "details": ".claude/framework/ present (CDF 4.2.3 / f55c8bc, 19 hooks, 14 rules)."},
+        {"name": "context7_detection", "pass": true, "details": "Context7 MCP detected at init (\"[OK] Context7 MCP server configured\")."},
+        {"name": "platform_module_present", "pass": true, "details": "docs/platform-modules/desktop.md present."},
+        {"name": "no_residual_backup_dir", "pass": true, "details": ".claude-backup absent — init.sh removed CDF migration backup."},
+        {"name": "pre_commit_gate_registered", "pass": true, "details": ".claude/settings.json PreToolUse(matcher Bash) includes scripts/pre-commit-gate.sh."},
+        {"name": "stop_checklist_registered", "pass": true, "details": ".claude/settings.json Stop hooks include .claude/framework/hooks/stop-checklist.sh and scripts/session-end-qdrant-reminder.sh."}
+      ],
+      "framework_bugs": [
+        {
+          "severity": "High",
+          "summary": "init.sh exits 1 on documented happy path when remote push fails",
+          "reproduction": "Run init.sh selecting host=other and provide https://example.com/fake.git as the remote URL (per RUNBOOK Setup constraint). git push fails inside create_and_protect_remote, set -euo pipefail aborts main() before verify-install/print_next_steps.",
+          "expected": "Either tolerate fake-remote push failure with remediation guidance, or exit cleanly with a documented code instead of bare set -e propagation.",
+          "actual": "Bare '[FAIL] Push failed — verify URL and credentials' then exit 1. Already reported by agent-1; reproduced here with private_poc selection."
+        },
+        {
+          "severity": "High",
+          "summary": "init.sh has no scriptable mode — heredoc driver fragile (no --non-interactive flag)",
+          "reproduction": "init.sh --help lists only --dry-run/--help. Must drive via heredoc; prompt count is sensitive to install state and any mismatch causes 'Invalid choice' loops or wrong selections (e.g. project_dir consumed as language when language list has 9 items but answer was 10 expecting typescript). Already reported by agent-1; reproduced.",
+          "expected": "--non-interactive / --answers-from FILE flag for deterministic UAT and CI driving.",
+          "actual": "Heredoc must be exactly aligned to live prompt count, which varies per machine state."
+        }
+      ],
+      "documentation_gaps": [
+        {"gap": "Runbook header line 5 says HEAD will be live; agent should record current HEAD (9b38911) — confirmed correct procedure followed.", "where": "Reports/uat-2026-04-25/RUNBOOK.md:5"},
+        {"gap": "Number/order of init.sh prompts is undocumented and depends on installed-tool state. UAT agents have no canonical prompt list to anchor heredoc input.", "where": "init.sh collect_project_info / resolve_and_install_tools / create_and_protect_remote — no consolidated prompt-sequence doc in docs/."},
+        {"gap": "init.sh path correction: runbook now correctly notes init.sh at repo root (not scripts/) — already fixed since agent-1 report.", "where": "RUNBOOK.md Section A line 93"}
+      ]
+    },
+    {
+      "phase": "F-upgrade",
+      "attempted_paths": [
+        {
+          "path": "1. scripts/upgrade-project.sh --to-sponsored-poc (canonical)",
+          "result": "FAIL: '[FAIL] Project is already organizational/production. Cannot downgrade to Sponsored POC.'",
+          "root_cause": "upgrade-project.sh reads CURRENT_POC_MODE only from .claude/intake-progress.json, but init.sh does not create that file — it only writes poc_mode into .claude/phase-state.json. So the upgrade script cannot see that the project IS in private_poc; it concludes the project is already organizational/production and refuses."
+        },
+        {
+          "path": "2. scripts/intake-wizard.sh --resume (alternate)",
+          "result": "FAIL: 'Error: PROJECT_INTAKE.md not found. Run this script from a Solo Orchestrator project directory.'",
+          "root_cause": "intake-wizard.sh sets INTAKE_FILE=$PROJECT_ROOT/PROJECT_INTAKE.md where PROJECT_ROOT=$SCRIPT_DIR/.., resolving to the FRAMEWORK directory (since the script lives at $FRAMEWORK/scripts/), NOT the user's CWD. So when invoked via absolute path from a project, it looks in the framework root for PROJECT_INTAKE.md and bails. Project-local copy of intake-wizard.sh exhibits same logical failure (then delegates to project-local upgrade-project.sh, which still hits Path 1's bug)."
+        },
+        {
+          "path": "3. Manually create .claude/intake-progress.json with poc_mode=private_poc, then re-run upgrade-project.sh --to-sponsored-poc (workaround)",
+          "result": "PASS: upgrade-project.sh successfully transitioned the project to sponsored_poc. phase-state.json now shows poc_mode='sponsored_poc' and last_upgrade='2026-04-25'. CLAUDE.md and intake-progress.json updated."
+        }
+      ],
+      "tests": [
+        {"name": "upgrade_command_exits_zero", "pass": false, "details": "Canonical command (Path 1: upgrade-project.sh --to-sponsored-poc) exits 1. Only succeeds (exit 0) after manually fabricating .claude/intake-progress.json (Path 3 workaround)."},
+        {"name": "phase_state_preserved", "pass": true, "details": "After Path-3 upgrade: .current_phase=0 unchanged; .project='uat-agent-62' unchanged. .poc_mode flipped from private_poc -> sponsored_poc; .last_upgrade='2026-04-25' added. Track/deployment unchanged (already standard/organizational)."},
+        {"name": "process_state_preserved", "pass": true, "details": ".claude/process-state.json unchanged (build_loop.feature=null, no features ever recorded — runbook asks for 1 recorded feature as baseline; we tested upgrade against a Phase-0/no-feature baseline because upgrade-project.sh does not require any features and the upgrade call should still succeed). build_loop history unchanged."},
+        {"name": "new_required_artifacts_listed", "pass": false, "details": "Path 3 success output does NOT enumerate the additional governance artifacts that sponsored_poc requires beyond private_poc (e.g. organization sponsor signatory, technical-only approvals to lift, etc.). It runs the verify-install pass and prints '[OK] Upgrade complete.' but no explicit 'You now need to: ...' callout for the new scenario's expectations."},
+        {"name": "pending_approval_sentinel_respected", "pass": false, "details": "Created .claude/pending-approval.json with valid schema and ran upgrade-project.sh --to-production. The script proceeded silently and removed poc_mode entirely. No warning, no refusal. The upgrade workflow does NOT consult the BL-015 pending-approval sentinel."},
+        {"name": "upgrade_changelog_present_in_script", "pass": true, "details": "scripts/upgrade-project.sh lines 1-60 header includes 'BL-006 (2026-04-24): pre-commit gate now blocks feat: commits without an active Build Loop' and 'BL-015 (2026-04-25): pre-commit gate now blocks commits and PR creation when .claude/pending-approval.json exists'. Both BL-006 and BL-015 changelog entries present."}
+      ],
+      "framework_bugs": [
+        {
+          "severity": "High",
+          "summary": "upgrade-project.sh cannot detect POC mode because init.sh never writes intake-progress.json",
+          "reproduction": "1) Run init.sh and select organizational + Private POC. 2) Verify .claude/phase-state.json has poc_mode='private_poc' but .claude/intake-progress.json does NOT exist. 3) Run scripts/upgrade-project.sh --to-sponsored-poc. Result: '[FAIL] Project is already organizational/production. Cannot downgrade to Sponsored POC.' Root cause: upgrade-project.sh:195 reads CURRENT_POC_MODE only from intake-progress.json (line 195), never from phase-state.json (which init.sh actually populates). The check at line 300-303 then misclassifies a private_poc project as organizational/production.",
+          "expected": "upgrade-project.sh should read CURRENT_POC_MODE from .claude/phase-state.json (where init.sh writes it) as the authoritative source, OR init.sh should create .claude/intake-progress.json populated with poc_mode at init time, OR (preferably) both files should be kept in sync via a single helper. The private_poc -> sponsored_poc upgrade is documented in CLAUDE.md and the scripts' own help text and is currently broken on every freshly-initialized project.",
+          "actual": "Only succeeds after manually fabricating .claude/intake-progress.json with poc_mode=private_poc. End user has no way to discover this workaround from the error message."
+        },
+        {
+          "severity": "High",
+          "summary": "intake-wizard.sh uses framework-root paths instead of CWD/project-root",
+          "reproduction": "From a project directory (containing PROJECT_INTAKE.md), run: bash $FRAMEWORK/scripts/intake-wizard.sh --resume. Result: 'Error: PROJECT_INTAKE.md not found. Run this script from a Solo Orchestrator project directory.' Root cause: intake-wizard.sh:15-17 sets PROJECT_ROOT=$(cd \"$SCRIPT_DIR/..\" && pwd) and INTAKE_FILE=$PROJECT_ROOT/PROJECT_INTAKE.md. SCRIPT_DIR is $FRAMEWORK/scripts, so PROJECT_ROOT becomes $FRAMEWORK, and the script looks for $FRAMEWORK/PROJECT_INTAKE.md (which doesn't exist).",
+          "expected": "intake-wizard.sh should resolve PROJECT_ROOT from the user's CWD (or accept --project-root FLAG), so it works whether invoked via absolute path from outside or from a copied project-local scripts/ directory. The current behavior breaks the runbook's documented 'intake-wizard.sh --resume' upgrade path.",
+          "actual": "intake-wizard.sh is unusable when invoked via $FRAMEWORK/scripts/intake-wizard.sh, even from a valid project directory. The only working invocation is `cd <project> && bash scripts/intake-wizard.sh ...` (using the project-local copy)."
+        },
+        {
+          "severity": "High",
+          "summary": "upgrade-project.sh ignores the BL-015 pending-approval sentinel",
+          "reproduction": "1) Have a project mid-upgrade with .claude/pending-approval.json present. 2) Run scripts/upgrade-project.sh --to-production (or any --to-* flag). Result: upgrade proceeds and rewrites phase-state.json without surfacing or respecting the sentinel.",
+          "expected": "Per BL-015 design (commit gate already respects this sentinel), the upgrade flow should refuse, or at minimum emit a loud warning and require explicit --force, when a pending-approval sentinel exists. Otherwise the BL-015 invariant ('all destructive transitions are blocked while a pending approval exists') is breached.",
+          "actual": "Silent proceed. The sentinel is invisible to upgrade-project.sh."
+        }
+      ],
+      "documentation_gaps": [
+        {"gap": "Runbook Section F suggests `intake-wizard.sh --upgrade-deployment <target>` as the canonical sponsored-poc transition. The actual functioning command is `upgrade-project.sh --to-sponsored-poc` (or `intake-wizard.sh --to-sponsored-poc` which delegates). And both fail on a freshly-initialized project for the reasons above.", "where": "RUNBOOK.md Section F"},
+        {"gap": "No documented handshake between init.sh and upgrade-project.sh for which file owns poc_mode. CLAUDE.md mentions the upgrade command but never the intake-progress.json prerequisite.", "where": "init.sh, upgrade-project.sh, CLAUDE.md template"},
+        {"gap": "When upgrade-project.sh refuses with 'Project is already organizational/production', the message gives no diagnostic of WHICH file it consulted, so users cannot self-diagnose the missing intake-progress.json.", "where": "scripts/upgrade-project.sh:301"}
+      ]
+    },
+    {
+      "phase": "G-postflight",
+      "tests": [
+        {"name": "no_uncommitted_secrets", "pass": true, "details": "Tightened grep for assignment-style secrets (`(password|api_key|secret|token)\\s*[:=]\\s*['\\\"][a-zA-Z0-9]{8,}`) returns 0 hits in committed files. Loose grep matches CI-workflow keyword usage only (no real values)."},
+        {"name": "log_files_consistent", "pass": true, "details": "N/A — .claude/process-audit.log absent. No FORCE/reset bypass events occurred during this run, so absence is expected per runbook."},
+        {"name": "no_orphaned_tempfiles", "pass": true, "details": "find $WORKDIR/.claude -name '*.tmp' returns nothing."},
+        {"name": "framework_unchanged", "pass": true, "details": "git -C $FRAMEWORK status shows only files from prior agents (agent-1, 14, 79 reports + their stray .claude-backup, .claude/, APPROVAL_LOG.md, gates/, hooks/, rules/ — all timestamped before our run started). This run did not modify $FRAMEWORK."}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": []
+    }
+  ],
+  "overall_pass": false,
+  "summary": "Section A passed (init exit 1 known; project skeleton intact). Section F (private_poc -> sponsored_poc upgrade) is broken on every freshly-initialized project: the canonical upgrade-project.sh --to-sponsored-poc cannot detect POC mode because init.sh writes poc_mode only to phase-state.json while upgrade-project.sh reads it only from intake-progress.json (which init.sh never creates). Workaround: hand-fabricate intake-progress.json. Also discovered: intake-wizard.sh resolves PROJECT_ROOT to FRAMEWORK dir (not CWD) and BL-015 pending-approval sentinel is ignored by all upgrade flags. Three High-severity bugs filed."
+}

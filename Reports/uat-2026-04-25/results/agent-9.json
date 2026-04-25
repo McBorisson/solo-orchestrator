@@ -1,0 +1,140 @@
+{
+  "agent_id": 9,
+  "config": {
+    "kind": "base",
+    "scenario": "personal",
+    "platform": "web",
+    "track": "full",
+    "upgrade_from": null
+  },
+  "framework_head": "9b38911e01c78a7daa4a649878fd68e2a283409f",
+  "language_chosen": "typescript",
+  "started_at": "2026-04-25T16:55:00Z",
+  "completed_at": "2026-04-25T17:00:00Z",
+  "workdir": "/var/folders/35/40h2stxn1c7fnq3zlbmg8kjr0000gn/T/soluat-XXXXXX.B6pSS6mbpt/uat-agent-9",
+  "stubs_used": [
+    "Semgrep findings — created docs/security-audits/uat-feat-1-security-audit.md with one Open=false finding stub; no real Semgrep run.",
+    "Phase 3 SAST — touched docs/test-results/2026-04-25_semgrep_pass.json instead of running Semgrep.",
+    "Phase 3 accessibility — touched docs/test-results/2026-04-25_lighthouse_accessibility.json instead of running Lighthouse.",
+    "Phase 3 performance — touched docs/test-results/2026-04-25_lighthouse_performance.json instead of running Lighthouse.",
+    "Rollback test — touched docs/test-results/2026-04-25_rollback-test.md.",
+    "Handoff test — touched docs/test-results/2026-04-25_handoff-test.md.",
+    "GitHub remote — used https://example.com/fake.git via host=other; push failed (expected, no real network).",
+    "TypeScript source/test — only stub `// stub` files in src/ and tests/; no npm/pnpm/jest run.",
+    "Phase advancement — bumped current_phase manually via jq between every phase (check-phase-gate.sh is consistency-only — does not advance current_phase). Recorded as expectation mismatch.",
+    "Pre-commit gate (BL-006/BL-015) — fed JSON envelopes on stdin to scripts/pre-commit-gate.sh to simulate the Claude Code PreToolUse path; the hook is registered in .claude/settings.json PreToolUse[Bash].",
+    "Phase 2 init verification — auto-marked branch_protection_configured, project_scaffolded, data_model_applied because the verifier expects a real lockfile and a host manifest, neither of which exist in stub mode."
+  ],
+  "init_driver": "Heredoc piped to bash $FRAMEWORK/init.sh with answers (in order): project name uat-agent-9, description, platform=4 (web), track=3 (full), deployment=1 (personal), Full+personal warning confirm=y, language=7 (typescript), project_dir, Continue=y, Proceed-with-plan=y, host=4 (other), visibility=1 (private), https://example.com/fake.git, push attest=yes. init.sh exited 1 because create_and_protect_remote() runs `git push` against the fake URL and `set -euo pipefail` aborts the script after project creation. Project skeleton on disk is otherwise complete and usable for downstream tests.",
+  "phases": [
+    {
+      "phase": 0,
+      "tests": [
+        {"name": "init_sh_exits_zero", "pass": false, "details": "init.sh exit code = 1. Same root cause as agent-1: create_and_protect_remote() runs `git push` against the fake remote which fails; with `set -euo pipefail` the failure aborts main() after project creation but before verify-install/print_next_steps. The on-disk project is otherwise complete."},
+        {"name": "claude_md_created", "pass": true, "details": "CLAUDE.md present (18422 bytes)."},
+        {"name": "project_intake_created", "pass": true, "details": "PROJECT_INTAKE.md present (29028 bytes)."},
+        {"name": "approval_log_created", "pass": true, "details": "APPROVAL_LOG.md present (2080 bytes)."},
+        {"name": "gitignore_created", "pass": true, "details": ".gitignore present (745 bytes)."},
+        {"name": "phase_state_json_phase_zero", "pass": true, "details": ".current_phase = 0 immediately after init."},
+        {"name": "phase_state_project_set", "pass": true, "details": ".project = 'uat-agent-9'; track=full; deployment=personal; poc_mode=null."},
+        {"name": "ci_workflow_created", "pass": true, "details": ".github/workflows/ci.yml created (host: github, language: typescript)."},
+        {"name": "release_workflow_created", "pass": true, "details": ".github/workflows/release.yml created (platform: web)."},
+        {"name": "framework_clone_present", "pass": true, "details": ".claude/framework/ exists (CDF 4.2.3, web-app profile, 14 rules, 16 active hooks, 19 hook scripts)."},
+        {"name": "context7_detection", "pass": true, "details": "verify-install.sh (run from project dir) reports Context7 MCP configured. 52/52 checks passed."},
+        {"name": "platform_module_present", "pass": true, "details": "docs/platform-modules/web.md present."},
+        {"name": "no_residual_backup_dir", "pass": true, "details": ".claude-backup absent. init.sh log shows `Removed CDF migration backup (not needed in Solo Orchestrator flow)` — BL-002 regression intact."},
+        {"name": "pre_commit_gate_registered", "pass": true, "details": "settings.json PreToolUse hooks include `bash $CLAUDE_PROJECT_DIR/scripts/pre-commit-gate.sh` for matcher Bash (alongside CDF's pre-commit-checks.sh)."},
+        {"name": "stop_checklist_registered", "pass": true, "details": "settings.json Stop hooks include `.claude/framework/hooks/stop-checklist.sh` (CDF) and `scripts/session-end-qdrant-reminder.sh` (Solo)."}
+      ],
+      "framework_bugs": [
+        {"severity": "High", "summary": "init.sh has no scriptable mode for UAT — heredoc driver fragile", "reproduction": "Pipe canned answers to bash init.sh. Only --dry-run and --help flags exist. Prompt count and ordering vary with installed-tool state (Docker check, host-aware repo prompts after project creation, Full+personal warning interjects between TRACK and LANGUAGE only when those values combine).", "expected": "A --non-interactive / --answers-from FILE flag so UAT and CI can drive init.sh deterministically.", "actual": "First attempt deadlocked in an infinite `Invalid choice` loop because the Full+personal confirmation prompt interleaves between deployment and language and shifted the heredoc's answer-to-prompt alignment. Fixed by re-ordering, but no documentation of the exact prompt sequence exists."},
+        {"severity": "High", "summary": "init.sh exits non-zero on documented happy path when remote push fails", "reproduction": "Run init.sh selecting host=other and provide https://example.com/fake.git as the remote URL (per runbook Setup constraint). `git push` to fake.git fails; create_and_protect_remote returns 1; `set -euo pipefail` aborts main() before the verify-install/print_next_steps tail. Exit code = 1.", "expected": "init.sh tolerates a remote-push failure, leaves remediation guidance, and finishes the create_project tail (verify-install + next-steps); or exits with a documented `[BLOCKED at host-aware repo creation — fix and rerun scripts/check-gate.sh --repair]` code.", "actual": "Bare `[FAIL] Push failed — verify URL and credentials` then immediate non-zero exit. verify-install/print_next_steps are skipped. Same finding as agent-1 — confirms reproducibility on a different platform/language/track combination (web/typescript/full)."}
+      ],
+      "documentation_gaps": [
+        {"gap": "init.sh advertises only --dry-run and --help; the runbook still documents flags like --non-interactive that do not exist.", "where": "init.sh main() flag parser vs RUNBOOK.md Section A example."},
+        {"gap": "Number/order of init.sh prompts is undocumented and varies with branch state (Full+personal warning, host=other branch, push attest). UAT agents have no canonical prompt list.", "where": "init.sh collect_project_info / resolve_and_install_tools / create_and_protect_remote — no prompt-sequence doc in docs/."},
+        {"gap": "Track 'full' for personal deployments triggers an extra y/N confirmation prompt that shifts heredoc alignment by one. Should be documented in the runbook for UAT drivers.", "where": "init.sh ~330 (Full+personal warning) vs RUNBOOK.md Section A 'Init driver' subsection."}
+      ]
+    },
+    {
+      "phase": 1,
+      "tests": [
+        {"name": "start_phase1_exits_zero", "pass": true, "details": "process-checklist.sh --start-phase1 exited 0; .phase1_architecture.started_at populated."},
+        {"name": "phase1_steps_array_present", "pass": true, "details": "jq '.phase1_architecture.steps_completed' returned []."},
+        {"name": "each_phase1_step_completes", "pass": true, "details": "All 5 steps (architecture_selected, threat_model_complete, data_model_defined, ui_scaffolding_done, bible_synthesized) completed in order with exit 0. Phase 1 has no per-step artifact gate."},
+        {"name": "phase1_to_phase2_gate_passes", "pass": true, "details": "scripts/check-phase-gate.sh exits 0 with `Phase gates consistent.` HOWEVER it is a consistency check, not a phase advancer — it does not update .phase-state.json.current_phase."},
+        {"name": "phase_state_advances_to_2", "pass": false, "details": "current_phase did NOT auto-advance after the gate. Same finding as agent-1: no script in scripts/ does this advancement. Bumped manually via jq."}
+      ],
+      "framework_bugs": [
+        {"severity": "High", "summary": "No script advances current_phase between phases", "reproduction": "Complete all 5 phase1_architecture steps; run scripts/check-phase-gate.sh; observe .claude/phase-state.json `.current_phase` is still 1 (or 0 — depends on prior manual edits). No `--advance` or `--approve-gate` subcommand on check-phase-gate.sh, check-gate.sh, or process-checklist.sh exists that flips current_phase.", "expected": "A documented script (e.g., scripts/process-checklist.sh --advance-phase) that, after gate consistency + approval-log entry, atomically writes the new current_phase value.", "actual": "Phase advancement is left to manual jq editing. The runbook asserts phase_state_advances_to_2 as a test case, so the framework's phase model and the runbook's protocol are out of sync. Confirms agent-1 finding on a different platform/track."}
+      ],
+      "documentation_gaps": [
+        {"gap": "Builders Guide / RUNBOOK should explicitly name the script (or document the manual procedure) that bumps current_phase after a gate passes.", "where": "docs/reference/builders-guide.md (Phase Transitions); RUNBOOK.md Section B last row."}
+      ]
+    },
+    {
+      "phase": 2,
+      "tests": [
+        {"name": "start_feature_records_state", "pass": true, "details": "After --start-feature uat-feat-1, .build_loop.feature = 'uat-feat-1' and .build_loop.started_at populated."},
+        {"name": "each_step_completes_in_order", "pass": true, "details": "Sequential complete-step calls (tests_written → tests_verified_failing → implemented → security_audit → documentation_updated → feature_recorded) all succeeded with stub artifacts. The build_loop:security_audit gate accepted docs/security-audits/uat-feat-1-security-audit.md."},
+        {"name": "pre_commit_passes_after_loop", "pass": true, "details": "git commit -m 'feat(uat-1): stub feature for UAT' succeeded after all 5 mandatory build-loop steps were complete (the .git/hooks/pre-commit ran gitleaks + Semgrep + TDD ordering on the staged stub TS files)."},
+        {"name": "bl006_blocks_feat_without_loop", "pass": true, "details": "When build_loop slot was cleared (jq '.build_loop = {}'), simulated PreToolUse envelope `{\"command\":\"git commit --allow-empty -m \\\"feat(bl006-trigger): no loop\\\"\"}` fed to scripts/pre-commit-gate.sh returned the rich BL-006 deny: `'feat(...)' commit blocked — no Build Loop active. MVP Cutline work and all features require a Build Loop`. Confirmed BL-006 wiring. PARTIAL CAVEAT (re-confirms agent-1): the same `git commit --allow-empty -m 'feat(bl006-trigger): no loop'` invoked **directly via shell** (bypassing the Claude Code PreToolUse hook) succeeded with exit 0. BL-006 enforcement lives only in scripts/pre-commit-gate.sh (PreToolUse), NOT in .git/hooks/pre-commit. Direct shell commits bypass it."},
+        {"name": "bl015_sentinel_blocks_commit", "pass": true, "details": "Wrote sentinel via `scripts/pending-approval.sh --offer ... --options 'A1: option A' 'A2: option B' --recommendation A1`. Hook denied a chore commit with the rich `Pending question:` message. NOTE: the help text says `--options \"A1: ...\" \"A2: ...\"` (separate args) — runbook example `--options A,B` does not work."},
+        {"name": "bl015_sentinel_resolves", "pass": true, "details": "scripts/pending-approval.sh --resolve removed the sentinel; subsequent simulated chore commit through the hook returned EXIT=0 with no deny output."},
+        {"name": "recorded_feature_appears_in_progress", "pass": true, "details": "test-gate.sh --record-feature uat-feat-1 succeeded; .claude/build-progress.json `.features_completed` = ['uat-feat-1']."}
+      ],
+      "framework_bugs": [
+        {"severity": "High", "summary": "BL-006 only enforced in Claude Code PreToolUse — direct shell git commits bypass it", "reproduction": "In a project with no active build_loop, run `git commit --allow-empty -m 'feat(x): bypass'` directly in shell. Commit succeeds. The Solo enforcement lives in scripts/pre-commit-gate.sh (registered as a Claude Code PreToolUse hook), not in .git/hooks/pre-commit. .git/hooks/pre-commit only runs gitleaks + Semgrep + TDD ordering + schema migration — no BL-006 / build-loop check.", "expected": "BL-006 should also be enforced in .git/hooks/pre-commit so humans, CI, and any non-Claude-Code commit path cannot bypass it. (Or, if BL-006 is intentionally Claude-Code-only, the framework docs should say so loudly.)", "actual": "BL-006 is enforced only when Claude Code is the commit author. Any human running `git commit` from terminal completely bypasses the build-loop requirement. Confirms agent-1 finding on web/typescript/full."},
+        {"severity": "Medium", "summary": "Phase 2 init verifier silently demands a host manifest and lockfile that fake-remote stub projects cannot provide", "reproduction": "After init.sh with host=other + fake URL, run `scripts/process-checklist.sh --verify-init`. Output: `[FAIL] branch_protection_configured — host dispatcher or manifest missing` and `[FAIL] project_scaffolded — no lockfile found`. The pre-commit-gate then refuses every git commit with `[FAIL] Phase 2 initialization not verified`.", "expected": "Either (a) init.sh writes a host manifest for host=other so verify-init can complete; or (b) verify-init's failure modes link to the exact remediation script (e.g., `scripts/check-gate.sh --backfill-host`); or (c) a `--mark-verified` escape hatch for stub/UAT scenarios.", "actual": "Verify-init auto-marks `data_model_applied` etc. silently after a second run (the first run says \"Cannot auto-verify\" but never marks; the second run does mark them as `previously marked complete`). Confusing UX — a single `--verify-init` run should be idempotent."}
+      ],
+      "documentation_gaps": [
+        {"gap": "Pending-approval sentinel CLI surface differs from runbook example. Runbook says `--options A,B` (comma-separated string); script requires separate args like `--options 'A1: option A' 'A2: option B'`. Builders Guide should publish the canonical CLI invocation.", "where": "RUNBOOK.md Section C bl015 row vs scripts/pending-approval.sh --help."},
+        {"gap": "BL-006 trigger test in runbook ('attempt feat: commit with no loop') only fires when build_loop slot is empty `{}`. After --start-feature + complete-step build_loop:feature_recorded, the feature stays in build_loop and BL-006 considers the loop satisfied. Runbook should specify whether the test expects the loop to be cleared first.", "where": "RUNBOOK.md Section C Feature 2 (BL-006 trigger)."},
+        {"gap": "Split-enforcement story (.git/hooks/pre-commit for secrets/SAST/TDD vs scripts/pre-commit-gate.sh PreToolUse for BL-006/BL-015/phase gates) is not documented end-to-end.", "where": "docs/reference/builders-guide.md or new docs/reference/enforcement-surfaces.md."}
+      ]
+    },
+    {
+      "phase": 3,
+      "tests": [
+        {"name": "start_phase3_exits_zero", "pass": true, "details": "process-checklist.sh --start-phase3 exits 0 with the warning chain `1 feature(s) since last UAT session — complete testing before Phase 3` and the user-attestation prompt resolves cleanly."},
+        {"name": "start_uat_creates_session", "pass": true, "details": ".uat_session.session_id = 1, .uat_session.started_at populated, step=0."},
+        {"name": "uat_template_lints_clean", "pass": false, "details": "scripts/lint-uat-scenarios.sh REQUIRES a populated HTML file as $1 — there is no `--default-template` mode and the shipping template intentionally has placeholders. Running with no args prints `Usage:` and exits 0. Same finding as agent-1 — recorded as documentation gap, not a bug."},
+        {"name": "each_uat_step_completes", "pass": true, "details": "All 9 UAT steps (agents_dispatched → template_generated → orchestrator_notified → results_received → completeness_verified → bugs_consolidated → triage_complete → remediation_complete → gate_passed) completed sequentially with exit 0. No artifact gate on UAT steps."},
+        {"name": "phase3_to_phase4_gate", "pass": true, "details": "All 9 phase3_validation steps (integration_testing through legal_review) completed with exit 0. Artifact gates fired correctly: integration_testing satisfied by tests/ dir, security_hardening by stub semgrep_pass.json, accessibility/performance by stub Lighthouse files, legal_review printed INFO message and proceeded."}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": [
+        {"gap": "scripts/lint-uat-scenarios.sh has no --help, no --default-template flag, and no fixture in templates/uat/ that lints clean.", "where": "scripts/lint-uat-scenarios.sh; templates/uat/."},
+        {"gap": "phase3_validation artifact gates (integration_testing, security_hardening, accessibility_audit, performance_audit, results_archived, legal_review) are documented only inline in process-checklist.sh. There is no consolidated `Phase 3 Required Artifacts` checklist for agents.", "where": "scripts/process-checklist.sh; docs/reference/builders-guide.md should publish the artifact-gate matrix."}
+      ]
+    },
+    {
+      "phase": 4,
+      "tests": [
+        {"name": "start_phase4_exits_zero", "pass": true, "details": "process-checklist.sh --start-phase4 exits 0; .phase4_release.started_at populated."},
+        {"name": "each_phase4_step_completes", "pass": true, "details": "All 6 phase4_release steps completed: production_build (no artifact gate), rollback_tested (gated on docs/test-results/*rollback*; satisfied by stub), go_live_verified (gated on RELEASE_NOTES.md; satisfied — init.sh creates that file), monitoring_configured (gated on HANDOFF.md mentioning monitoring/sentry; satisfied after HANDOFF.md added with Sentry mention), handoff_written (gated on HANDOFF.md), handoff_tested (gated on docs/test-results/*handoff*)."},
+        {"name": "handoff_md_required", "pass": true, "details": "Pre-creating HANDOFF.md with monitoring keywords satisfied both monitoring_configured and handoff_written gates. (Without HANDOFF.md, agent-1 reported the gate fires with exit 1 and the message `HANDOFF.md not found — monitoring configuration should be documented there.`)"},
+        {"name": "release_notes_required", "pass": true, "details": "phase4_release:go_live_verified gates on RELEASE_NOTES.md existence. init.sh ships a stub RELEASE_NOTES.md so the gate passed without manual intervention."},
+        {"name": "phase4_completion_state", "pass": true, "details": ".phase4_release.steps_completed has all 6 entries; .phase4_release.step = 6. .phase-state.json .current_phase = 4 (manually bumped). NOTE: there is no `released` state — current_phase remains numeric 4 after all steps complete. Runbook should clarify whether 4 is terminal."}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": [
+        {"gap": "Phase 4 terminal state ambiguity — runbook says `.current_phase` should equal 4 OR 'released'. The framework only ever uses numeric 0-4; there is no `released` state. Choose one and document.", "where": "RUNBOOK.md Section E phase4_completion_state row; docs/reference/builders-guide.md Phase 4 description."},
+        {"gap": "Phase 4 artifact gates (HANDOFF.md required for monitoring_configured AND handoff_written; RELEASE_NOTES.md required for go_live_verified; rollback test file in docs/test-results) are scattered in process-checklist.sh. Builders Guide should publish a Phase 4 artifact checklist.", "where": "scripts/process-checklist.sh; docs/reference/builders-guide.md."}
+      ]
+    },
+    {
+      "phase": "post-flight",
+      "tests": [
+        {"name": "no_uncommitted_secrets", "pass": true, "details": "gitleaks git --no-banner returns `no leaks found` over 2 commits / ~1.17MB. (Naive `grep -E 'password|api[_-]?key|secret|token'` over docs has false positives; runbook should clarify it means real secret detection via gitleaks.)"},
+        {"name": "log_files_consistent", "pass": "n/a", "details": ".claude/process-audit.log does NOT exist after a normal happy-path run. Audit-log writes ONLY happen on (a) SOIF_FORCE_STEP bypass and (b) --reset-process subcommands. No FORCE/reset events occurred — file is correctly absent."},
+        {"name": "no_orphaned_tempfiles", "pass": true, "details": "find .claude -name '*.tmp' returned no results."}
+      ],
+      "framework_bugs": [],
+      "documentation_gaps": []
+    }
+  ],
+  "overall_pass": false,
+  "overall_pass_reason": "Three High-severity bugs reproduced (all also reported by agent-1, now confirmed on a different platform/language/track combo — base/personal/web/full/typescript): (1) init.sh exits non-zero on the documented happy-path host=other + fake URL flow because `git push` to the fake remote propagates through `set -euo pipefail`; (2) BL-006 build-loop enforcement only fires in Claude Code's PreToolUse path — direct shell `git commit -m 'feat(...)'` bypasses it entirely; (3) no script advances `current_phase` between phases, so the runbook's phase_state_advances_to_2 assertion can only be satisfied by manual jq editing. One Medium bug also recorded around the Phase 2 init verifier's host-manifest/lockfile expectations vs stub UAT scenarios. init.sh prompt-driver fragility re-confirmed (Full+personal warning prompt interleaves and shifted my heredoc alignment on first attempt).",
+  "summary": "Base / personal / web / full / typescript end-to-end: project skeleton creation works, all phase 1-4 process steps complete with stub artifacts, BL-006 + BL-015 enforce correctly through the Claude Code PreToolUse hook, but init.sh exits 1 on the documented `host=other + fake URL` path, BL-006 has zero enforcement on direct shell commits, and the framework has no script that advances current_phase between phases — agents must edit phase-state.json manually. All three Highs reproduce findings from agent-1, confirming they are not platform/language/track-specific."
+}
