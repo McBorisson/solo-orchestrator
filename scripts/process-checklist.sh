@@ -455,6 +455,16 @@ complete_step() {
     print_ok "Phase 2 initialization auto-verified (all ${#steps[@]} steps complete)"
   fi
 
+  # Auto-reset build_loop when feature_recorded lands — the previous feature's
+  # loop is consumed. Without this, .build_loop.feature stays non-null and all
+  # 5 prior steps stay marked complete, so the BL-006 commit-message gate
+  # treats subsequent `feat(...)` commits as if a fresh loop is satisfied.
+  # UAT 2026-04-25 bug C2 (agents 12, 43, 46): "between-features grace window."
+  if [ "$process" = "build_loop" ] && [ "$step_id" = "feature_recorded" ]; then
+    jq '.build_loop = {"feature": null, "step": 0, "steps_completed": [], "started_at": null}' "$PROCESS_STATE" > "$PROCESS_STATE.tmp" && mv "$PROCESS_STATE.tmp" "$PROCESS_STATE"
+    print_ok "Build loop reset — start the next feature with: scripts/process-checklist.sh --start-feature \"NAME\""
+  fi
+
   # Show next step if any
   local next_index=$((target_index + 1))
   if [ "$next_index" -lt "${#steps[@]}" ]; then
