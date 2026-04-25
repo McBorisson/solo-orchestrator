@@ -2998,19 +2998,65 @@ collect_inputs_non_interactive() {
     return 1
   fi
 
-  # ----- Defaults + full JSON output go in subsequent tasks -----
-  # For now: emit a minimal JSON if --validate-only so N1 still passes.
+  # ----- Apply defaults for inputs not set by flag or config -----
+  : "${ARG_TRACK:=standard}"
+  : "${ARG_GIT_HOST:=github}"
+  : "${ARG_VISIBILITY:=private}"
+  : "${ARG_PROJECT_DIR:=$HOME/Code/$ARG_PROJECT}"
+  # Force private for organizational deployments (matches existing init.sh:1713 logic).
+  if [ "$ARG_DEPLOYMENT" = "organizational" ]; then
+    ARG_VISIBILITY="private"
+  fi
+
+  # Assign resolved values to the variables the rest of init.sh consumes.
+  PROJECT_NAME="$ARG_PROJECT"
+  PROJECT_DESCRIPTION="$ARG_DESCRIPTION"
+  PLATFORM="$ARG_PLATFORM"
+  TRACK="$ARG_TRACK"
+  DEPLOYMENT="$ARG_DEPLOYMENT"
+  GOV_MODE="$ARG_GOV_MODE"
+  LANGUAGE="$ARG_LANGUAGE"
+  PROJECT_DIR="$ARG_PROJECT_DIR"
+  GIT_HOST="$ARG_GIT_HOST"
+  VISIBILITY="$ARG_VISIBILITY"
+  REMOTE_URL="$ARG_REMOTE_URL"
+  BRANCH_PROTECTION_ATTESTED="$ARG_BRANCH_PROTECTION_ATTESTED"
+  ALLOW_EXISTING_DIR="$ARG_ALLOW_EXISTING_DIR"
+
   if [ "$VALIDATE_ONLY" = true ]; then
-    cat <<JSONEOF
-{
-  "_validated": true,
-  "_resolved_at": "$(date -u +%FT%TZ)",
-  "project": "$ARG_PROJECT",
-  "platform": "$ARG_PLATFORM",
-  "deployment": "$ARG_DEPLOYMENT",
-  "language": "$ARG_LANGUAGE"
-}
-JSONEOF
+    # Build the resolved JSON via jq for proper escaping.
+    jq -n \
+      --arg ts "$(date -u +%FT%TZ)" \
+      --arg project "$PROJECT_NAME" \
+      --arg description "$PROJECT_DESCRIPTION" \
+      --arg platform "$PLATFORM" \
+      --arg track "$TRACK" \
+      --arg deployment "$DEPLOYMENT" \
+      --arg gov_mode "$GOV_MODE" \
+      --arg language "$LANGUAGE" \
+      --arg project_dir "$PROJECT_DIR" \
+      --arg git_host "$GIT_HOST" \
+      --arg visibility "$VISIBILITY" \
+      --arg remote_url "$REMOTE_URL" \
+      --argjson attested "$([ "$BRANCH_PROTECTION_ATTESTED" = true ] && echo true || echo false)" \
+      --argjson allow_dir "$([ "$ALLOW_EXISTING_DIR" = true ] && echo true || echo false)" \
+      '{
+        _validated: true,
+        _resolved_at: $ts,
+        project: $project,
+        description: $description,
+        platform: $platform,
+        track: $track,
+        deployment: $deployment,
+        gov_mode: (if $gov_mode == "" then null else $gov_mode end),
+        language: $language,
+        project_dir: $project_dir,
+        git_host: $git_host,
+        visibility: $visibility,
+        remote_url: (if $remote_url == "" then null else $remote_url end),
+        branch_protection_attested: $attested,
+        allow_existing_dir: $allow_dir
+      }'
   fi
   return 0
 }

@@ -128,6 +128,23 @@ n13_invalid_language_for_platform() {
   pass "N13: invalid --language for platform → exit 1"
 }
 
+n20_validate_only_success() {
+  local out; out=$(run_validate --project p --platform web --deployment personal --language typescript)
+  [ "${out%%|*}" = "0" ] || { fail_ "N20" "expected exit 0, got: $out"; return; }
+  local stdout="${out#*|}"; stdout="${stdout%%|*}"
+  [[ "$stdout" == *'"_validated": true'* ]] || { fail_ "N20" "stdout missing _validated:true: $stdout"; return; }
+  [[ "$stdout" == *'"track": "standard"'* ]] || { fail_ "N20" "stdout missing default track: $stdout"; return; }
+  [[ "$stdout" == *'"git_host": "github"'* ]] || { fail_ "N20" "stdout missing default git_host: $stdout"; return; }
+  [[ "$stdout" == *'"visibility": "private"'* ]] || { fail_ "N20" "stdout missing default visibility: $stdout"; return; }
+  pass "N20: --validate-only success → exit 0 + full resolved JSON with defaults filled"
+}
+
+n21_validate_only_failure() {
+  local out; out=$(run_validate --platform web --deployment personal --language ts)
+  [ "${out%%|*}" = "1" ] || { fail_ "N21" "expected exit 1, got: $out"; return; }
+  pass "N21: --validate-only failure → exit 1 with same error as real run"
+}
+
 n22_allow_existing_dir() {
   # Setup: create a dir, then run with --allow-existing-dir + --project-dir pointing to it.
   # Must cd to a non-framework cwd so the U-N framework guard doesn't fire.
@@ -253,6 +270,8 @@ n16_config_not_found
 n17_config_malformed_json
 n18_config_unknown_field
 n19_config_without_non_interactive
+n20_validate_only_success
+n21_validate_only_failure
 n22_allow_existing_dir
 n23_dir_exists_no_allow_flag
 
