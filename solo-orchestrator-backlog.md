@@ -266,3 +266,30 @@ Punted from BL-006. Prevent mis-typed commit types — e.g., a real feature disg
 **Tradeoff:** intent inference from diffs is brittle and prone to false positives. Likely better addressed by code review norms or an Agent-side lint rather than a pre-commit gate.
 
 **Related:** BL-006 spec § 3 (escape-route decision: Conventional Commits type) and § 10 (out-of-scope note).
+
+---
+
+## BL-015: Pending-approval sentinel reader (Solo side)
+
+**Logged:** 2026-04-25
+**Category:** Debt
+**Severity:** High
+**Status:** promoted-to-spec (2026-04-25)
+
+Surfaced during the lancache 2026-04-24 incident review. CDF 4.2.3 (`f55c8bc`) introduced `.claude/pending-approval.json` as a sentinel the agent writes when offering structured options to the user; the CDF stop-hook honors it (exits silently, breaking the "Complete these, then finish" pressure loop). Solo's pre-commit-gate currently does NOT honor it — meaning even with the stop-hook silenced, an agent under rationalization pressure can still commit unilaterally. BL-015 closes the symmetric gap.
+
+**Scope (locked during brainstorm 2026-04-24/25):**
+- New helper `scripts/pending-approval.sh` with 5 subcommands (`--offer`/`--resolve`/`--clear`/`--status`/`--validate`).
+- New `pa_check()` block in `scripts/pre-commit-gate.sh` between `--no-verify` (security) and `--amend` (workflow).
+- New bullet in `templates/generated/claude-md.tmpl` Construction Rules.
+- New "Structured Decision Points" subsection in `docs/builders-guide.md`.
+- One-line changelog note in `scripts/upgrade-project.sh`.
+- 17 unit tests + 8 integration tests.
+
+**Locked design parameters:** rich JSON-aware deny reason (parses sentinel, reflects question/options/recommendation back); blocks both `git commit` and `gh pr create`; refuses double-`--offer`; matches CDF's "existence alone suffices" semantics; punts staleness handling (manual `rm` recovery). Position in `pre-commit-gate.sh` chosen so security gates (SOIF_*, no-remote, --no-verify) fire first but workflow gates (--amend, bl006_check) fire after — pending approval upgrades the existing --amend warn into a hard block.
+
+**Upstream dependency:** CDF 4.2.3 — already shipped and verified on 2026-04-25.
+
+**Trigger:** Lancache 2026-04-24 commit-structure rationalization incident. Coupled with the CDF stop-hook fix; both enforcement points needed for the mechanism to be effective.
+
+**Spec:** `docs/superpowers/specs/2026-04-25-pending-approval-sentinel-reader-design.md` (committed 2026-04-25).
