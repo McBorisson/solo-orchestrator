@@ -2879,7 +2879,61 @@ collect_inputs_non_interactive() {
     fi
   fi
 
-  # ----- Pass 3 + defaults + full JSON output go in subsequent tasks -----
+  # ----- Pass 3: resource validation -----
+
+  # Required tools
+  for tool in git jq node python3; do
+    if ! command -v "$tool" &>/dev/null; then
+      local install_cmd=""
+      case "$OS_TYPE" in
+        Darwin) install_cmd="brew install $tool" ;;
+        Linux)  install_cmd="apt install -y $tool   # or your distro's package manager" ;;
+      esac
+      fail "missing required tool: $tool" \
+           "non-interactive mode does not auto-install dependencies." \
+           "install: $install_cmd, then re-run." \
+           "--non-interactive (tool=$tool)"
+      return 1
+    fi
+  done
+
+  # git host CLI presence (skipped for 'other')
+  local effective_git_host="${ARG_GIT_HOST:-github}"
+  case "$effective_git_host" in
+    github)
+      if ! command -v gh &>/dev/null; then
+        fail "missing required tool for --git-host=github: gh" \
+             "the GitHub CLI is needed to create + protect the remote repo." \
+             "install: brew install gh (macOS) or apt install gh (Linux), then re-run." \
+             "--git-host=github"
+        return 1
+      fi ;;
+    gitlab)
+      if ! command -v glab &>/dev/null; then
+        fail "missing required tool for --git-host=gitlab: glab" \
+             "the GitLab CLI is needed to create + protect the remote repo." \
+             "install: brew install glab (macOS), then re-run." \
+             "--git-host=gitlab"
+        return 1
+      fi ;;
+    bitbucket)
+      # bitbucket uses curl + tokens; no CLI requirement
+      : ;;
+    other)
+      : ;;
+  esac
+
+  # project_dir existence check
+  local effective_project_dir="${ARG_PROJECT_DIR:-$HOME/Code/$ARG_PROJECT}"
+  if [ -e "$effective_project_dir" ] && [ "$ARG_ALLOW_EXISTING_DIR" != true ]; then
+    fail "project directory already exists: $effective_project_dir" \
+         "non-interactive mode refuses to write into an existing directory by default." \
+         "pass --allow-existing-dir to use it anyway, or pick a different --project-dir." \
+         "--project-dir='$effective_project_dir'"
+    return 1
+  fi
+
+  # ----- Defaults + full JSON output go in subsequent tasks -----
   # For now: emit a minimal JSON if --validate-only so N1 still passes.
   if [ "$VALIDATE_ONLY" = true ]; then
     cat <<JSONEOF

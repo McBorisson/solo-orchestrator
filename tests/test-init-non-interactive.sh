@@ -128,6 +128,35 @@ n13_invalid_language_for_platform() {
   pass "N13: invalid --language for platform → exit 1"
 }
 
+n22_allow_existing_dir() {
+  # Setup: create a dir, then run with --allow-existing-dir + --project-dir pointing to it.
+  # Must cd to a non-framework cwd so the U-N framework guard doesn't fire.
+  local existing cwd_for_run
+  existing=$(mktemp -d)
+  cwd_for_run=$(mktemp -d)
+  local out rc=0
+  out=$(cd "$cwd_for_run" && "$INIT_SH" --non-interactive --validate-only \
+        --project p --platform web --deployment personal --language typescript \
+        --project-dir "$existing" --allow-existing-dir 2>&1) || rc=$?
+  rm -rf "$existing" "$cwd_for_run"
+  [ "$rc" = "0" ] || { fail_ "N22" "expected exit 0 with --allow-existing-dir, got rc=$rc out=$out"; return; }
+  pass "N22: existing dir + --allow-existing-dir → exit 0"
+}
+
+n23_dir_exists_no_allow_flag() {
+  local existing cwd_for_run
+  existing=$(mktemp -d)
+  cwd_for_run=$(mktemp -d)
+  local out rc=0
+  out=$(cd "$cwd_for_run" && "$INIT_SH" --non-interactive --validate-only \
+        --project p --platform web --deployment personal --language typescript \
+        --project-dir "$existing" 2>&1) || rc=$?
+  rm -rf "$existing" "$cwd_for_run"
+  [ "$rc" = "1" ] || { fail_ "N23" "expected exit 1, got rc=$rc out=$out"; return; }
+  [[ "$out" == *"--allow-existing-dir"* ]] || { fail_ "N23" "stderr should suggest --allow-existing-dir: $out"; return; }
+  pass "N23: existing dir without --allow-existing-dir → exit 1 with flag suggestion"
+}
+
 # --- Run all ---
 echo "== tests/test-init-non-interactive.sh =="
 n1_happy_path
@@ -143,6 +172,8 @@ n10_org_with_public_visibility
 n11_invalid_platform
 n12_invalid_project_name
 n13_invalid_language_for_platform
+n22_allow_existing_dir
+n23_dir_exists_no_allow_flag
 
 echo ""
 echo "== Total: $((PASSED + FAILED)) | Passed: $PASSED | Failed: $FAILED =="
