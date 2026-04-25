@@ -214,6 +214,48 @@ u17_revert_quotes_feat() {
   teardown
 }
 
+# U18: BL-006 between-features grace window — UAT 2026-04-25 bug C2.
+# After --complete-step build_loop:feature_recorded the loop is consumed;
+# the next feat: commit MUST require a fresh --start-feature. Without the
+# auto-reset fix, the gate would see feature != null and steps complete
+# and let any subsequent feat: commit through.
+#
+# Setup approach: seed process-state directly to the post-step-5 state
+# (feature started + first 5 steps complete), then call --complete-step
+# build_loop:feature_recorded and observe the auto-reset side effect.
+# This bypasses the artifact checks for security_audit etc. that would
+# otherwise block a fully scripted setup.
+u18_no_grace_window_after_feature_recorded() {
+  setup; seed_phase 2
+  cat > "$TMPDIR_T/.claude/process-state.json" <<JSON
+{
+  "phase2_init": {"verified": true},
+  "build_loop": {
+    "feature": "uat-feat-1",
+    "step": 5,
+    "steps_completed": ["tests_written","tests_verified_failing","implemented","security_audit","documentation_updated"],
+    "started_at": "2026-04-25T00:00:00Z"
+  },
+  "uat_session": {"started_at": null, "steps_completed": []}
+}
+JSON
+  local PC="$REPO_ROOT/scripts/process-checklist.sh"
+  local rc=0
+  ( cd "$TMPDIR_T" && "$PC" --complete-step "build_loop:feature_recorded" >/dev/null 2>&1 ) || rc=$?
+  [ "$rc" = "0" ] || { fail_ "U18" "complete-step build_loop:feature_recorded should succeed; rc=$rc"; teardown; return; }
+  local feat
+  feat=$(jq -r '.build_loop.feature' "$TMPDIR_T/.claude/process-state.json")
+  [ "$feat" = "null" ] || { fail_ "U18" "expected .build_loop.feature == null after feature_recorded; got: '$feat'"; teardown; return; }
+  local steps_count
+  steps_count=$(jq '.build_loop.steps_completed | length' "$TMPDIR_T/.claude/process-state.json")
+  [ "$steps_count" = "0" ] || { fail_ "U18" "expected steps_completed cleared; got count=$steps_count"; teardown; return; }
+  local out; out=$(run_check "feat(x): subsequent")
+  [ "${out%%|*}" = "1" ] || { fail_ "U18" "expected exit 1 for feat: after feature_recorded; got: $out"; teardown; return; }
+  [[ "${out#*|}" == *"start-feature"* ]] || { fail_ "U18" "stderr should require new --start-feature, got: $out"; teardown; return; }
+  pass "U18: BL-006 build_loop auto-resets after feature_recorded — no between-features grace window"
+  teardown
+}
+
 # --- Run all ---
 echo "== tests/test-check-commit-message.sh =="
 u1_phase_0_feat
@@ -233,6 +275,7 @@ u14_feature_started_all_done
 u15_non_feat_all_done
 u16_empty_msg
 u17_revert_quotes_feat
+u18_no_grace_window_after_feature_recorded
 
 echo ""
 echo "== Total: $((PASSED + FAILED)) | Passed: $PASSED | Failed: $FAILED =="
