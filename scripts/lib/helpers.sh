@@ -152,6 +152,18 @@ prompt_input() {
 
 # Prompt for a numbered choice from a list of options.
 # Usage: result=$(prompt_choice "Pick one:" "option1" "option2" "option3")
+#
+# UAT 2026-04-25 fix (agent 12): EOF guard. The original loop had no exit
+# condition for stdin EOF — `read` returns non-zero on EOF, but the loop
+# kept retrying and re-printing "Invalid choice", spinning the CPU and
+# producing megabytes of output until killed. Affected ANY scripted
+# invocation of init.sh (or any caller of prompt_choice) when canned
+# answers were under-fed.
+#
+# Fix: detect read's non-zero return (EOF). On EOF, print a clear failure
+# to stderr and return 1 (caller can decide whether to abort or default).
+# Bonus: cap retries at 100 so even a malformed-but-non-EOF input stream
+# doesn't burn forever.
 prompt_choice() {
   local prompt="$1"
   shift
@@ -161,14 +173,24 @@ prompt_choice() {
     echo "  $((i+1)). ${options[$i]}" >&2
   done
   local choice
-  while true; do
-    read -rp "$(echo -e "${BOLD}Select [1-${#options[@]}]${NC}: ")" choice
+  local retries=0
+  local max_retries=100
+  while [ "$retries" -lt "$max_retries" ]; do
+    if ! read -rp "$(echo -e "${BOLD}Select [1-${#options[@]}]${NC}: ")" choice; then
+      echo "" >&2
+      echo "  prompt_choice: stdin closed (EOF) before a valid choice was supplied." >&2
+      echo "  This usually means a scripted/heredoc invocation under-fed the prompt." >&2
+      return 1
+    fi
     if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#options[@]}" ]; then
       echo "${options[$((choice-1))]}"
-      return
+      return 0
     fi
     echo "  Invalid choice. Enter a number between 1 and ${#options[@]}." >&2
+    retries=$((retries + 1))
   done
+  echo "  prompt_choice: $max_retries invalid attempts; aborting to prevent loop." >&2
+  return 1
 }
 
 # Prompt user to install a missing tool. Returns 0 if installed, 1 if skipped.
