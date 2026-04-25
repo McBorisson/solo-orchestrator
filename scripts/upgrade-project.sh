@@ -13,6 +13,10 @@ set -euo pipefail
 #   an active Build Loop. No migration code needed — the updated
 #   scripts/process-checklist.sh and scripts/pre-commit-gate.sh are copied
 #   by this script's existing behavior, so running an upgrade picks it up.
+# - BL-015 (2026-04-25): pre-commit gate now blocks commits and PR creation
+#   when .claude/pending-approval.json exists. New helper script
+#   scripts/pending-approval.sh. CLAUDE.md template gets new bullet under
+#   Construction Rules. Upgrade picks up the new scripts and template.
 #
 # Usage:
 #   scripts/upgrade-project.sh --track standard          # Track upgrade only
