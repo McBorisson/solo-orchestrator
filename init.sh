@@ -1060,7 +1060,9 @@ create_project() {
   cp "$SCRIPT_DIR/scripts/process-checklist.sh" scripts/
   cp "$SCRIPT_DIR/scripts/pre-commit-gate.sh" scripts/
   cp "$SCRIPT_DIR/scripts/track-tool-usage.sh" scripts/
-  chmod +x scripts/validate.sh scripts/check-phase-gate.sh scripts/check-updates.sh scripts/resume.sh scripts/intake-wizard.sh scripts/resolve-tools.sh scripts/upgrade-project.sh scripts/reconfigure-project.sh scripts/verify-install.sh scripts/test-gate.sh scripts/check-versions.sh scripts/session-version-check.sh scripts/session-test-gate-check.sh scripts/session-end-qdrant-reminder.sh scripts/process-checklist.sh scripts/pre-commit-gate.sh scripts/track-tool-usage.sh
+  cp "$SCRIPT_DIR/scripts/pending-approval.sh" scripts/      # BL-015
+  cp "$SCRIPT_DIR/scripts/lint-uat-scenarios.sh" scripts/    # BL-009
+  chmod +x scripts/validate.sh scripts/check-phase-gate.sh scripts/check-updates.sh scripts/resume.sh scripts/intake-wizard.sh scripts/resolve-tools.sh scripts/upgrade-project.sh scripts/reconfigure-project.sh scripts/verify-install.sh scripts/test-gate.sh scripts/check-versions.sh scripts/session-version-check.sh scripts/session-test-gate-check.sh scripts/session-end-qdrant-reminder.sh scripts/process-checklist.sh scripts/pre-commit-gate.sh scripts/track-tool-usage.sh scripts/pending-approval.sh scripts/lint-uat-scenarios.sh
 
   # Copy intake suggestion files
   mkdir -p templates/intake-suggestions

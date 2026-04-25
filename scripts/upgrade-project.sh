@@ -1406,6 +1406,25 @@ if [ -d tests/uat/templates ] || [ -d tests/uat ]; then
   echo ""
 fi
 
+# --- Framework-helper script refresh (UAT 2026-04-25 fix C1) ---
+# init.sh's file-copy block enumerates each helper script explicitly. When new
+# helpers ship in the framework (BL-009: lint-uat-scenarios.sh; BL-015:
+# pending-approval.sh), existing projects can't pick them up by re-running
+# init. This block syncs the post-BL-009/BL-015 helper set into the project's
+# scripts/ directory. Idempotent: cp overwrites existing files identically.
+print_step "Refreshing framework helper scripts (BL-009, BL-015)"
+if [ -d scripts ]; then
+  for helper in pending-approval.sh lint-uat-scenarios.sh; do
+    if [ -f "$SCRIPT_DIR/$helper" ]; then
+      cp "$SCRIPT_DIR/$helper" "scripts/$helper"
+      chmod +x "scripts/$helper"
+      print_ok "scripts/$helper refreshed from framework"
+    fi
+  done
+else
+  print_warn "scripts/ directory not found in project root — skipping helper refresh"
+fi
+
 # Run full project validation to surface new track requirements
 if [ -x "scripts/validate.sh" ]; then
   echo ""
