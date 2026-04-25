@@ -204,6 +204,25 @@ if [ -f "$INTAKE_PROGRESS" ]; then
   fi
 fi
 
+# Final fallback: read from phase-state.json — the canonical source init.sh writes.
+# UAT 2026-04-25 fix C4: agents 49,77,78,80,81,82 all hit "Project is not in
+# POC mode" when intake-progress.json was missing because init.sh never creates
+# it. phase-state.json carries .track/.deployment/.poc_mode from init.sh:1527.
+if [ -f "$PHASE_STATE" ]; then
+  if [ -z "$CURRENT_TRACK" ]; then
+    CURRENT_TRACK=$(jq -r '.track // ""' "$PHASE_STATE")
+  fi
+  if [ -z "$CURRENT_DEPLOYMENT" ]; then
+    CURRENT_DEPLOYMENT=$(jq -r '.deployment // ""' "$PHASE_STATE")
+  fi
+  if [ -z "$CURRENT_POC_MODE" ]; then
+    CURRENT_POC_MODE=$(jq -r '.poc_mode // ""' "$PHASE_STATE")
+    if [ "$CURRENT_POC_MODE" = "null" ]; then
+      CURRENT_POC_MODE=""
+    fi
+  fi
+fi
+
 # Detect deployment from APPROVAL_LOG.md frontmatter if not in progress file
 if [ -z "$CURRENT_DEPLOYMENT" ] && [ -f "$APPROVAL_LOG" ]; then
   CURRENT_DEPLOYMENT=$(grep -m1 '^deployment:' "$APPROVAL_LOG" 2>/dev/null | sed 's/deployment: *//' || echo "")
