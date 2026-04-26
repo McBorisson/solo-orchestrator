@@ -1204,7 +1204,7 @@ fi
 
 
 # ================================================================
-section "BL-016: init.sh non-interactive mode — E48-E61"
+section "BL-016: init.sh non-interactive mode — E48-E62"
 
 INIT_SH="$REPO_DIR/init.sh"
 
@@ -1503,6 +1503,50 @@ if [ "$_e61_wizard_rc" = "0" ] && [ "$_e61_poc_mode" = "private_poc" ]; then
   pass "E61: intake-wizard.sh --to-private-poc walks up from project subdir + passthrough works (T1-D regression guard)"
 else
   fail "E61: expected rc=0 poc_mode=private_poc; got rc=$_e61_wizard_rc poc_mode='$_e61_poc_mode'"
+fi
+
+# E62: check-phase-gate.sh detects pen-test artifact under pipefail.
+# Regression guard for T1-E from 2026-04-26 UAT triage. The original
+# `ls glob1 glob2 glob3 2>/dev/null | head -1 >/dev/null 2>&1` returned
+# non-zero under `set -euo pipefail` whenever any one of the three globs
+# had no matches (BSD/GNU ls exits non-zero on missing files; pipefail
+# propagates). Result: full-track production projects were wrongly
+# blocked at Phase 3->4 even with valid pen-test artifacts present.
+# Replaced with compgen -G which tests each pattern independently.
+_e62_dir="$TEST_DIR/e62"
+mkdir -p "$_e62_dir/.claude" "$_e62_dir/docs/test-results"
+cat > "$_e62_dir/.claude/phase-state.json" << 'JSON'
+{
+  "project": "uat-e62",
+  "framework_version": "1.0",
+  "current_phase": 3,
+  "track": "full",
+  "deployment": "personal",
+  "poc_mode": null,
+  "compliance_ready": false,
+  "gates": {
+    "phase_0_to_1": "2026-01-01",
+    "phase_1_to_2": "2026-02-01",
+    "phase_2_to_3": "2026-03-01",
+    "phase_3_to_4": null
+  }
+}
+JSON
+cat > "$_e62_dir/APPROVAL_LOG.md" << 'MD'
+# Approval Log
+
+Phase 0 -> Phase 1: 2026-01-01 approver: Karl
+Phase 1 -> Phase 2: 2026-02-01 approver: Karl
+Phase 2 -> Phase 3: 2026-03-01 approver: Karl
+MD
+# A pen-test artifact that matches *pen-test* but not *pentest* or *penetration*
+# (so the original buggy ls-pipe-head form would fail under pipefail).
+touch "$_e62_dir/docs/test-results/2026-04-26-pen-test-summary.md"
+_e62_out=$(cd "$_e62_dir" && bash "$REPO_DIR/scripts/check-phase-gate.sh" 2>&1) || true
+if echo "$_e62_out" | grep -q "Penetration test results found"; then
+  pass "E62: check-phase-gate.sh detects pen-test artifact under pipefail (T1-E regression guard)"
+else
+  fail "E62: check-phase-gate.sh did not detect pen-test artifact"
 fi
 
 

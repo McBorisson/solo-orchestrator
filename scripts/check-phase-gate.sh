@@ -446,7 +446,14 @@ if [ "$current_phase" -ge 3 ]; then
 
   # P3-004: Penetration test check for Standard+ track
   if [ "$track" = "standard" ] || [ "$track" = "full" ]; then
-    if ls docs/test-results/*pen-test* docs/test-results/*pentest* docs/test-results/*penetration* 2>/dev/null | head -1 >/dev/null 2>&1; then
+    # UAT 2026-04-26 fix (T1-E): use compgen instead of `ls glob1 glob2 glob3
+    # | head -1`. Under `set -euo pipefail`, `ls` returns non-zero on any
+    # unmatched glob, propagating through the pipe and failing the if even
+    # when one of the patterns matches a real file. compgen -G tests each
+    # pattern independently and doesn't shell-out to ls.
+    if compgen -G "docs/test-results/*pen-test*" >/dev/null \
+       || compgen -G "docs/test-results/*pentest*" >/dev/null \
+       || compgen -G "docs/test-results/*penetration*" >/dev/null; then
       echo -e "${GREEN}  [OK]${NC} Penetration test results found in docs/test-results/"
     elif [ "$track" = "standard" ] && grep -qi "penetration.*exempted\|pen.*test.*exempted" APPROVAL_LOG.md 2>/dev/null; then
       # Standard track allows IT Security exemption
