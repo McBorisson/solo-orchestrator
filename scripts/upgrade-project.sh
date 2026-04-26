@@ -1470,9 +1470,17 @@ print_step "Refreshing framework helper scripts (BL-009, BL-015)"
 if [ -d scripts ]; then
   for helper in pending-approval.sh lint-uat-scenarios.sh; do
     if [ -f "$SCRIPT_DIR/$helper" ]; then
-      cp "$SCRIPT_DIR/$helper" "scripts/$helper"
-      chmod +x "scripts/$helper"
-      print_ok "scripts/$helper refreshed from framework"
+      # When invoked as `bash scripts/upgrade-project.sh` from the project root,
+      # $SCRIPT_DIR resolves to scripts/ — the source and destination are the
+      # same file. BSD cp returns non-zero on identical source/dest, which under
+      # `set -euo pipefail` would abort the upgrade. Skip the no-op.
+      if [ "$SCRIPT_DIR/$helper" -ef "scripts/$helper" ]; then
+        print_info "scripts/$helper already at framework version (no-op)"
+      else
+        cp "$SCRIPT_DIR/$helper" "scripts/$helper"
+        chmod +x "scripts/$helper"
+        print_ok "scripts/$helper refreshed from framework"
+      fi
     fi
   done
 else
