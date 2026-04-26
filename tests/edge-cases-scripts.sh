@@ -1204,7 +1204,7 @@ fi
 
 
 # ================================================================
-section "BL-016: init.sh non-interactive mode — E48-E57"
+section "BL-016: init.sh non-interactive mode — E48-E58"
 
 INIT_SH="$REPO_DIR/init.sh"
 
@@ -1374,6 +1374,35 @@ if [ "$_e57_rc" = "0" ] && [ "$_e57_poc" = "null" ]; then
   pass "E57: --non-interactive --gov-mode production clears poc_mode (T1-A regression guard)"
 else
   fail "E57: expected rc=0 and phase-state.json .poc_mode=null, got rc=$_e57_rc poc_mode='$_e57_poc'"
+fi
+
+# E58: project-local invocation of upgrade-project.sh must exit rc=0.
+# Regression guard for T1-B from 2026-04-26 UAT triage. The BL-009/BL-015
+# helper-refresh block at scripts/upgrade-project.sh:1471 did
+# `cp $SCRIPT_DIR/$helper scripts/$helper` where $SCRIPT_DIR resolved to the
+# project's own scripts/ dir when invoked as `bash scripts/upgrade-project.sh`
+# from the project root. BSD cp returns non-zero on identical source/dest,
+# and `set -euo pipefail` aborted before "Upgrade complete." State changes
+# succeeded but the wrapper signaled failure.
+_e58_dir="$TEST_DIR/e58"
+mkdir -p "$_e58_dir"
+_e58_proj="$_e58_dir/uat-e58"
+_e58_init_rc=0
+(cd "$_e58_dir" && "$INIT_SH" --non-interactive \
+  --project uat-e58 --platform web --deployment organizational --gov-mode private_poc \
+  --language typescript --project-dir "$_e58_proj" \
+  --git-host other --remote-url https://example.com/fake.git \
+  --branch-protection-attested >/dev/null 2>&1) || _e58_init_rc=$?
+_e58_upgrade_rc=0
+if [ "$_e58_init_rc" = "0" ] && [ -d "$_e58_proj/scripts" ]; then
+  (cd "$_e58_proj" && bash scripts/upgrade-project.sh --to-sponsored-poc >/dev/null 2>&1) || _e58_upgrade_rc=$?
+else
+  _e58_upgrade_rc=255
+fi
+if [ "$_e58_upgrade_rc" = "0" ]; then
+  pass "E58: project-local upgrade-project.sh --to-sponsored-poc exits 0 (T1-B regression guard)"
+else
+  fail "E58: expected rc=0 from project-local upgrade-project.sh, got rc=$_e58_upgrade_rc (init_rc=$_e58_init_rc)"
 fi
 
 
