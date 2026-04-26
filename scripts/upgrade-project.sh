@@ -27,6 +27,7 @@ set -euo pipefail
 #   scripts/upgrade-project.sh --deployment organizational  # Deployment upgrade only
 #   scripts/upgrade-project.sh --to-production            # Full upgrade to production
 #   scripts/upgrade-project.sh --to-sponsored-poc         # Personal → Sponsored POC
+#   scripts/upgrade-project.sh --to-private-poc           # Personal → Private POC
 #   scripts/upgrade-project.sh --help
 
 # --- Locate orchestrator and project ---
@@ -58,6 +59,7 @@ VALID_DEPLOYMENTS="personal organizational"
 
 # --- Argument parsing ---
 TARGET_TRACK=""
+TO_PRIVATE_POC=false
 TARGET_DEPLOYMENT=""
 TO_PRODUCTION=false
 TO_SPONSORED_POC=false
@@ -83,6 +85,10 @@ while [ $# -gt 0 ]; do
       ;;
     --to-production)
       TO_PRODUCTION=true
+      shift
+      ;;
+    --to-private-poc)
+      TO_PRIVATE_POC=true
       shift
       ;;
     --to-sponsored-poc)
@@ -115,6 +121,7 @@ if [ "$SHOW_HELP" = true ]; then
   echo "  scripts/upgrade-project.sh --deployment organizational # Add governance framework"
   echo "  scripts/upgrade-project.sh --to-production            # POC -> Production (upgrade track + remove POC)"
   echo "  scripts/upgrade-project.sh --to-sponsored-poc         # Private POC -> Sponsored POC"
+  echo "  scripts/upgrade-project.sh --to-private-poc           # Personal -> Private POC"
   echo "  scripts/upgrade-project.sh --help                     # This help message"
   echo ""
   echo -e "${BOLD}Flags can be combined:${NC}"
@@ -362,6 +369,27 @@ if [ "$TO_SPONSORED_POC" = true ]; then
   fi
 fi
 
+# --to-private-poc: personal -> organizational/private_poc
+if [ "$TO_PRIVATE_POC" = true ]; then
+  if [ "$CURRENT_DEPLOYMENT" = "organizational" ] && [ "$CURRENT_POC_MODE" = "private_poc" ]; then
+    print_warn "Project is already a Private POC. Nothing to do."
+    exit 0
+  fi
+  if [ "$CURRENT_DEPLOYMENT" = "organizational" ] && [ "$CURRENT_POC_MODE" = "sponsored_poc" ]; then
+    print_fail "Cannot downgrade Sponsored POC to Private POC. POC modes only progress upward."
+    exit 1
+  fi
+  if [ "$CURRENT_DEPLOYMENT" = "organizational" ] && [ -z "$CURRENT_POC_MODE" ]; then
+    print_fail "Project is already organizational/production. Cannot downgrade to Private POC."
+    exit 1
+  fi
+  TARGET_DEPLOYMENT="organizational"
+  # Track stays the same for POC transition
+  if [ -z "$TARGET_TRACK" ]; then
+    TARGET_TRACK="$CURRENT_TRACK"
+  fi
+fi
+
 # Use current values if not specified
 if [ -z "$TARGET_TRACK" ]; then
   TARGET_TRACK="$CURRENT_TRACK"
@@ -406,12 +434,17 @@ if [ -z "$CURRENT_POC_MODE" ] && [ "$TO_SPONSORED_POC" = true ]; then
   print_fail "Cannot downgrade a production project to POC mode."
   exit 1
 fi
+if [ -z "$CURRENT_POC_MODE" ] && [ "$TO_PRIVATE_POC" = true ] && [ "$CURRENT_DEPLOYMENT" = "organizational" ]; then
+  print_fail "Cannot downgrade a production project to POC mode."
+  exit 1
+fi
 
 # Determine what changes
 TRACK_CHANGES=false
 DEPLOYMENT_CHANGES=false
 POC_REMOVED=false
 POC_TO_SPONSORED=false
+POC_TO_PRIVATE=false
 
 if [ "$TARGET_TRACK" != "$CURRENT_TRACK" ]; then
   TRACK_CHANGES=true
@@ -429,9 +462,14 @@ if [ "$TO_SPONSORED_POC" = true ] && [ "$CURRENT_POC_MODE" != "sponsored_poc" ];
   POC_TO_SPONSORED=true
 fi
 
+if [ "$TO_PRIVATE_POC" = true ] && [ "$CURRENT_POC_MODE" != "private_poc" ]; then
+  POC_TO_PRIVATE=true
+fi
+
 # Check if anything actually changes
 if [ "$TRACK_CHANGES" = false ] && [ "$DEPLOYMENT_CHANGES" = false ] && \
-   [ "$POC_REMOVED" = false ] && [ "$POC_TO_SPONSORED" = false ]; then
+   [ "$POC_REMOVED" = false ] && [ "$POC_TO_SPONSORED" = false ] && \
+   [ "$POC_TO_PRIVATE" = false ]; then
   print_warn "No changes needed — project is already at $CURRENT_TRACK/$CURRENT_DEPLOYMENT."
   exit 0
 fi
@@ -458,6 +496,9 @@ if [ "$POC_REMOVED" = true ]; then
 fi
 if [ "$POC_TO_SPONSORED" = true ]; then
   echo -e "  ${BOLD}POC Mode:${NC}   ${CURRENT_POC_MODE:-private poc} -> ${GREEN}Sponsored POC${NC}"
+fi
+if [ "$POC_TO_PRIVATE" = true ]; then
+  echo -e "  ${BOLD}POC Mode:${NC}   ${CURRENT_POC_MODE:-none} -> ${GREEN}Private POC${NC}"
 fi
 
 echo ""
@@ -532,7 +573,7 @@ print_step "Updating .claude/phase-state.json"
 
 # phase-state.json doesn't have a track field by default, but we add one
 # for upgrade tracking. We also preserve existing gates.
-python3 << 'PYEOF' - "$PHASE_STATE" "$TARGET_TRACK" "$POC_REMOVED" "$POC_TO_SPONSORED"
+python3 << 'PYEOF' - "$PHASE_STATE" "$TARGET_TRACK" "$POC_REMOVED" "$POC_TO_SPONSORED" "$POC_TO_PRIVATE" "$TARGET_DEPLOYMENT"
 import json, sys
 from datetime import date
 
@@ -540,11 +581,18 @@ phase_state_path = sys.argv[1]
 new_track = sys.argv[2]
 poc_removed = sys.argv[3] == "true"
 poc_to_sponsored = sys.argv[4] == "true"
+poc_to_private = sys.argv[5] == "true"
+new_deployment = sys.argv[6]
 
 with open(phase_state_path) as f:
     data = json.load(f)
 
 data["track"] = new_track
+# UAT 2026-04-26 fix (U-J / T2-G): write the resolved deployment field on
+# every upgrade. Previously this heredoc only wrote .track, leaving
+# .deployment in phase-state.json out of sync with the upgrade banner and
+# with PROJECT_INTAKE.md / CLAUDE.md (which the later heredocs do update).
+data["deployment"] = new_deployment
 data["last_upgrade"] = str(date.today())
 
 if poc_removed:
@@ -552,6 +600,8 @@ if poc_removed:
         del data["poc_mode"]
 elif poc_to_sponsored:
     data["poc_mode"] = "sponsored_poc"
+elif poc_to_private:
+    data["poc_mode"] = "private_poc"
 
 with open(phase_state_path, 'w') as f:
     json.dump(data, f, indent=2)
@@ -566,7 +616,7 @@ print_ok "Updated phase-state.json"
 if [ -f "$INTAKE_PROGRESS" ]; then
   print_step "Updating .claude/intake-progress.json"
 
-  python3 << 'PYEOF' - "$INTAKE_PROGRESS" "$TARGET_TRACK" "$TARGET_DEPLOYMENT" "$POC_REMOVED" "$POC_TO_SPONSORED"
+  python3 << 'PYEOF' - "$INTAKE_PROGRESS" "$TARGET_TRACK" "$TARGET_DEPLOYMENT" "$POC_REMOVED" "$POC_TO_SPONSORED" "$POC_TO_PRIVATE"
 import json, sys
 
 progress_path = sys.argv[1]
@@ -574,6 +624,7 @@ new_track = sys.argv[2]
 new_deployment = sys.argv[3]
 poc_removed = sys.argv[4] == "true"
 poc_to_sponsored = sys.argv[5] == "true"
+poc_to_private = sys.argv[6] == "true"
 
 with open(progress_path) as f:
     data = json.load(f)
@@ -585,6 +636,8 @@ if poc_removed:
     data["poc_mode"] = None
 elif poc_to_sponsored:
     data["poc_mode"] = "sponsored_poc"
+elif poc_to_private:
+    data["poc_mode"] = "private_poc"
 
 with open(progress_path, 'w') as f:
     json.dump(data, f, indent=2)
@@ -600,7 +653,7 @@ fi
 if [ -f "$CLAUDE_MD" ]; then
   print_step "Updating CLAUDE.md"
 
-  python3 << 'PYEOF' - "$CLAUDE_MD" "$TARGET_TRACK" "$TARGET_DEPLOYMENT" "$CURRENT_TRACK" "$CURRENT_DEPLOYMENT" "$POC_REMOVED" "$DEPLOYMENT_CHANGES" "$POC_TO_SPONSORED"
+  python3 << 'PYEOF' - "$CLAUDE_MD" "$TARGET_TRACK" "$TARGET_DEPLOYMENT" "$CURRENT_TRACK" "$CURRENT_DEPLOYMENT" "$POC_REMOVED" "$DEPLOYMENT_CHANGES" "$POC_TO_SPONSORED" "$POC_TO_PRIVATE"
 import re, sys
 
 claude_md_path = sys.argv[1]
@@ -611,6 +664,7 @@ old_deployment = sys.argv[5]
 poc_removed = sys.argv[6] == "true"
 deployment_changes = sys.argv[7] == "true"
 poc_to_sponsored = sys.argv[8] == "true"
+poc_to_private = sys.argv[9] == "true"
 
 with open(claude_md_path) as f:
     content = f.read()
@@ -654,6 +708,10 @@ if poc_to_sponsored:
     content = re.sub(r'private_poc', 'sponsored_poc', content)
     content = re.sub(r'private poc', 'Sponsored POC', content, flags=re.IGNORECASE)
 
+# (POC watermarks for private POC upgrade are added by the governance section
+#  block below when deployment_changes is true; no template-text rewrite is
+#  needed for personal -> private_poc since the source had no POC mention.)
+
 # Update Deployment field if deployment changed
 if deployment_changes:
     content = re.sub(
@@ -691,7 +749,7 @@ fi
 if [ -f "$INTAKE_MD" ]; then
   print_step "Updating PROJECT_INTAKE.md"
 
-  python3 << 'PYEOF' - "$INTAKE_MD" "$TARGET_TRACK" "$TARGET_DEPLOYMENT" "$CURRENT_TRACK" "$CURRENT_DEPLOYMENT" "$POC_REMOVED" "$POC_TO_SPONSORED" "$DEPLOYMENT_CHANGES"
+  python3 << 'PYEOF' - "$INTAKE_MD" "$TARGET_TRACK" "$TARGET_DEPLOYMENT" "$CURRENT_TRACK" "$CURRENT_DEPLOYMENT" "$POC_REMOVED" "$POC_TO_SPONSORED" "$DEPLOYMENT_CHANGES" "$POC_TO_PRIVATE"
 import re, sys
 from datetime import date
 
@@ -703,6 +761,7 @@ old_deployment = sys.argv[5]
 poc_removed = sys.argv[6] == "true"
 poc_to_sponsored = sys.argv[7] == "true"
 deployment_changes = sys.argv[8] == "true"
+poc_to_private = sys.argv[9] == "true"
 
 with open(intake_path) as f:
     content = f.read()
@@ -743,6 +802,12 @@ elif poc_to_sponsored:
         r'\1 Sponsored POC',
         content
     )
+elif poc_to_private:
+    content = re.sub(
+        r'(\*\*Governance Mode:\*\*)\s*.*',
+        r'\1 Private POC',
+        content
+    )
 
 # Add governance section placeholder if moving to organizational and section 8 doesn't exist
 if deployment_changes and new_deployment == "organizational":
@@ -754,7 +819,7 @@ if deployment_changes and new_deployment == "organizational":
 
 _Added during upgrade from personal to organizational deployment on """ + str(date.today()) + """._
 
-**Governance Mode:** """ + ("Production" if poc_removed else ("Sponsored POC" if poc_to_sponsored else "Production")) + """
+**Governance Mode:** """ + ("Production" if poc_removed else ("Sponsored POC" if poc_to_sponsored else ("Private POC" if poc_to_private else "Production"))) + """
 
 ### 8.1 Pre-Conditions
 
