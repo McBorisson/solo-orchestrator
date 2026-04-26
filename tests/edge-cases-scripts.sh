@@ -1204,7 +1204,7 @@ fi
 
 
 # ================================================================
-section "BL-016: init.sh non-interactive mode — E48-E59"
+section "BL-016: init.sh non-interactive mode — E48-E61"
 
 INIT_SH="$REPO_DIR/init.sh"
 
@@ -1437,6 +1437,72 @@ if [ "$_e59_init_rc" = "0" ] && \
   pass "E59: --non-interactive --platform mcp_server produces all platform-specific files (T1-C regression guard)"
 else
   fail "E59: expected rc=0 + platform module + release.yml + UAT ref; got rc=$_e59_init_rc module=$_e59_module_present release=$_e59_release_present uat_ref=$_e59_uat_ref_present"
+fi
+
+# E60: upgrade-project.sh --to-private-poc takes a personal project to
+# organizational/private_poc. T1-D regression guard for the missing
+# personal -> private_poc CLI path. Before this fix, intake-wizard.sh
+# --upgrade-deployment private_poc was rejected (only personal|organizational
+# accepted) and upgrade-project.sh had no --to-private-poc flag.
+_e60_dir="$TEST_DIR/e60"
+mkdir -p "$_e60_dir"
+_e60_proj="$_e60_dir/uat-e60"
+_e60_init_rc=0
+(cd "$_e60_dir" && "$INIT_SH" --non-interactive \
+  --project uat-e60 --platform web --deployment personal \
+  --language typescript --project-dir "$_e60_proj" \
+  --git-host other --remote-url https://example.com/fake.git \
+  --branch-protection-attested >/dev/null 2>&1) || _e60_init_rc=$?
+_e60_upgrade_rc=0
+if [ "$_e60_init_rc" = "0" ] && [ -d "$_e60_proj/scripts" ]; then
+  (cd "$_e60_proj" && bash scripts/upgrade-project.sh --to-private-poc >/dev/null 2>&1) || _e60_upgrade_rc=$?
+else
+  _e60_upgrade_rc=255
+fi
+_e60_poc_mode=""
+_e60_deployment=""
+if [ -f "$_e60_proj/.claude/phase-state.json" ]; then
+  _e60_poc_mode=$(jq -r '.poc_mode // "null"' "$_e60_proj/.claude/phase-state.json" 2>/dev/null || echo "")
+  _e60_deployment=$(jq -r '.deployment // "null"' "$_e60_proj/.claude/phase-state.json" 2>/dev/null || echo "")
+fi
+if [ "$_e60_upgrade_rc" = "0" ] && \
+   [ "$_e60_poc_mode" = "private_poc" ] && \
+   [ "$_e60_deployment" = "organizational" ]; then
+  pass "E60: upgrade-project.sh --to-private-poc takes personal -> organizational/private_poc (T1-D regression guard)"
+else
+  fail "E60: expected rc=0 poc_mode=private_poc deployment=organizational; got rc=$_e60_upgrade_rc poc_mode='$_e60_poc_mode' deployment='$_e60_deployment'"
+fi
+
+# E61: intake-wizard.sh --to-private-poc from a project subdir, invoked via
+# the framework path. Exercises both T1-D fixes: (a) PROJECT_ROOT walk-up
+# from CWD looking for .claude/, and (b) the new --to-private-poc passthrough.
+# Before the fixes, intake-wizard.sh hardcoded PROJECT_ROOT="$SCRIPT_DIR/.."
+# so framework-path invocation always failed with "PROJECT_INTAKE.md not found."
+_e61_dir="$TEST_DIR/e61"
+mkdir -p "$_e61_dir"
+_e61_proj="$_e61_dir/uat-e61"
+_e61_init_rc=0
+(cd "$_e61_dir" && "$INIT_SH" --non-interactive \
+  --project uat-e61 --platform web --deployment personal \
+  --language typescript --project-dir "$_e61_proj" \
+  --git-host other --remote-url https://example.com/fake.git \
+  --branch-protection-attested >/dev/null 2>&1) || _e61_init_rc=$?
+_e61_subdir="$_e61_proj/docs"
+mkdir -p "$_e61_subdir"
+_e61_wizard_rc=0
+if [ "$_e61_init_rc" = "0" ]; then
+  (cd "$_e61_subdir" && bash "$REPO_DIR/scripts/intake-wizard.sh" --to-private-poc >/dev/null 2>&1) || _e61_wizard_rc=$?
+else
+  _e61_wizard_rc=255
+fi
+_e61_poc_mode=""
+if [ -f "$_e61_proj/.claude/phase-state.json" ]; then
+  _e61_poc_mode=$(jq -r '.poc_mode // "null"' "$_e61_proj/.claude/phase-state.json" 2>/dev/null || echo "")
+fi
+if [ "$_e61_wizard_rc" = "0" ] && [ "$_e61_poc_mode" = "private_poc" ]; then
+  pass "E61: intake-wizard.sh --to-private-poc walks up from project subdir + passthrough works (T1-D regression guard)"
+else
+  fail "E61: expected rc=0 poc_mode=private_poc; got rc=$_e61_wizard_rc poc_mode='$_e61_poc_mode'"
 fi
 
 

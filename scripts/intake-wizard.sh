@@ -13,14 +13,45 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/helpers.sh"
 
 # UAT 2026-04-25 fix (U-N): refuse to operate inside the framework repo.
-# (Note: U-G — PROJECT_ROOT being hardcoded to framework even when invoked
-# from a project — is a separate bug deferred to Batch 3.)
 guard_not_in_framework || exit 1
 
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# UAT 2026-04-26 fix (U-G / T1-D): walk up from CWD looking for .claude/.
+# The previous implementation hardcoded PROJECT_ROOT="$SCRIPT_DIR/.." which
+# resolved to the framework dir when invoked via bash $FRAMEWORK/scripts/
+# intake-wizard.sh, breaking --upgrade-deployment / --to-sponsored-poc /
+# --to-private-poc / --resume. Same shape as scripts/upgrade-project.sh's
+# find_project_root().
+find_project_root_for_intake() {
+  local dir="$PWD"
+  while [ "$dir" != "/" ]; do
+    if [ -f "$dir/.claude/phase-state.json" ]; then
+      echo "$dir"
+      return 0
+    fi
+    dir="$(dirname "$dir")"
+  done
+  return 1
+}
+if PROJECT_ROOT="$(find_project_root_for_intake)"; then
+  :
+else
+  print_fail "Could not find project root (no .claude/phase-state.json in CWD or parents)."
+  print_info "Run intake-wizard.sh from your project directory."
+  exit 1
+fi
+
+# All passthrough exec's below use relative `scripts/...` paths, and several
+# wizard sections write into the project's working files. Anchor CWD to the
+# resolved project root so those paths are unambiguous regardless of where
+# the wizard was invoked from.
+cd "$PROJECT_ROOT"
+
+# Templates ship with the framework, not the project.
+FRAMEWORK_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 PROGRESS_FILE="$PROJECT_ROOT/.claude/intake-progress.json"
 INTAKE_FILE="$PROJECT_ROOT/PROJECT_INTAKE.md"
-SUGGESTIONS_DIR="$PROJECT_ROOT/templates/intake-suggestions"
+SUGGESTIONS_DIR="$FRAMEWORK_ROOT/templates/intake-suggestions"
 
 # Project context (loaded from progress file or phase-state.json)
 PROJECT_NAME="${PROJECT_NAME:-}"
@@ -1536,6 +1567,8 @@ main() {
       echo "  --upgrade-to-production Upgrade a POC project to production"
       echo "  --upgrade-track TYPE    Upgrade track (light|standard|full)"
       echo "  --upgrade-deployment T  Upgrade deployment (personal|organizational)"
+      echo "  --to-private-poc        Upgrade Personal -> Private POC"
+      echo "  --to-sponsored-poc      Upgrade Personal/Private POC -> Sponsored POC"
       echo "  --to-sponsored-poc      Convert to sponsored POC"
       echo "  --help                  Show this help"
       exit 0
@@ -1596,6 +1629,14 @@ main() {
     --to-sponsored-poc)
       if [ -x "scripts/upgrade-project.sh" ]; then
         exec bash scripts/upgrade-project.sh --to-sponsored-poc
+      else
+        echo "Error: scripts/upgrade-project.sh not found. Run 'solo init' first."
+        exit 1
+      fi
+      ;;
+    --to-private-poc)
+      if [ -x "scripts/upgrade-project.sh" ]; then
+        exec bash scripts/upgrade-project.sh --to-private-poc
       else
         echo "Error: scripts/upgrade-project.sh not found. Run 'solo init' first."
         exit 1
