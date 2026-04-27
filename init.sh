@@ -1853,19 +1853,53 @@ MANIFESTEOF
     host_push_initial main 2>/dev/null || host_push_initial master || { print_fail "Push failed — $remote_url exists but empty"; return 1; }
 
     print_info "Configuring branch protection ($mode mode)..."
-    host_configure_protection main "$mode" || host_configure_protection master "$mode" \
-      || { print_fail "Protection config failed — run 'scripts/check-gate.sh --repair' after troubleshooting"; return 1; }
-
-    print_info "Verifying protection..."
-    if ! host_verify_protection main "$mode" 2>/dev/null && ! host_verify_protection master "$mode"; then
-      # Retry once for API lag
-      sleep 10
-      if ! host_verify_protection main "$mode" 2>/dev/null && ! host_verify_protection master "$mode"; then
-        print_fail "Verification failed — run 'scripts/check-gate.sh --repair'"
-        return 1
-      fi
+    # BL-002: capture exit code 3 for github free-tier 403 (host_configure_protection
+    # detects the "Upgrade to GitHub Pro" pattern). Fall through to the attestation
+    # flow shared with the --git-host other path so init can complete cleanly.
+    local _hcp_rc=0
+    host_configure_protection main "$mode" || _hcp_rc=$?
+    if [ "$_hcp_rc" -ne 0 ] && [ "$_hcp_rc" -ne 3 ]; then
+      _hcp_rc=0
+      host_configure_protection master "$mode" || _hcp_rc=$?
     fi
-    print_ok "Protection verified for $mode mode"
+
+    if [ "$_hcp_rc" -eq 3 ]; then
+      print_warn "Branch protection unavailable on this repo (free-tier limit)."
+      print_info "Falling back to attestation flow — see remediation message above."
+      local attest
+      if [ "${BRANCH_PROTECTION_ATTESTED:-false}" = true ]; then
+        attest="yes"
+        print_info "Branch protection attested via --branch-protection-attested flag."
+      else
+        read -rp "Attest that protection will be enforced manually until you upgrade? [type 'yes' to attest]: " attest
+      fi
+      [ "$attest" != "yes" ] && { print_fail "Attestation required — cannot proceed (or upgrade to GitHub Pro)"; return 1; }
+      # Record attestation with the github_free_tier reason so check-gate.sh
+      # --preflight skips the API verify.
+      mkdir -p .claude
+      if [ ! -f .claude/process-state.json ]; then
+        echo '{"phase2_init":{"steps_completed":[],"attestations":{}}}' > .claude/process-state.json
+      fi
+      jq --arg at "$(date -u +%FT%TZ)" \
+         '.phase2_init.attestations.branch_protection = {attested_by: "orchestrator", at: $at, reason: "github_free_tier"}' \
+         .claude/process-state.json > .claude/process-state.json.tmp \
+         && mv .claude/process-state.json.tmp .claude/process-state.json
+      print_ok "Free-tier attestation recorded — check-gate.sh --preflight will honor it."
+    elif [ "$_hcp_rc" -ne 0 ]; then
+      print_fail "Protection config failed — run 'scripts/check-gate.sh --repair' after troubleshooting"
+      return 1
+    else
+      print_info "Verifying protection..."
+      if ! host_verify_protection main "$mode" 2>/dev/null && ! host_verify_protection master "$mode"; then
+        # Retry once for API lag
+        sleep 10
+        if ! host_verify_protection main "$mode" 2>/dev/null && ! host_verify_protection master "$mode"; then
+          print_fail "Verification failed — run 'scripts/check-gate.sh --repair'"
+          return 1
+        fi
+      fi
+      print_ok "Protection verified for $mode mode"
+    fi
   fi
 
   # Write host + mode + remote_url to .claude/manifest.json (create if absent)

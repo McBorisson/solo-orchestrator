@@ -108,11 +108,38 @@ t4_yes_flag_before_subcommand() {
   teardown_project
 }
 
+t5_preflight_honors_free_tier_attestation() {
+  # BL-002: check-gate.sh --preflight should pass when a github_free_tier
+  # branch-protection attestation has been recorded in process-state.json,
+  # without invoking host_verify_protection.
+  setup_project
+  jq '.host = "github" | .mode = "personal"' "$TMPDIR_T/.claude/manifest.json" > "$TMPDIR_T/.claude/manifest.json.tmp" \
+    && mv "$TMPDIR_T/.claude/manifest.json.tmp" "$TMPDIR_T/.claude/manifest.json"
+  cat > "$TMPDIR_T/.claude/process-state.json" <<'JSON'
+{"phase2_init":{"steps_completed":[],"attestations":{"branch_protection":{"attested_by":"orchestrator","at":"2026-04-27T00:00:00Z","reason":"github_free_tier"}}}}
+JSON
+  local out rc=0
+  out=$(cd "$TMPDIR_T" && "$SCRIPT" --preflight 2>&1) || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    fail_ "T5" "expected exit 0 with free-tier attestation, got rc=$rc out=$out"
+    teardown_project
+    return
+  fi
+  if [[ "$out" != *"attested"* ]] && [[ "$out" != *"github_free_tier"* ]]; then
+    fail_ "T5" "expected message mentioning attestation; got: $out"
+    teardown_project
+    return
+  fi
+  pass "T5: --preflight honors github_free_tier attestation (skips API verify)"
+  teardown_project
+}
+
 echo "== tests/test-check-gate.sh =="
 t1_yes_flag_writes_host_non_interactive
 t2_interactive_y_still_works
 t3_interactive_n_aborts
 t4_yes_flag_before_subcommand
+t5_preflight_honors_free_tier_attestation
 
 echo ""
 echo "== Total: $((PASSED + FAILED)) | Passed: $PASSED | Failed: $FAILED =="
