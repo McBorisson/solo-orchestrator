@@ -64,23 +64,61 @@ TARGET_DEPLOYMENT=""
 TO_PRODUCTION=false
 TO_SPONSORED_POC=false
 SHOW_HELP=false
+# BL-018: explicit non-interactive marker (overrides [-t 0] auto-detection) + validate-only.
+NON_INTERACTIVE=false
+VALIDATE_ONLY=false
+
+# BL-018: BL-016-style structured error helper (summary + reason + action + context).
+_upgrade_fail() {
+  local summary="$1" reason="$2" action="$3" context="${4:-}"
+  echo "[FAIL] upgrade-project.sh: $summary" >&2
+  echo "  Reason: $reason" >&2
+  echo "  Action: $action" >&2
+  if [ -n "$context" ]; then
+    echo "  Context: $context" >&2
+  fi
+}
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --track)
       if [ $# -lt 2 ]; then
-        print_fail "--track requires a value (light, standard, full)"
+        _upgrade_fail "--track requires a value" \
+                      "the --track flag was passed without a value." \
+                      "re-run with --track <light|standard|full>." \
+                      "--track=(unset)"
         exit 1
       fi
       TARGET_TRACK="$2"
+      case "$TARGET_TRACK" in
+        light|standard|full) ;;
+        *)
+          _upgrade_fail "invalid --track '$TARGET_TRACK'" \
+                        "track must be one of: light, standard, full." \
+                        "re-run with a supported --track value." \
+                        "--track='$TARGET_TRACK'"
+          exit 1 ;;
+      esac
       shift 2
       ;;
     --deployment)
       if [ $# -lt 2 ]; then
-        print_fail "--deployment requires a value (personal, organizational)"
+        _upgrade_fail "--deployment requires a value" \
+                      "the --deployment flag was passed without a value." \
+                      "re-run with --deployment <personal|organizational>." \
+                      "--deployment=(unset)"
         exit 1
       fi
       TARGET_DEPLOYMENT="$2"
+      case "$TARGET_DEPLOYMENT" in
+        personal|organizational) ;;
+        *)
+          _upgrade_fail "invalid --deployment '$TARGET_DEPLOYMENT'" \
+                        "deployment must be one of: personal, organizational." \
+                        "re-run with a supported --deployment value." \
+                        "--deployment='$TARGET_DEPLOYMENT'"
+          exit 1 ;;
+      esac
       shift 2
       ;;
     --to-production)
@@ -95,17 +133,84 @@ while [ $# -gt 0 ]; do
       TO_SPONSORED_POC=true
       shift
       ;;
+    --non-interactive)
+      NON_INTERACTIVE=true
+      shift
+      ;;
+    --validate-only)
+      VALIDATE_ONLY=true
+      shift
+      ;;
     --help|-h)
       SHOW_HELP=true
       shift
       ;;
     *)
-      print_fail "Unknown argument: $1"
-      echo "Run with --help for usage."
+      _upgrade_fail "unknown argument '$1'" \
+                    "the argument was not recognized." \
+                    "see --help for the full flag list." \
+                    "$1"
       exit 1
       ;;
   esac
 done
+
+# BL-018: --to-* flags are mutually exclusive (combining them produces undefined upgrade paths).
+_to_count=0
+[ "$TO_PRODUCTION" = true ]    && _to_count=$((_to_count + 1))
+[ "$TO_SPONSORED_POC" = true ] && _to_count=$((_to_count + 1))
+[ "$TO_PRIVATE_POC" = true ]   && _to_count=$((_to_count + 1))
+if [ "$_to_count" -gt 1 ]; then
+  _upgrade_fail "--to-production / --to-sponsored-poc / --to-private-poc are mutually exclusive" \
+                "only one upgrade-target shortcut may be specified per invocation." \
+                "pick one --to-* flag, or use --track/--deployment for granular upgrades." \
+                "to_production=$TO_PRODUCTION, to_sponsored_poc=$TO_SPONSORED_POC, to_private_poc=$TO_PRIVATE_POC"
+  exit 1
+fi
+
+# BL-018: --validate-only — emit resolved arg JSON and exit before any project read or mutation.
+# Requires at least one upgrade target so the resolved JSON has actionable content.
+if [ "$VALIDATE_ONLY" = true ]; then
+  if [ -z "$TARGET_TRACK" ] && [ -z "$TARGET_DEPLOYMENT" ] && [ "$_to_count" -eq 0 ]; then
+    _upgrade_fail "--validate-only requires at least one upgrade target" \
+                  "no --track, --deployment, or --to-* flag was specified." \
+                  "re-run with one of: --track <T>, --deployment <D>, --to-production, --to-sponsored-poc, --to-private-poc." \
+                  "no_target_flag=true"
+    exit 1
+  fi
+  jq -n \
+    --arg ts "$(date -u +%FT%TZ)" \
+    --arg track "$TARGET_TRACK" \
+    --arg deployment "$TARGET_DEPLOYMENT" \
+    --argjson to_production    "$([ "$TO_PRODUCTION" = true ]    && echo true || echo false)" \
+    --argjson to_sponsored_poc "$([ "$TO_SPONSORED_POC" = true ] && echo true || echo false)" \
+    --argjson to_private_poc   "$([ "$TO_PRIVATE_POC" = true ]   && echo true || echo false)" \
+    --argjson non_interactive  "$([ "$NON_INTERACTIVE" = true ]  && echo true || echo false)" \
+    '{
+      _validated: true,
+      _resolved_at: $ts,
+      target_track:      (if $track == ""      then null else $track      end),
+      target_deployment: (if $deployment == "" then null else $deployment end),
+      to_production:    $to_production,
+      to_sponsored_poc: $to_sponsored_poc,
+      to_private_poc:   $to_private_poc,
+      non_interactive:  $non_interactive,
+      validate_only:    true
+    }'
+  exit 0
+fi
+
+# BL-018: outside --validate-only, still require at least one upgrade target so the script
+# doesn't run a no-op end-to-end (was previously inferred late in the flow with confusing
+# error messages if no flag was passed).
+if [ "$SHOW_HELP" != true ] \
+   && [ -z "$TARGET_TRACK" ] && [ -z "$TARGET_DEPLOYMENT" ] && [ "$_to_count" -eq 0 ]; then
+  _upgrade_fail "no upgrade target specified" \
+                "upgrade-project.sh needs at least one of --track, --deployment, --to-production, --to-sponsored-poc, or --to-private-poc." \
+                "see --help for the full flag list." \
+                "no_target_flag=true"
+  exit 1
+fi
 
 # --- Help ---
 if [ "$SHOW_HELP" = true ]; then
@@ -124,8 +229,15 @@ if [ "$SHOW_HELP" = true ]; then
   echo "  scripts/upgrade-project.sh --to-private-poc           # Personal -> Private POC"
   echo "  scripts/upgrade-project.sh --help                     # This help message"
   echo ""
+  echo -e "${BOLD}Mode flags (BL-018):${NC}"
+  echo "  --non-interactive       Force non-interactive mode (skips Y/N confirmations even on a tty)."
+  echo "                          Auto-detected when stdin is not a tty; this flag overrides for clarity."
+  echo "  --validate-only         Parse + validate flags, print resolved JSON to stdout, exit 0."
+  echo "                          No filesystem reads of project state; no mutation."
+  echo ""
   echo -e "${BOLD}Flags can be combined:${NC}"
   echo "  scripts/upgrade-project.sh --track standard --deployment organizational"
+  echo "  scripts/upgrade-project.sh --validate-only --to-production"
   echo ""
   echo -e "${BOLD}Upgrade paths:${NC}"
   echo "  Track:       light -> standard, light -> full, standard -> full"
