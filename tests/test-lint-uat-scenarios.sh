@@ -192,6 +192,20 @@ HTML
   assert_contains "$out" "parse failed" "mentions parse failure"
 }
 
+case_12_seed_template_no_placeholder_collision() {
+  # T2-H regression: the seed template must not contain literal __PLACEHOLDER__
+  # in comments, because that token matches the linter's `__[A-Z][A-Z_]*__`
+  # placeholder pattern and false-flags every populated copy that retains the
+  # comment.
+  local template="$REPO_ROOT/templates/uat/test-session-template.html"
+  if grep -q '__PLACEHOLDER__' "$template"; then
+    local hit; hit=$(grep -n '__PLACEHOLDER__' "$template" | head -1)
+    echo "  Seed template contains literal __PLACEHOLDER__ at: $hit" >&2
+    echo "  This will false-flag the linter on every populated UAT HTML." >&2
+    return 1
+  fi
+}
+
 case_11_multiple_violations() {
   local work; work=$(mktemp -d); trap "rm -rf '$work'" RETURN
   seed_html "$work/bad.html" '[
@@ -219,6 +233,7 @@ run_case "case 8: duplicate scenario IDs"            case_8_duplicate_ids
 run_case "case 9: missing input file"                case_9_missing_file
 run_case "case 10: malformed JSON"                   case_10_malformed_json
 run_case "case 11: multiple violations"              case_11_multiple_violations
+run_case "case 12: seed template no __PLACEHOLDER__" case_12_seed_template_no_placeholder_collision
 
 echo ""
 echo "═══════════════════════════════════════════"

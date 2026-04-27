@@ -119,7 +119,7 @@ if [ "$SHOW_HELP" = true ]; then
   echo "  scripts/upgrade-project.sh --track standard           # Track upgrade (light->standard, etc.)"
   echo "  scripts/upgrade-project.sh --track full               # Track upgrade to full"
   echo "  scripts/upgrade-project.sh --deployment organizational # Add governance framework"
-  echo "  scripts/upgrade-project.sh --to-production            # POC -> Production (upgrade track + remove POC)"
+  echo "  scripts/upgrade-project.sh --to-production            # POC -> Production (auto-bumps track to standard if light; remove POC)"
   echo "  scripts/upgrade-project.sh --to-sponsored-poc         # Private POC -> Sponsored POC"
   echo "  scripts/upgrade-project.sh --to-private-poc           # Personal -> Private POC"
   echo "  scripts/upgrade-project.sh --help                     # This help message"
@@ -337,6 +337,9 @@ if [ "$TO_PRODUCTION" = true ]; then
   if [ -z "$TARGET_TRACK" ]; then
     if [ "$(track_rank "$CURRENT_TRACK")" -lt "$(track_rank "standard")" ]; then
       TARGET_TRACK="standard"
+      print_warn "Track will auto-bump from $CURRENT_TRACK -> standard."
+      print_warn "  --to-production requires standard or higher (release-pipeline policy)."
+      print_warn "  Pass --track light to keep current track, or --track full to upgrade further."
     else
       TARGET_TRACK="$CURRENT_TRACK"
     fi
