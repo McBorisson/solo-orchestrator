@@ -32,6 +32,25 @@ PHASE3_STEPS=(integration_testing security_hardening chaos_testing accessibility
 PHASE4_STEPS=(production_build rollback_tested go_live_verified monitoring_configured handoff_written handoff_tested)
 PHASE2_INIT_STEPS=(remote_repo_created branch_protection_configured project_scaffolded data_model_applied pre_commit_hooks_installed ci_pipeline_configured initialization_verified)
 
+# --- Phase advance helper (U-D) ---
+# Bump .current_phase in PHASE_STATE to at least N. Never downgrades — if
+# the user is already past N (e.g., re-running --start-phase1 from Phase 3),
+# the value is left alone. Silent no-op if PHASE_STATE doesn't exist
+# (pre-framework projects or test fixtures without the file).
+_set_current_phase_min() {
+  local target="$1"
+  [ -f "$PHASE_STATE" ] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+  local cur
+  cur=$(jq -r '.current_phase // 0' "$PHASE_STATE" 2>/dev/null || echo "0")
+  case "$cur" in ''|*[!0-9]*) cur=0 ;; esac
+  if [ "$cur" -lt "$target" ]; then
+    jq --argjson p "$target" '.current_phase = $p' "$PHASE_STATE" > "$PHASE_STATE.tmp" \
+      && mv "$PHASE_STATE.tmp" "$PHASE_STATE"
+    print_info "Advanced .current_phase: $cur → $target"
+  fi
+}
+
 # --- Argument parsing ---
 ACTION=""
 ARG_VALUE=""
@@ -183,6 +202,7 @@ start_phase1() {
   fi
 
   print_ok "Phase 1 architecture planning started"
+  _set_current_phase_min 1  # U-D
   print_info "Next step: scripts/process-checklist.sh --complete-step phase1_architecture:architecture_selected"
 }
 
@@ -453,6 +473,7 @@ complete_step() {
   if [ "$process" = "phase2_init" ] && [ "$new_step_num" -eq "${#steps[@]}" ]; then
     jq '.phase2_init.verified = true' "$PROCESS_STATE" > "$PROCESS_STATE.tmp" && mv "$PROCESS_STATE.tmp" "$PROCESS_STATE"
     print_ok "Phase 2 initialization auto-verified (all ${#steps[@]} steps complete)"
+    _set_current_phase_min 2  # U-D
   fi
 
   # Auto-reset build_loop when feature_recorded lands — the previous feature's
@@ -498,15 +519,11 @@ start_phase3() {
   local now
   now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-  # P3-012: Verify Phase 2 prerequisites before allowing Phase 3 entry
-  local phase_state=".claude/phase-state.json"
-  if [ -f "$phase_state" ]; then
-    local current_phase
-    current_phase=$(grep -o '"current_phase"[[:space:]]*:[[:space:]]*"*[0-9]*"*' "$phase_state" | grep -o '[0-9]*' || echo "0")
-    if [ "$current_phase" -lt 3 ] 2>/dev/null; then
-      print_warn "current_phase is $current_phase (expected >= 3). Update phase-state.json before starting Phase 3."
-    fi
-  fi
+  # P3-012 + U-D: enforce Phase 2 → 3 prerequisites and auto-advance
+  # current_phase. Pre-fix this only WARNED if current_phase < 3, leaving
+  # the operator to manually `jq` patch phase-state.json. We now do the
+  # advance ourselves at the end of this function (after the bug-gate
+  # check passes).
 
   # Check bug gate status
   local test_gate="$SCRIPT_DIR/test-gate.sh"
@@ -527,6 +544,7 @@ start_phase3() {
   ' "$PROCESS_STATE" > "$PROCESS_STATE.tmp" && mv "$PROCESS_STATE.tmp" "$PROCESS_STATE"
 
   print_ok "Phase 3 validation started"
+  _set_current_phase_min 3  # U-D
   print_info "Next step: scripts/process-checklist.sh --complete-step phase3_validation:integration_testing"
 }
 
@@ -556,6 +574,7 @@ start_phase4() {
   ' "$PROCESS_STATE" > "$PROCESS_STATE.tmp" && mv "$PROCESS_STATE.tmp" "$PROCESS_STATE"
 
   print_ok "Phase 4 release started"
+  _set_current_phase_min 4  # U-D
   print_info "Next step: scripts/process-checklist.sh --complete-step phase4_release:production_build"
 }
 
@@ -677,6 +696,7 @@ verify_init() {
     fi
     jq '.phase2_init.verified = true' "$PROCESS_STATE" > "$PROCESS_STATE.tmp" && mv "$PROCESS_STATE.tmp" "$PROCESS_STATE"
     print_ok "Phase 2 initialization fully verified ($total/$total steps complete)"
+    _set_current_phase_min 2  # U-D
   else
     print_warn "Phase 2 initialization incomplete ($prereq_done/$prereq_total prerequisite steps)"
     echo ""
