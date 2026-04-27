@@ -120,15 +120,22 @@ Or alternatively: keep hyphen in files, normalize at lookup with `${PLATFORM//_/
 **Effect:** `check-gate.sh --preflight` keeps failing because manifest lacks the host key.
 **Fix:** Have init.sh write `manifest.host` whenever `--git-host` is provided.
 
-### T2-D — Several scripts print `[FAIL]` but `exit 0`
+### T2-D — Several scripts print `[FAIL]` but `exit 0` — **CLOSED: could-not-reproduce (2026-04-26)**
 
-**Severity:** Medium
-**Affected scripts:**
+**Severity:** Medium → ~~Resolved~~ (no bug found)
+**Originally claimed:**
 - `scripts/check-gate.sh --preflight` (cmd_preflight returns 1 internally; outer dispatcher case discards)
 - `scripts/pending-approval.sh --validate` (prints schema error, exit 0)
 - `scripts/lint-uat-scenarios.sh` on missing-scenarios input (prints "no scenarios block found", exit 0 ... or exit 2 inconsistently)
-**Confirmation:** ~5 agents reported variants.
-**Fix at each:** Return non-zero on `[FAIL]` paths; lint should distinguish "no input" (usage error, exit 2) from "violations found" (exit 1) from "clean" (exit 0).
+
+**Investigation (2026-04-26):** Direct reproduction attempts on all three scripts returned the documented non-zero exit codes:
+- `check-gate.sh --preflight` with no manifest → `[FAIL]` + RC=1
+- `pending-approval.sh --validate` on bad schema → `[FAIL]` + RC=1 (already covered by `tests/test-pending-approval.sh::p15`)
+- `lint-uat-scenarios.sh` on missing-scenarios block → RC=2; on no arg → RC=2; on placeholder violations → RC=1; on clean → RC=0
+
+Existing test suites (`tests/test-pending-approval.sh` 17/17, `tests/test-lint-uat-scenarios.sh` 11/11) already lock these exit codes in. Agent reports cite `exit 0` but reproductions show RC=1; agent-12's "exits 0" claim contradicts `lint-uat-scenarios.sh:10` (`exit 2`) and the passing test. The one real exit-code-adjacent symptom (agent-20's `--backfill-host` non-interactive) is **T2-E**, not T2-D.
+
+**Resolution:** Closed. Existing tests guard the behavior.
 
 ### T2-E — `check-gate.sh --backfill-host` interactive-only
 
@@ -153,10 +160,17 @@ Or alternatively: keep hyphen in files, normalize at lookup with `${PLATFORM//_/
 **Affected file:** `templates/uat/test-session-template.html:142` (the comment that documents the placeholder syntax).
 **Fix:** Skip lines inside HTML comments; or rename the placeholder example.
 
-### T2-I — `process-checklist.sh --verify-init` non-idempotent (U-L, prior-sweep open)
+### T2-I — `process-checklist.sh --verify-init` non-idempotent — **CLOSED: could-not-reproduce as framed (2026-04-26)**
 
-**Severity:** Medium
-**First call:** "Cannot auto-verify"; **Second call:** silently auto-marks. Confusing UX. Confirmed by agent 13.
+**Severity:** Medium → ~~Resolved~~ (TRIAGE summary did not match the code)
+
+**Originally claimed:** First call "Cannot auto-verify"; second call silently auto-marks.
+
+**Investigation (2026-04-26):** Two consecutive `--verify-init` calls against an identical state produce identical output and identical state — `verify_init()` at `scripts/process-checklist.sh:562` is idempotent for any fixed prerequisite-completion set. The "first/second call" transition only happens when the user manually marks `data_model_applied` between the calls, which is the documented workflow (the script tells the user to do exactly that).
+
+Agent-13's actual report is a separate complaint: `pre-commit-gate` re-demands `--verify-init` after Phase 2 work has progressed. That's a `pre-commit-gate` signal-checking bug, not a `verify_init` idempotency bug. Tracking it as a new entry if it reproduces post-T2 cleanup.
+
+**Resolution:** Closed as written. If agent-13's symptom reproduces, file as a new bug under `pre-commit-gate.sh` (not `process-checklist.sh`).
 
 ## Tier 3 — Prior-sweep open, still confirmed (no change)
 
