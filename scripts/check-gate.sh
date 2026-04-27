@@ -48,6 +48,21 @@ _require_manifest() {
 cmd_preflight() {
   _require_manifest || return 1
   print_step "Preflight: checking protection status"
+
+  # BL-002: honor a recorded `github_free_tier` (or `other_host_attestation`)
+  # branch-protection attestation from process-state.json. When the project
+  # was init'd against a tier-limited host, host_verify_protection has
+  # nothing to verify — the attestation IS the gate.
+  local attest_reason=""
+  if [ -f .claude/process-state.json ]; then
+    attest_reason=$(jq -r '.phase2_init.attestations.branch_protection.reason // ""' \
+                       .claude/process-state.json 2>/dev/null || echo "")
+  fi
+  if [ "$attest_reason" = "github_free_tier" ]; then
+    print_ok "Ready: branch protection attested (reason: github_free_tier — upgrade to GitHub Pro to enable API enforcement)"
+    return 0
+  fi
+
   # shellcheck disable=SC1090
   source "$SCRIPT_DIR/lib/host.sh"
   host_load_driver || {

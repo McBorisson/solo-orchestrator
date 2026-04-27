@@ -109,8 +109,31 @@ host_configure_protection() {
       ;;
   esac
 
-  if ! gh api -X PUT "repos/$owner_repo/branches/$branch/protection" --input - <<<"$payload" >/dev/null 2>&1; then
+  # BL-002: capture gh stderr so we can detect free-tier 403s. The pattern
+  # `Upgrade to GitHub Pro` (or `make this repository public`) is GitHub's
+  # canonical message when branch protection is unavailable on a free-tier
+  # personal account's private repo. Distinguish from generic 403s (e.g.
+  # insufficient org permissions) which keep returning 2.
+  local gh_err
+  if ! gh_err=$(gh api -X PUT "repos/$owner_repo/branches/$branch/protection" --input - <<<"$payload" 2>&1); then
+    if echo "$gh_err" | grep -qE 'Upgrade to GitHub Pro|make this repository public'; then
+      printf '%s\n' \
+        "github driver: branch protection is unavailable on this repo." \
+        "" \
+        "  GitHub free-tier personal accounts cannot enable branch protection on" \
+        "  private repos. The API responded:" \
+        "" \
+        "$(printf '    %s\n' "$gh_err")" \
+        "" \
+        "  Options:" \
+        "    1. Upgrade to GitHub Pro (\$4/mo) — unlocks protection on private repos." \
+        "    2. Make this repo public — protection works on free-tier public repos." \
+        "    3. Attest manually — accept that protection is enforced by convention," \
+        "       not the API. Re-run with --branch-protection-attested to record this." >&2
+      return 3
+    fi
     echo "github driver: failed to configure protection on $owner_repo#$branch ($mode mode)" >&2
+    [ -n "$gh_err" ] && printf '  %s\n' "$gh_err" >&2
     return 2
   fi
   return 0
