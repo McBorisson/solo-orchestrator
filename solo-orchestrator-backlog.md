@@ -513,7 +513,9 @@ Apply to any future runbook templates as well; the existing rev1/rev2 runbooks h
 **Logged:** 2026-04-27
 **Category:** Debt (real bug)
 **Severity:** Medium
-**Status:** Open
+**Status:** Resolved (2026-04-27, PR #38)
+
+**Resolution:** `init.sh::create_and_protect_remote` reordered so the attestation prompt + record block runs BEFORE `git push` on the `--git-host other` path. Push failure no longer drops the attestation. New `tests/test-init-other-host-attestation.sh` covers the regression (2 cases: attestation persists on push failure, regression check that the flag is still required).
 
 `init.sh::create_and_protect_remote` for the `--git-host other` path has the wrong order of operations relative to `--branch-protection-attested`. The flow at `init.sh:1768-1836`:
 

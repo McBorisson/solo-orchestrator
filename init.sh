@@ -1807,10 +1807,13 @@ MANIFESTEOF
     fi
     [ -z "$remote_url" ] && { print_fail "Remote URL required for 'other' host"; return 1; }
     git remote add origin "$remote_url"
-    if ! git push -u origin main 2>/dev/null && ! git push -u origin master 2>/dev/null; then
-      print_fail "Push failed — verify URL and credentials"
-      return 1
-    fi
+
+    # BL-024: record attestation BEFORE the push attempt. Attestation is a
+    # forward-looking commitment ("I will configure protection on this remote")
+    # — it does not depend on push success. Pre-fix, push happened first and
+    # any push failure (corporate firewall, fake URL for testing, connectivity
+    # blip) returned 1 before attestation was written, silently dropping the
+    # operator's commitment.
     echo ""
     echo "Since 'other' host is not API-verifiable, attest branch protection:"
     echo "  - Force-push disabled on main"
@@ -1825,7 +1828,7 @@ MANIFESTEOF
       read -rp "Has branch protection been configured per the above? [type 'yes' to attest]: " attest
     fi
     [ "$attest" != "yes" ] && { print_fail "Attestation required — cannot proceed to Phase 0"; return 1; }
-    # Record attestation in process-state.json
+    # Record attestation in process-state.json (BEFORE push — see BL-024 above).
     mkdir -p .claude
     if [ ! -f .claude/process-state.json ]; then
       echo '{"phase2_init":{"steps_completed":[],"attestations":{}}}' > .claude/process-state.json
@@ -1834,6 +1837,17 @@ MANIFESTEOF
        '.phase2_init.attestations.branch_protection = {attested_by: "orchestrator", at: $at}' \
        .claude/process-state.json > .claude/process-state.json.tmp \
        && mv .claude/process-state.json.tmp .claude/process-state.json
+
+    # Push happens AFTER attestation so a push failure cannot drop the
+    # attestation. The outer init.sh wraps create_and_protect_remote in
+    # `if ! ...; then warn ...` (BL-016/U-B fix at init.sh:1717-1730), so
+    # `return 1` here surfaces the push failure as a remediation prompt
+    # without aborting init.sh — and the attestation we just wrote
+    # persists for check-gate.sh --repair / --preflight to honor.
+    if ! git push -u origin main 2>/dev/null && ! git push -u origin master 2>/dev/null; then
+      print_fail "Push failed — verify URL and credentials"
+      return 1
+    fi
   else
     # First-class host: dispatcher + driver
     # shellcheck disable=SC1090
