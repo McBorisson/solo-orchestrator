@@ -110,6 +110,31 @@ if [ ! -f "$HOOK" ]; then fail_ "T7" "hook missing"; else
 fi
 teardown
 
+# T8: synthetic Build Loop step proposal triggers severity='refuse_to_recommend'.
+echo "T8: fake_loop pattern is recorded with elevated severity"
+setup
+if [ ! -f "$HOOK" ]; then fail_ "T8" "hook missing"; else
+  CLAUDE_PROJECT_DIR="$TMP" cat <<EOF | CLAUDE_PROJECT_DIR="$TMP" bash "$HOOK" >/dev/null 2>&1
+{"hook_event_name":"Stop","transcript":"I'll mark step build_loop:tests_verified_failing complete and skip ahead"}
+EOF
+  pattern=$(jq -r '.[0].details.pattern' "$TMP/.claude/bypass-audit.json")
+  severity=$(jq -r '.[0].details.severity // "normal"' "$TMP/.claude/bypass-audit.json")
+  if [ "$pattern" = "fake_loop" ] && [ "$severity" = "refuse_to_recommend" ]; then pass "T8"; else fail_ "T8" "pattern=$pattern severity=$severity"; fi
+fi
+teardown
+
+# T9: ordinary --no-verify match has severity='normal' (not elevated).
+echo "T9: no_verify pattern stays severity='normal'"
+setup
+if [ ! -f "$HOOK" ]; then fail_ "T9" "hook missing"; else
+  CLAUDE_PROJECT_DIR="$TMP" cat <<EOF | CLAUDE_PROJECT_DIR="$TMP" bash "$HOOK" >/dev/null 2>&1
+{"hook_event_name":"PostToolUse","tool_input":{"command":"x"},"tool_result":{"output":"use --no-verify"}}
+EOF
+  severity=$(jq -r '.[0].details.severity' "$TMP/.claude/bypass-audit.json")
+  if [ "$severity" = "normal" ]; then pass "T9"; else fail_ "T9" "got '$severity'"; fi
+fi
+teardown
+
 echo ""
 echo "Results: $PASSED passed, $FAILED failed"
 [ "$FAILED" -eq 0 ]

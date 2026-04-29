@@ -58,6 +58,13 @@ esac
 PATTERN=$(scan_bypass_patterns "$TEXT") || exit 0
 [ -z "$PATTERN" ] && exit 0
 
+# Refuse-to-recommend severity for fake-loop class patterns. Per agent-5
+# spec: framework should not rely on Claude's good taste alone.
+SEVERITY="normal"
+case "$PATTERN" in
+  fake_loop|manual_step_complete) SEVERITY="refuse_to_recommend" ;;
+esac
+
 # Look up the original regex for excerpt extraction (per BL-029 plan
 # amendment — using the pattern name as a regex via tr was broken).
 REGEX=$(pattern_regex_for "$PATTERN" 2>/dev/null || echo "$PATTERN")
@@ -77,13 +84,14 @@ ROW=$(jq -nc \
   --arg pat "$PATTERN" \
   --arg evt "$EVENT" \
   --arg ex "$EXCERPT" \
+  --arg sev "$SEVERITY" \
   '{
     timestamp: $ts,
     session_id: $sid,
     type: "claude_bypass_proposal",
     actor: "claude",
     enforcement_level_at_event: $lvl,
-    details: {pattern: $pat, event: $evt, excerpt: $ex},
+    details: {pattern: $pat, event: $evt, excerpt: $ex, severity: $sev},
     user_response: "PENDING",
     final_outcome: "recorded_only"
   }')
