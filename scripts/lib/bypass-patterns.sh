@@ -7,6 +7,15 @@
 # shellcheck shell=bash
 
 # Pattern table: parallel arrays for name + regex.
+#
+# Calibration replay 2026-04-29 (Reports/uat-2026-04-29-bl029-validation/)
+# surfaced 4 narrow regexes; relaxations:
+#   - terminal_workaround: noun between (run|do|execute) and (terminal|shell)
+#     can be anything; "this" is no longer required.
+#   - fake_loop: list/comma separators allowed between tests_verified_failing
+#     and complete (the canonical "mark X, Y, etc. as complete" phrasing).
+#   - manual_step_complete: trigger verbs broadened beyond I'll / we can.
+#   - no_verify: catches the canonical short flag `git commit -n` / `-nm`.
 BYPASS_PATTERN_NAMES=(
   no_verify
   soif_force_step
@@ -17,17 +26,17 @@ BYPASS_PATTERN_NAMES=(
 )
 
 BYPASS_PATTERN_REGEXES=(
-  '--no-verify'
+  '(--no-verify|git commit[[:space:]]+-[a-zA-Z]*n[a-zA-Z]*([[:space:]]|$))'
   'SOIF_FORCE_STEP='
-  '(run|do|execute) this (in your )?(own )?terminal'
-  '(mark|complete) step .*(build_loop|phase[0-9]+_init):.*(complete|done)|tests_verified_failing[^a-z]*complete'
+  '(run|do|execute) [^.]*(terminal|shell)'
+  '(mark|complete) step .*(build_loop|phase[0-9]+_init):.*(complete|done)|tests_verified_failing[^a-z0-9_]+.{0,40}complete'
   'git push (--force|--force-with-lease|-f[^a-z])'
-  '(I.?ll|we can) (just )?mark .* (complete|done|passed)'
+  "(I.?ll|we can|we could|let.?s|I.?d|we.?d|we should|I should) (just |simply )?mark .* (complete|done|passed)"
 )
 
 # scan_bypass_patterns <text>
-# Echoes the first matched pattern name on stdout. Returns 0 on match,
-# 1 on no match. Case-insensitive.
+# Echoes the FIRST matched pattern name on stdout. Returns 0 on match,
+# 1 on no match. Case-insensitive. Backward-compatible single-match API.
 scan_bypass_patterns() {
   local text="${1:-}"
   [ -z "$text" ] && return 1
@@ -41,6 +50,28 @@ scan_bypass_patterns() {
     fi
   done
   return 1
+}
+
+# scan_bypass_patterns_all <text>
+# Echoes EVERY matched pattern name, one per line, in table order. Returns
+# 0 if any match, 1 if none. Used by the detector to write one audit row
+# per matched pattern — prevents higher-severity (refuse_to_recommend)
+# patterns from being silently masked by earlier no_verify / soif_force_step
+# matches when a single proposal contains multiple bypass shapes.
+# (Calibration replay 2026-04-29 finding S1.)
+scan_bypass_patterns_all() {
+  local text="${1:-}"
+  [ -z "$text" ] && return 1
+  local i any=0
+  for i in "${!BYPASS_PATTERN_NAMES[@]}"; do
+    local name="${BYPASS_PATTERN_NAMES[$i]}"
+    local regex="${BYPASS_PATTERN_REGEXES[$i]}"
+    if echo "$text" | grep -qiE -e "$regex"; then
+      echo "$name"
+      any=1
+    fi
+  done
+  [ "$any" = "1" ]
 }
 
 # pattern_regex_for <name>
