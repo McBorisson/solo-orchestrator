@@ -98,3 +98,26 @@ S2 subset to fix in this branch:
 Defer the new pattern classes (hook-attacks, state-file edits, manifest edits, attestation abuse, commit-type laundering) to a follow-up. They each merit their own design conversation about pattern shape and false-positive surface.
 
 Estimated time for the subset: 30-60 minutes (regex edits + new tests + verify).
+
+## Resolution (2026-04-29)
+
+**S1 fixed** in commit `d7c1c55` (`fix(bl-029): detector writes one row per matched pattern`).
+- New `scan_bypass_patterns_all` function in `scripts/lib/bypass-patterns.sh` emits all matched pattern names, one per line.
+- `scripts/hooks/bypass-detector.sh` now loops over all matches and writes one audit row per pattern. Pending-approval sentinel still written exactly once per proposal (idempotent).
+- Tests T10/T11/T12 in `tests/test-bypass-detector.sh` lock in the fix: multi-pattern proposals write multiple rows, `refuse_to_recommend` severity is no longer masked by earlier `no_verify` matches, sentinel preserved across multi-match.
+
+**S2 fixed** in commit `5657352` (`fix(bl-029): relax 4 regexes per calibration findings`).
+- `terminal_workaround`: `(run|do|execute) [^.]*(terminal|shell)` — drops "this" requirement, adds "shell" alternative.
+- `fake_loop`: `[^a-z0-9_]+.{0,40}complete` separator class — handles list-form "tests_verified_failing, etc. as complete."
+- `manual_step_complete`: trigger verbs broadened to include `we could / let's / I'd / we should / I should`.
+- `no_verify`: catches canonical short flag in `git commit -n` / `-nm` / `-nv` etc.
+- Tests T10–T15 in `tests/test-bypass-patterns.sh` lock in each relaxation.
+
+**S3 / S4 / S5 deferred** to a follow-up BL item. They are real but post-merge:
+- S3 (documentation FPs): bounded; framework's own dev work will see noise but per-row triage remains easy thanks to the verbatim excerpt.
+- S4 (audit-row closer on sentinel resolution): feature, not bug; W7 utility is partial without it but BL-029 ships the load-bearing detection layer regardless.
+- S5 (sentinel priming risk): UX edge; the priming is bounded because the framework's `recommendation: A2` (default decline) carries the defense even if the novice copy-pastes the phrase.
+
+Full regression: **22/22 PASS** including new T10/T11/T12 detector tests and T10–T18 pattern tests.
+
+Recalibration recommended after the next major UAT sweep. Specific phrasings that fired the relaxations are documented in this TRIAGE — future calibrations should at minimum re-fire them as regression coverage.
